@@ -91,6 +91,13 @@ namespace SemanticKernelPractice
                     // Register kernel builder service (uses adapters)
                     services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 
+                    // Register Kernel as a singleton using the KernelBuilderService
+                    services.AddSingleton<Kernel>(sp =>
+                    {
+                        var kernelBuilder = sp.GetRequiredService<IKernelBuilderService>();
+                        return kernelBuilder.BuildKernel();
+                    });
+
                     // Register agent creation service (uses kernel builder service)
                     services.AddSingleton<IAgentService, AgentService>();
 
