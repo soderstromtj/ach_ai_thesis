@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace SemanticKernelPractice.Factories
 {
@@ -29,11 +30,11 @@ namespace SemanticKernelPractice.Factories
         public SloganOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
-            OrchestrationSettings orchestrationSettings)
+            IOptions<OrchestrationSettings> orchestrationSettings)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
-            _orchestrationSettings = orchestrationSettings;
+            _orchestrationSettings = orchestrationSettings.Value;
             _history = new ChatHistory();
         }
 
