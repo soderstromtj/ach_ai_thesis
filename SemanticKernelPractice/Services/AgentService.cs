@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SemanticKernelPractice.Configuration;
 using Microsoft.SemanticKernel;
-using Microsoft.Extensions.Options;
 
 namespace SemanticKernelPractice.Services
 {
@@ -17,10 +16,10 @@ namespace SemanticKernelPractice.Services
         private readonly Kernel _kernel;
 
         public AgentService(
-            IOptions<AgentConfiguration[]> agentConfiguration,
+            IEnumerable<AgentConfiguration> agentConfigurations,
             Kernel kernel)
         {
-            _agentConfigurations = agentConfiguration.Value;
+            _agentConfigurations = agentConfigurations;
             _kernel = kernel;
         }
 

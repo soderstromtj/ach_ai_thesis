@@ -80,7 +80,13 @@ namespace SemanticKernelPractice
                     // Register configuration settings
                     services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIService"));
                     services.Configure<OrchestrationSettings>(context.Configuration.GetSection("OrchestrationSettings"));
-                    services.Configure<AgentConfiguration[]>(context.Configuration.GetSection("AgentConfigurations"));
+
+                    // Register AgentConfiguration array as a direct service (IOptions doesn't support arrays)
+                    services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
+                    {
+                        var config = sp.GetRequiredService<IConfiguration>();
+                        return config.GetSection("AgentConfigurations").Get<AgentConfiguration[]>() ?? Array.Empty<AgentConfiguration>();
+                    });
 
                     // Register kernel builder adapters
                     services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
