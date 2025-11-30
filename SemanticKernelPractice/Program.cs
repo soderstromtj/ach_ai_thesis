@@ -38,12 +38,12 @@ namespace SemanticKernelPractice
 
             try
             {
-                var factory = host.Services.GetRequiredService<IOrchestrationFactory<string>>();
+                var factory = host.Services.GetRequiredService<IOrchestrationFactory<Analysis>>();
 
                 var result = await factory.ExecuteCoreAsync("Create a slogan for a premium smartwatch targeting fitness enthusiasts.");
 
                 Console.WriteLine("\n" + new string('=', 70));
-                Console.WriteLine($"FINAL APPROVED SLOGAN: {result}");
+                Console.WriteLine($"FINAL APPROVED SLOGAN: {result.ApprovedSlogan}");
                 Console.WriteLine(new string('=', 70) + "\n");
 
                 if (factory is SloganOrchestrationFactory sloganFactory)
@@ -108,7 +108,7 @@ namespace SemanticKernelPractice
                     services.AddSingleton<IAgentService, AgentService>();
 
                     // Register orchestration factories
-                    services.AddTransient<IOrchestrationFactory<string>, SloganOrchestrationFactory>();
+                    services.AddTransient<IOrchestrationFactory<Analysis>, SloganOrchestrationFactory>();
 
                     // Configure logging
                     services.AddLogging(builder =>

@@ -16,11 +16,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using SemanticKernelPractice.Models;
 
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class SloganOrchestrationFactory : IOrchestrationFactory<string>
+    public class SloganOrchestrationFactory : IOrchestrationFactory<Analysis>
     {
         private readonly IAgentService _agentService;
         private readonly IKernelBuilderService _kernelBuilderService;
@@ -38,7 +39,7 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<string> IOrchestrationFactory<string>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        async Task<Analysis> IOrchestrationFactory<Analysis>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
         {
             Agent[] agents = _agentService.CreateAgents().ToArray();
 
@@ -50,11 +51,11 @@ namespace SemanticKernelPractice.Factories
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            var outputTransform = new StructuredOutputTransform<string>(
+            var outputTransform = new StructuredOutputTransform<Analysis>(
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
-                    ResponseFormat = typeof(string)
+                    ResponseFormat = typeof(Analysis)
                 });
 
 
@@ -64,7 +65,7 @@ namespace SemanticKernelPractice.Factories
             };
 
 
-            GroupChatOrchestration<string, string> orchestration = new GroupChatOrchestration<string, string>(manager, agents)
+            GroupChatOrchestration<string, Analysis> orchestration = new GroupChatOrchestration<string, Analysis>(manager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync
@@ -84,13 +85,14 @@ namespace SemanticKernelPractice.Factories
             catch (Exception ex)
             {
                 Console.WriteLine($"\nError: {ex.Message}");
-                return string.Empty;
+                return new Analysis { 
+                    ApprovedSlogan = "Error occurred",
+                    Evaluation = ex.Message
+                };
             }
             finally
             {
                 await runtime.RunUntilIdleAsync();
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
             }
         }
 
