@@ -2,7 +2,7 @@
 {
     public class OrchestrationSettings
     {
-        public int MaximumInvocationCount { get; set; } = 5;
-        public int TimeoutInMinutes { get; set; } = 2;
+        public int MaximumInvocationCount { get; set; } = 30;
+        public int TimeoutInMinutes { get; set; } = 15;
     }
 }

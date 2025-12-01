@@ -19,9 +19,8 @@ namespace SemanticKernelPractice.Services
             _adapters = adapters;
 
             // Select the appropriate adapter based on configuration
-            _selectedAdapter = _adapters.FirstOrDefault(a => a.SupportedProvider == _serviceSettings.Provider)
-                ?? throw new InvalidOperationException(
-                    $"No adapter found for provider: {_serviceSettings.Provider}");
+            _selectedAdapter = _adapters.FirstOrDefault(a => a.SupportedProvider == _serviceSettings.Provider) 
+                ?? throw new InvalidOperationException($"No adapter found for provider: {_serviceSettings.Provider}");
         }
 
         public Kernel BuildKernel()

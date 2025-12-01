@@ -21,14 +21,14 @@ using SemanticKernelPractice.Models;
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class SloganOrchestrationFactory : IOrchestrationFactory<Analysis>
+    public class EvidenceExtractionOrchestrationFactory : IOrchestrationFactory<List<Evidence>>
     {
         private readonly IAgentService _agentService;
         private readonly IKernelBuilderService _kernelBuilderService;
         private readonly OrchestrationSettings _orchestrationSettings;
         private readonly ChatHistory _history;
 
-        public SloganOrchestrationFactory(
+        public EvidenceExtractionOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings)
@@ -39,7 +39,7 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<Analysis> IOrchestrationFactory<Analysis>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        async Task<List<Evidence>> IOrchestrationFactory<List<Evidence>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
         {
             Agent[] agents = _agentService.CreateAgents().ToArray();
 
@@ -51,11 +51,11 @@ namespace SemanticKernelPractice.Factories
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            var outputTransform = new StructuredOutputTransform<Analysis>(
+            var outputTransform = new StructuredOutputTransform<List<Evidence>>(
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
-                    ResponseFormat = typeof(Analysis)
+                    ResponseFormat = typeof(List<Evidence>)
                 });
 
 
@@ -65,7 +65,7 @@ namespace SemanticKernelPractice.Factories
             };
 
 
-            GroupChatOrchestration<string, Analysis> orchestration = new GroupChatOrchestration<string, Analysis>(manager, agents)
+            GroupChatOrchestration<string, List<Evidence>> orchestration = new GroupChatOrchestration<string, List<Evidence>>(manager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync
@@ -85,9 +85,15 @@ namespace SemanticKernelPractice.Factories
             catch (Exception ex)
             {
                 Console.WriteLine($"\nError: {ex.Message}");
-                return new Analysis { 
-                    ApprovedSlogan = "Error occurred",
-                    Evaluation = ex.Message
+                Console.WriteLine(ex.StackTrace);
+                return new List<Evidence>
+                {
+                    new Evidence
+                    { 
+                        Id = -1, 
+                        Description = "Error during orchestration", 
+                        Type = EvidenceType.Fact  
+                    }
                 };
             }
             finally
@@ -100,7 +106,11 @@ namespace SemanticKernelPractice.Factories
         {
             _history.Add(response);
             Console.WriteLine($"\n[{response.AuthorName}]");
-            Console.WriteLine(response.Content);
+            
+            string contentToPrint = response.Content is not null
+                ? (response.Content.Length > 100 ? response.Content.Substring(0, 100) : response.Content)
+                : string.Empty;
+            Console.WriteLine(contentToPrint);
             return ValueTask.CompletedTask;
         }
 

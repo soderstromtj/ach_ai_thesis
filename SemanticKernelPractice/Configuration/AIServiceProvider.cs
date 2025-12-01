@@ -4,12 +4,7 @@
     {
         AzureOpenAI,
         OpenAI,
-        MicrosoftFoundry,
         Ollama,
-        Google,
         HuggingFace,
-        Anthropic,
-        AmazonBedrock,
-        ONXX
     }
 }

@@ -10,7 +10,7 @@ namespace SemanticKernelPractice.Configuration
 {
     public class AIServiceSettings
     {
-        public AIServiceProvider Provider { get; set; } = AIServiceProvider.AzureOpenAI;
+        public AIServiceProvider Provider { get; set; } = AIServiceProvider.OpenAI;
         public AzureOpenAISettings? AzureOpenAI { get; set; }
         public OpenAISettings? OpenAI { get; set; }
         public OllamaSettings? Ollama { get; set; }
