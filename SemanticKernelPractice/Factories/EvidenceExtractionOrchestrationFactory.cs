@@ -66,11 +66,12 @@ namespace SemanticKernelPractice.Factories
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            var outputTransform = new StructuredOutputTransform<List<Evidence>>(
+            // Use EvidenceResult wrapper - OpenAI structured output requires top-level object, not array
+            var outputTransform = new StructuredOutputTransform<EvidenceResult>(
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
-                    ResponseFormat = typeof(List<Evidence>)
+                    ResponseFormat = typeof(EvidenceResult)
                 });
 
 
@@ -80,7 +81,7 @@ namespace SemanticKernelPractice.Factories
             };
 
 
-            GroupChatOrchestration<string, List<Evidence>> orchestration = new GroupChatOrchestration<string, List<Evidence>>(manager, agents)
+            GroupChatOrchestration<string, EvidenceResult> orchestration = new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync
@@ -94,7 +95,7 @@ namespace SemanticKernelPractice.Factories
                 var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
 
                 // Log structured output transformation attempt
-                _workflowLogger.LogStructuredOutputStart("List<Evidence>", _orchestrationSettings.TimeoutInMinutes);
+                _workflowLogger.LogStructuredOutputStart("EvidenceResult (List<Evidence>)", _orchestrationSettings.TimeoutInMinutes);
 
                 List<Evidence>? output = null;
                 string? transformFailureReason = null;
@@ -103,19 +104,21 @@ namespace SemanticKernelPractice.Factories
                 try
                 {
                     // Attempt to get structured output with timeout
-                    output = await result.GetValueAsync(
+                    var evidenceResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
                         cancellationToken);
 
-                    if (output == null)
+                    if (evidenceResult == null)
                     {
                         transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
                         _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
                     }
                     else
                     {
+                        // Unwrap the EvidenceResult to get List<Evidence>
+                        output = evidenceResult.Evidence;
                         transformSucceeded = true;
-                        _workflowLogger.LogStructuredOutputResult(true, resultCount: output.Count);
+                        _workflowLogger.LogStructuredOutputResult(true, resultCount: output?.Count ?? 0);
                     }
                 }
                 catch (TimeoutException tex)

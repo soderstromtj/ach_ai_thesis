@@ -12,4 +12,12 @@ namespace SemanticKernelPractice.Models
         public string Description { get; set; } = string.Empty;
         public EvidenceType Type { get; set; }
     }
+
+    /// <summary>
+    /// Wrapper class for structured output - OpenAI requires top-level object, not array
+    /// </summary>
+    public class EvidenceResult
+    {
+        public List<Evidence> Evidence { get; set; } = new List<Evidence>();
+    }
 }
