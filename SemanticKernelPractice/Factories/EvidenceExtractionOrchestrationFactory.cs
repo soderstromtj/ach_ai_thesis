@@ -59,7 +59,7 @@ namespace SemanticKernelPractice.Factories
                 });
 
 
-            var manager = new SmartGroupChatManager
+            var manager = new RoundRobinGroupChatManager
             {
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
             };
