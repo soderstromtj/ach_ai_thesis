@@ -109,6 +109,10 @@ namespace SemanticKernelPractice
                     // Register agent creation service (uses kernel builder service)
                     services.AddSingleton<IAgentService, AgentService>();
 
+                    // Register workflow logging services
+                    services.AddSingleton<ConsoleFormatter>();
+                    services.AddScoped<WorkflowLogger>();
+
                     // Register orchestration factories
                     services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
 
