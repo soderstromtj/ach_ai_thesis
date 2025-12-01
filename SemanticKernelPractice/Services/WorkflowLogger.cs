@@ -274,18 +274,18 @@ namespace SemanticKernelPractice.Services
             _summary.TotalTurns = responseEvents.Count;
             _summary.TotalTokens = responseEvents.Sum(e => e.TokenCount ?? 0);
 
-            foreach (var evt in responseEvents)
+            foreach (var responseEvent in responseEvents)
             {
-                if (evt.AgentName != null)
+                if (responseEvent.AgentName != null)
                 {
-                    if (!_summary.TurnsByAgent.ContainsKey(evt.AgentName))
+                    if (!_summary.TurnsByAgent.ContainsKey(responseEvent.AgentName))
                     {
-                        _summary.TurnsByAgent[evt.AgentName] = 0;
-                        _summary.TokensByAgent[evt.AgentName] = 0;
+                        _summary.TurnsByAgent[responseEvent.AgentName] = 0;
+                        _summary.TokensByAgent[responseEvent.AgentName] = 0;
                     }
 
-                    _summary.TurnsByAgent[evt.AgentName]++;
-                    _summary.TokensByAgent[evt.AgentName] += evt.TokenCount ?? 0;
+                    _summary.TurnsByAgent[responseEvent.AgentName]++;
+                    _summary.TokensByAgent[responseEvent.AgentName] += responseEvent.TokenCount ?? 0;
                 }
             }
 

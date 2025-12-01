@@ -165,11 +165,12 @@ namespace SemanticKernelPractice.Factories
 
             // Extract token count from metadata if available
             int? tokenCount = null;
-            if (response.Metadata?.TryGetValue("Usage", out var usageObj) == true)
+            if (response.Metadata != null)
             {
-                if (usageObj is Microsoft.SemanticKernel.ChatCompletion.ChatModelUsage usage)
+                // Try to get token count from metadata dictionary directly
+                if (response.Metadata.TryGetValue("OutputTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
                 {
-                    tokenCount = usage.OutputTokenCount;
+                    tokenCount = outputTokenCount;
                 }
             }
 
