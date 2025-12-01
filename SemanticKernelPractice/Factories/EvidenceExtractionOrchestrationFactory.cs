@@ -93,12 +93,58 @@ namespace SemanticKernelPractice.Factories
             {
                 var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
 
-                var output = await result.GetValueAsync(TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes), cancellationToken);
+                // Log structured output transformation attempt
+                _workflowLogger.LogStructuredOutputStart("List<Evidence>", _orchestrationSettings.TimeoutInMinutes);
 
-                // Log successful completion
-                var terminationReason = _currentTurn >= _orchestrationSettings.MaximumInvocationCount
-                    ? "Maximum invocation count reached"
-                    : "Orchestration completed successfully";
+                List<Evidence>? output = null;
+                string? transformFailureReason = null;
+                bool transformSucceeded = false;
+
+                try
+                {
+                    // Attempt to get structured output with timeout
+                    output = await result.GetValueAsync(
+                        TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
+                        cancellationToken);
+
+                    if (output == null)
+                    {
+                        transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
+                        _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
+                    }
+                    else
+                    {
+                        transformSucceeded = true;
+                        _workflowLogger.LogStructuredOutputResult(true, resultCount: output.Count);
+                    }
+                }
+                catch (TimeoutException tex)
+                {
+                    transformFailureReason = $"Timeout after {_orchestrationSettings.TimeoutInMinutes} minutes while waiting for structured output";
+                    _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
+                    _workflowLogger.LogError($"Structured output timeout: {tex.Message}", tex);
+                }
+                catch (Exception ex)
+                {
+                    transformFailureReason = $"Exception during structured output transformation: {ex.GetType().Name} - {ex.Message}";
+                    _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
+                    _workflowLogger.LogError($"Structured output transformation error: {ex.Message}", ex);
+                }
+
+                // Determine termination reason
+                string terminationReason;
+                if (!transformSucceeded)
+                {
+                    terminationReason = transformFailureReason ?? "Structured output transformation failed";
+                }
+                else if (_currentTurn >= _orchestrationSettings.MaximumInvocationCount)
+                {
+                    terminationReason = "Maximum invocation count reached";
+                }
+                else
+                {
+                    terminationReason = "Orchestration completed successfully";
+                }
 
                 _workflowLogger.LogOrchestrationComplete(terminationReason, output?.Count);
 
@@ -109,6 +155,13 @@ namespace SemanticKernelPractice.Factories
                     var filename = Path.Combine(_orchestrationSettings.WorkflowLogDirectory, $"workflow_{timestamp}.json");
                     Directory.CreateDirectory(_orchestrationSettings.WorkflowLogDirectory);
                     await _workflowLogger.SaveToFileAsync(filename);
+                }
+
+                // Return output with null safety
+                if (output == null)
+                {
+                    _workflowLogger.LogError("Returning empty list due to null output from structured transformation");
+                    return new List<Evidence>();
                 }
 
                 return output;

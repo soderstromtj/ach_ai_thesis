@@ -254,6 +254,72 @@ namespace SemanticKernelPractice.Services
         }
 
         /// <summary>
+        /// Logs structured output transformation attempt
+        /// </summary>
+        public void LogStructuredOutputStart(string outputType, int timeoutMinutes)
+        {
+            var evt = new WorkflowEvent
+            {
+                EventType = WorkflowEventType.RuntimeEvent,
+                Content = $"Starting structured output transformation to {outputType}",
+                Metadata = new Dictionary<string, object>
+                {
+                    ["OutputType"] = outputType,
+                    ["TimeoutMinutes"] = timeoutMinutes
+                }
+            };
+
+            _events.Add(evt);
+
+            _logger.LogInformation("Attempting to transform orchestration result to {OutputType} (timeout: {TimeoutMinutes}min)",
+                outputType, timeoutMinutes);
+
+            if (_verbosity >= LogVerbosity.Debug)
+            {
+                Console.WriteLine($"🔄 Transforming to structured output: {outputType} (timeout: {timeoutMinutes}min)");
+            }
+        }
+
+        /// <summary>
+        /// Logs structured output transformation result
+        /// </summary>
+        public void LogStructuredOutputResult(bool success, string? failureReason = null, int? resultCount = null)
+        {
+            var evt = new WorkflowEvent
+            {
+                EventType = WorkflowEventType.RuntimeEvent,
+                Content = success ? "Structured output transformation succeeded" : $"Structured output transformation failed: {failureReason}",
+                Metadata = new Dictionary<string, object>
+                {
+                    ["Success"] = success,
+                    ["FailureReason"] = failureReason ?? "None",
+                    ["ResultCount"] = resultCount ?? 0
+                }
+            };
+
+            _events.Add(evt);
+
+            if (success)
+            {
+                _logger.LogInformation("Structured output transformation succeeded. Result count: {ResultCount}", resultCount ?? 0);
+
+                if (_verbosity >= LogVerbosity.Standard)
+                {
+                    Console.WriteLine($"✓ Structured output created successfully (Count: {resultCount ?? 0})");
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Structured output transformation failed: {FailureReason}", failureReason);
+
+                if (_verbosity >= LogVerbosity.Minimal)
+                {
+                    Console.WriteLine($"⚠ Structured output transformation FAILED: {failureReason}");
+                }
+            }
+        }
+
+        /// <summary>
         /// Logs the completion of orchestration and generates summary
         /// </summary>
         public void LogOrchestrationComplete(string terminationReason, int? resultCount = null)
