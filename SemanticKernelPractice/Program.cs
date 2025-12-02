@@ -32,7 +32,7 @@ namespace SemanticKernelPractice
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
             var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
-            Console.WriteLine($"Experiment: {experimentConfig.ExperimentName}");
+            Console.WriteLine($"Experiment: {experimentConfig.Name}");
             Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
             Console.WriteLine("Task: Extracting evidence for ACH step 2.\n");
@@ -112,7 +112,7 @@ namespace SemanticKernelPractice
                         var achStep2Settings = config.GetSection("ACHStep2").Get<ACHStep2Settings>()
                             ?? throw new InvalidOperationException("ACHStep2 section not found in configuration");
 
-                        // Get experiment name from environment variable or use first experiment
+                        // Get experiment name from environment variable or use default
                         var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
 
                         // Find the experiment by name
@@ -122,17 +122,10 @@ namespace SemanticKernelPractice
 
                         Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
 
-                        // Combine into ExperimentConfiguration
-                        return new ExperimentConfiguration
-                        {
-                            ExperimentName = experiment.Name,
-                            Provider = experiment.AIService.Provider,
-                            Context = experiment.Context,
-                            TaskInstructions = experiment.TaskInstructions,
-                            GlobalAIServiceSettings = globalAISettings,
-                            AgentConfigurations = experiment.AgentConfigurations,
-                            OrchestrationSettings = experiment.OrchestrationSettings
-                        };
+                        // Inject global AI service settings into the experiment configuration
+                        experiment.GlobalAIServiceSettings = globalAISettings;
+
+                        return experiment;
                     });
 
                     // For backward compatibility, register AgentConfiguration array and OrchestrationSettings from ExperimentConfiguration

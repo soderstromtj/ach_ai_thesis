@@ -1,16 +1,23 @@
+using System.Text.Json.Serialization;
+
 namespace SemanticKernelPractice.Configuration
 {
     /// <summary>
-    /// Runtime configuration that combines global AI service settings
-    /// with experiment-specific settings (provider selection, agents, orchestration).
-    /// This is what gets injected into services at runtime.
+    /// Experiment configuration that can be deserialized from JSON and used at runtime.
+    /// Combines experiment-specific settings (provider, agents, orchestration) with
+    /// runtime-injected global AI service settings.
     /// </summary>
     public class ExperimentConfiguration
     {
         /// <summary>
-        /// The name of the experiment being run
+        /// The name of the experiment
         /// </summary>
-        public string ExperimentName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Description of what this experiment tests or analyzes
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
 
         /// <summary>
         /// The selected AI provider for this experiment
@@ -33,8 +40,9 @@ namespace SemanticKernelPractice.Configuration
         public string TaskInstructions { get; set; } = string.Empty;
 
         /// <summary>
-        /// Global AI service provider configurations
+        /// Global AI service provider configurations (injected at runtime, not from JSON)
         /// </summary>
+        [JsonIgnore]
         public AIServiceSettings GlobalAIServiceSettings { get; set; } = new();
 
         /// <summary>
