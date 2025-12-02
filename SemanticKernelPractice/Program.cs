@@ -43,7 +43,7 @@ namespace SemanticKernelPractice
                 var factory = host.Services.GetRequiredService<IOrchestrationFactory<List<Evidence>>>();
 
                 // Get KIQ, context and task instructions from experiment configuration
-                var kiq = experimentConfig.
+                var kiq = experimentConfig.KeyIntelligenceQuestion;
                 var context = experimentConfig.Context;
                 var instructions = experimentConfig.TaskInstructions;
 
@@ -57,7 +57,7 @@ namespace SemanticKernelPractice
                     throw new InvalidOperationException("Task instructions are not configured for this experiment. Please add 'TaskInstructions' to the experiment settings in appsettings.json.");
                 }
 
-                var input = $"Context: {context}\nInstructions: {instructions}";
+                var input = $"Key Intelligence Question: {kiq}\nContext: {context}\nInstructions: {instructions}";
 
                 Console.WriteLine("\nExecuting Evidence Extraction Orchestration...\n");
 
@@ -87,8 +87,7 @@ namespace SemanticKernelPractice
             Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
                     config.AddEnvironmentVariables();
                 })
                 .ConfigureServices((context, services) =>

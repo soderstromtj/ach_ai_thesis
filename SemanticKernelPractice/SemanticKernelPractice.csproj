@@ -27,10 +27,4 @@
     <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.67.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>
