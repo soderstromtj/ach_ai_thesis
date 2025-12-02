@@ -18,6 +18,11 @@ namespace SemanticKernelPractice.Configuration
         public AIServiceProvider Provider { get; set; }
 
         /// <summary>
+        /// The key intelligence question for the experiment
+        /// </summary>
+        public string KeyIntelligenceQuestion { get; set; } = string.Empty;
+
+        /// <summary>
         /// The event context that agent analysts will analyze
         /// </summary>
         public string Context { get; set; } = string.Empty;

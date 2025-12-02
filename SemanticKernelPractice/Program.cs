@@ -42,7 +42,8 @@ namespace SemanticKernelPractice
             {
                 var factory = host.Services.GetRequiredService<IOrchestrationFactory<List<Evidence>>>();
 
-                // Get context and task instructions from experiment configuration
+                // Get KIQ, context and task instructions from experiment configuration
+                var kiq = experimentConfig.
                 var context = experimentConfig.Context;
                 var instructions = experimentConfig.TaskInstructions;
 
