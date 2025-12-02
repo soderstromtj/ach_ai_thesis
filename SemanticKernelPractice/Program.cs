@@ -161,7 +161,7 @@ namespace SemanticKernelPractice
 
                     // Register workflow logging services
                     services.AddSingleton<ConsoleFormatter>();
-                    services.AddScoped<WorkflowLogger>();
+                    services.AddTransient<WorkflowLogger>();
 
                     // Register orchestration factories
                     services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
