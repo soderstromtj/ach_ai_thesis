@@ -1,23 +1,15 @@
-﻿using Azure.AI.Agents.Persistent;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
-using SemanticKernelPractice.Managers;
-using SemanticKernelPractice.Services;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
 using SemanticKernelPractice.Models;
+using SemanticKernelPractice.Services;
+using System.Diagnostics;
 
 namespace SemanticKernelPractice.Factories
 {
