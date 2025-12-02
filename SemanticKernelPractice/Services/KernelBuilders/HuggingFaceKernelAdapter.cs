@@ -19,11 +19,11 @@ namespace SemanticKernelPractice.Services.KernelBuilders
         public AIServiceProvider SupportedProvider => AIServiceProvider.HuggingFace;
 
         public HuggingFaceKernelAdapter(
-            IOptions<AIServiceSettings> serviceSettings,
+            ExperimentConfiguration experimentConfig,
             ILoggerFactory loggerFactory)
         {
-            _settings = serviceSettings.Value.HuggingFace
-                ?? throw new InvalidOperationException("Microsoft Foundry settings not configured");
+            _settings = experimentConfig.GlobalAIServiceSettings.HuggingFace
+                ?? throw new InvalidOperationException("HuggingFace settings not configured in AIServiceSettings");
             _loggerFactory = loggerFactory;
         }
 

@@ -7,20 +7,20 @@ namespace SemanticKernelPractice.Services
 {
     public class KernelBuilderService : IKernelBuilderService
     {
-        private readonly AIServiceSettings _serviceSettings;
+        private readonly ExperimentConfiguration _experimentConfig;
         private readonly IEnumerable<IKernelBuilderAdapter> _adapters;
         private readonly IKernelBuilderAdapter _selectedAdapter;
 
-        public AIServiceProvider CurrentProvider => _serviceSettings.Provider;
+        public AIServiceProvider CurrentProvider => _experimentConfig.Provider;
 
-        public KernelBuilderService(IOptions<AIServiceSettings> serviceSettings, IEnumerable<IKernelBuilderAdapter> adapters)
+        public KernelBuilderService(ExperimentConfiguration experimentConfig, IEnumerable<IKernelBuilderAdapter> adapters)
         {
-            _serviceSettings = serviceSettings.Value;
+            _experimentConfig = experimentConfig;
             _adapters = adapters;
 
-            // Select the appropriate adapter based on configuration
-            _selectedAdapter = _adapters.FirstOrDefault(a => a.SupportedProvider == _serviceSettings.Provider) 
-                ?? throw new InvalidOperationException($"No adapter found for provider: {_serviceSettings.Provider}");
+            // Select the appropriate adapter based on experiment's provider configuration
+            _selectedAdapter = _adapters.FirstOrDefault(a => a.SupportedProvider == _experimentConfig.Provider)
+                ?? throw new InvalidOperationException($"No adapter found for provider: {_experimentConfig.Provider}");
         }
 
         public Kernel BuildKernel()

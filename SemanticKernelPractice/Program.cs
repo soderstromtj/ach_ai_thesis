@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.AzureAI;
@@ -30,8 +31,9 @@ namespace SemanticKernelPractice
 
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
-            var kernelService = host.Services.GetRequiredService<IKernelBuilderService>();
-            Console.WriteLine($"Using AI Provider: {kernelService.CurrentProvider}\n");
+            var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
+            Console.WriteLine($"Experiment: {experimentConfig.ExperimentName}");
+            Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
             Console.WriteLine("Task: Extracting evidence for ACH step 2.\n");
             Console.WriteLine(new string('=', 70));
@@ -78,15 +80,57 @@ namespace SemanticKernelPractice
                 })
                 .ConfigureServices((context, services) =>
                 {
-                    // Register configuration settings
-                    services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIService"));
-                    services.Configure<OrchestrationSettings>(context.Configuration.GetSection("OrchestrationSettings"));
+                    // Register global AI service settings (from AIServiceSettings section)
+                    services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIServiceSettings"));
 
-                    // Register AgentConfiguration array as a direct service (IOptions doesn't support arrays)
-                    services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
+                    // Register ACH Step 2 settings
+                    services.Configure<ACHStep2Settings>(context.Configuration.GetSection("ACHStep2"));
+
+                    // Build and register ExperimentConfiguration based on selected experiment
+                    services.AddSingleton<ExperimentConfiguration>(sp =>
                     {
                         var config = sp.GetRequiredService<IConfiguration>();
-                        return config.GetSection("AgentConfigurations").Get<AgentConfiguration[]>() ?? Array.Empty<AgentConfiguration>();
+
+                        // Load global AI service settings
+                        var globalAISettings = config.GetSection("AIServiceSettings").Get<AIServiceSettings>()
+                            ?? throw new InvalidOperationException("AIServiceSettings section not found in configuration");
+
+                        // Load ACH Step 2 settings
+                        var achStep2Settings = config.GetSection("ACHStep2").Get<ACHStep2Settings>()
+                            ?? throw new InvalidOperationException("ACHStep2 section not found in configuration");
+
+                        // Get experiment name from environment variable or use first experiment
+                        var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
+
+                        // Find the experiment by name
+                        var experiment = achStep2Settings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
+                            ?? achStep2Settings.Experiments?.FirstOrDefault()
+                            ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}'");
+
+                        Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
+
+                        // Combine into ExperimentConfiguration
+                        return new ExperimentConfiguration
+                        {
+                            ExperimentName = experiment.Name,
+                            Provider = experiment.AIService.Provider,
+                            GlobalAIServiceSettings = globalAISettings,
+                            AgentConfigurations = experiment.AgentConfigurations,
+                            OrchestrationSettings = experiment.OrchestrationSettings
+                        };
+                    });
+
+                    // For backward compatibility, register AgentConfiguration array and OrchestrationSettings from ExperimentConfiguration
+                    services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
+                    {
+                        var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                        return experimentConfig.AgentConfigurations;
+                    });
+
+                    services.AddSingleton<IOptions<OrchestrationSettings>>(sp =>
+                    {
+                        var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                        return Options.Create(experimentConfig.OrchestrationSettings);
                     });
 
                     // Register kernel builder adapters

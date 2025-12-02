@@ -13,9 +13,10 @@ namespace SemanticKernelPractice.Services.KernelBuilders
 
         public AIServiceProvider SupportedProvider => AIServiceProvider.AzureOpenAI;
 
-        public AzureOpenAIKernelAdapter(IOptions<AIServiceSettings> serviceSettings, ILoggerFactory loggerFactory)
+        public AzureOpenAIKernelAdapter(ExperimentConfiguration experimentConfig, ILoggerFactory loggerFactory)
         {
-            _settings = serviceSettings.Value.AzureOpenAI ?? throw new InvalidOperationException("AzureOpenAI settings not configured");
+            _settings = experimentConfig.GlobalAIServiceSettings.AzureOpenAI
+                ?? throw new InvalidOperationException("AzureOpenAI settings not configured in AIServiceSettings");
             _loggerFactory = loggerFactory;
         }
 
