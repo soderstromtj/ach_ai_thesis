@@ -71,12 +71,14 @@ namespace SemanticKernelPractice.Factories
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
+                    Temperature = 0.7,
                     ResponseFormat = typeof(EvidenceResult)
                 });
 
 
             var manager = new RoundRobinGroupChatManager
             {
+                InteractiveCallback = InteractiveCallback,
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
             };
 
@@ -87,11 +89,13 @@ namespace SemanticKernelPractice.Factories
                 ResultTransform = outputTransform.TransformAsync
             };
 
+            // Create in-process runtime that will execute the orchestration and manage state
             var runtime = new InProcessRuntime();
             await runtime.StartAsync(cancellationToken);
 
             try
             {
+                // Invoke orchestration with input and runtime context
                 var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
 
                 // Log structured output transformation attempt
@@ -187,6 +191,14 @@ namespace SemanticKernelPractice.Factories
             {
                 await runtime.RunUntilIdleAsync();
             }
+        }
+
+        private async ValueTask<ChatMessageContent> InteractiveCallback()
+        {
+            return await ValueTask.FromResult(new ChatMessageContent
+            {
+                Content = "Continuing orchestration without user input."
+            });
         }
 
         private ValueTask ResponseCallback(ChatMessageContent response)
