@@ -14,11 +14,11 @@ namespace SemanticKernelPractice.Services.KernelBuilders
         public AIServiceProvider SupportedProvider => AIServiceProvider.Ollama;
 
         public OllamaKernelAdapter(
-            IOptions<AIServiceSettings> serviceSettings,
+            ExperimentConfiguration experimentConfig,
             ILoggerFactory loggerFactory)
         {
-            _settings = serviceSettings.Value.Ollama
-                ?? throw new InvalidOperationException("Ollama settings not configured");
+            _settings = experimentConfig.GlobalAIServiceSettings.Ollama
+                ?? throw new InvalidOperationException("Ollama settings not configured in AIServiceSettings");
             _loggerFactory = loggerFactory;
         }
 

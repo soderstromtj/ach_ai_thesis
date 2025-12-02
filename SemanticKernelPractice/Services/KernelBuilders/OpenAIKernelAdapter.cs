@@ -14,10 +14,11 @@ namespace SemanticKernelPractice.Services.KernelBuilders
         public AIServiceProvider SupportedProvider => AIServiceProvider.OpenAI;
 
         public OpenAIKernelAdapter(
-            IOptions<AIServiceSettings> serviceSettings,
+            ExperimentConfiguration experimentConfig,
             ILoggerFactory loggerFactory)
         {
-            _settings = serviceSettings.Value.OpenAI ?? throw new InvalidOperationException("OpenAI settings not configured");
+            _settings = experimentConfig.GlobalAIServiceSettings.OpenAI
+                ?? throw new InvalidOperationException("OpenAI settings not configured in AIServiceSettings");
             _loggerFactory = loggerFactory;
         }
 
