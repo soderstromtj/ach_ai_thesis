@@ -7,6 +7,8 @@ namespace SemanticKernelPractice.Configuration
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string Context { get; set; } = string.Empty;
+        public string TaskInstructions { get; set; } = string.Empty;
         public ExperimentAIServiceSettings AIService { get; set; } = new();
         public AgentConfiguration[] AgentConfigurations { get; set; } = Array.Empty<AgentConfiguration>();
         public OrchestrationSettings OrchestrationSettings { get; set; } = new();

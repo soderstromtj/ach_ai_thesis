@@ -18,6 +18,16 @@ namespace SemanticKernelPractice.Configuration
         public AIServiceProvider Provider { get; set; }
 
         /// <summary>
+        /// The event context that agent analysts will analyze
+        /// </summary>
+        public string Context { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Task instructions for the orchestration workflow
+        /// </summary>
+        public string TaskInstructions { get; set; } = string.Empty;
+
+        /// <summary>
         /// Global AI service provider configurations
         /// </summary>
         public AIServiceSettings GlobalAIServiceSettings { get; set; } = new();
