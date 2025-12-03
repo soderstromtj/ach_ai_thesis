@@ -1,12 +1,6 @@
-﻿using Azure.AI.Projects;
+﻿using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using SemanticKernelPractice.Configuration;
-using Microsoft.SemanticKernel;
 
 namespace SemanticKernelPractice.Services
 {

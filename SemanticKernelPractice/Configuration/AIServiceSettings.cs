@@ -1,12 +1,4 @@
-﻿using Azure.AI.OpenAI;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SemanticKernelPractice.Configuration
+﻿namespace SemanticKernelPractice.Configuration
 {
     /// <summary>
     /// Global AI service provider configurations.

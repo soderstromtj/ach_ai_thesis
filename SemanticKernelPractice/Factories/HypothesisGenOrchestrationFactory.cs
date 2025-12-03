@@ -14,7 +14,7 @@ using System.Diagnostics;
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory : IOrchestrationFactory<List<Evidence>>
+    public class HypothesisGenerationOrchestrationFactory : IOrchestrationFactory<List<Hypothesis>>
     {
         private readonly IAgentService _agentService;
         private readonly IKernelBuilderService _kernelBuilderService;
@@ -25,7 +25,7 @@ namespace SemanticKernelPractice.Factories
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
 
-        public EvidenceExtractionOrchestrationFactory(
+        public HypothesisGenerationOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -38,11 +38,11 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<List<Evidence>> IOrchestrationFactory<List<Evidence>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
         {
             // Log orchestration start
             _workflowLogger.LogOrchestrationStart(
-                "Extract evidence for ACH analysis",
+                "Generate hypotheses (ACH Step 1) for ACH analysis",
                 _orchestrationSettings.MaximumInvocationCount,
                 _orchestrationSettings.TimeoutInMinutes);
 
@@ -51,12 +51,12 @@ namespace SemanticKernelPractice.Factories
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            // Use EvidenceResult wrapper - OpenAI structured output requires top-level object, not array
-            var outputTransform = new StructuredOutputTransform<EvidenceResult>(
+            // Use HypothesisResult wrapper - OpenAI structured output requires top-level object, not array
+            var outputTransform = new StructuredOutputTransform<HypothesisResult>(
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
-                    ResponseFormat = typeof(EvidenceResult)
+                    ResponseFormat = typeof(HypothesisResult)
                 });
 
 
@@ -67,7 +67,7 @@ namespace SemanticKernelPractice.Factories
             };
 
 
-            GroupChatOrchestration<string, EvidenceResult> orchestration = new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
+            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync
@@ -83,28 +83,28 @@ namespace SemanticKernelPractice.Factories
                 var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
 
                 // Log structured output transformation attempt
-                _workflowLogger.LogStructuredOutputStart("EvidenceResult (List<Evidence>)", _orchestrationSettings.TimeoutInMinutes);
+                _workflowLogger.LogStructuredOutputStart("HypothesisResult (List<Hypothesis>)", _orchestrationSettings.TimeoutInMinutes);
 
-                List<Evidence>? output = null;
+                List<Hypothesis>? output = null;
                 string? transformFailureReason = null;
                 bool transformSucceeded = false;
 
                 try
                 {
                     // Attempt to get structured output with timeout
-                    var evidenceResult = await result.GetValueAsync(
+                    var hypothesisResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
                         cancellationToken);
 
-                    if (evidenceResult == null)
+                    if (hypothesisResult == null)
                     {
                         transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
                         _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
                     }
                     else
                     {
-                        // Unwrap the EvidenceResult to get List<Evidence>
-                        output = evidenceResult.Evidence;
+                        // Unwrap the HypothesisResult to get List<Hypothesis>
+                        output = hypothesisResult.Hypotheses;
                         transformSucceeded = true;
                         _workflowLogger.LogStructuredOutputResult(true, resultCount: output?.Count ?? 0);
                     }
@@ -152,7 +152,7 @@ namespace SemanticKernelPractice.Factories
                 if (output == null)
                 {
                     _workflowLogger.LogError("Returning empty list due to null output from structured transformation");
-                    return new List<Evidence>();
+                    return new List<Hypothesis>();
                 }
 
                 return output;
@@ -161,13 +161,11 @@ namespace SemanticKernelPractice.Factories
             {
                 _workflowLogger.LogError($"Orchestration error: {ex.Message}", ex);
 
-                return new List<Evidence>
+                return new List<Hypothesis>
                 {
-                    new Evidence
+                    new Hypothesis
                     {
-                        Id = -1,
-                        Description = "Error during orchestration",
-                        Type = EvidenceType.Fact
+                        Title = "Error during orchestration"
                     }
                 };
             }
@@ -220,7 +218,7 @@ namespace SemanticKernelPractice.Factories
             if (response.Metadata != null)
             {
                 // Try to get token count from metadata dictionary directly
-                if (response.Metadata.TryGetValue("OutputTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
+                if (response.Metadata.TryGetValue("TotalTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
                 {
                     tokenCount = outputTokenCount;
                 }

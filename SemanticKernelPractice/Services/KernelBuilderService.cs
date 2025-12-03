@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Services.KernelBuilders;
 
