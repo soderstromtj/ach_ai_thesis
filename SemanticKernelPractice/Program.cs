@@ -12,8 +12,7 @@ using SemanticKernelPractice.Services.KernelBuilders;
 
 namespace SemanticKernelPractice
 {
-
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 
     class Program
     {
@@ -23,13 +22,126 @@ namespace SemanticKernelPractice
             public const string DefaultExperimentName = "Baseline";
             public const string ExperimentNameEnvironmentVariable = "ACH_EXPERIMENT_NAME";
             public const string AchStepPrefix = "ACHStep";
-            public const string DefaultAchStep = "ACHStep2";
+            public const string DefaultAchStep = "ACHStep1";
             public const int SeparatorLength = 70;
         }
 
-        /// <summary>
-        /// Executes the orchestration factory and displays results based on the ACH step.
-        /// </summary>
+        static async Task Main(string[] args)
+        {
+            var host = CreateHostBuilder(args).Build();
+
+            Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
+
+            if (args.Length >= 1)
+            {
+                Console.WriteLine($"Command-line args: ACH Step {args[0]}");
+            }
+
+            var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
+            Console.WriteLine($"Experiment: {experimentConfig.Name}");
+            Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
+
+            var achStep = ParseAchStepFromArgs(args);
+            Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
+            Console.WriteLine(new string('=', Constants.SeparatorLength));
+
+            try
+            {
+                await RunOrchestrationAsync(host, experimentConfig, achStep);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nError: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+            }
+            finally
+            {
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+            }
+        }
+
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            var (achStepNumber, experimentIndex) = ParseCommandLineArguments(args);
+
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((context, config) =>
+                {
+                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
+                    config.AddEnvironmentVariables();
+                })
+                .ConfigureServices((context, services) =>
+                {
+                    RegisterConfiguration(services, context.Configuration, achStepNumber, experimentIndex);
+                    RegisterKernelServices(services);
+                    RegisterOrchestrationServices(services);
+                    RegisterLogging(services, context.Configuration);
+                });
+        }
+
+        #region Private Methods
+        private static ACHStep ParseAchStepFromArgs(string[] args)
+        {
+            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
+            {
+                return (ACHStep)stepNum;
+            }
+
+            return ParseAchStepFromEnvironment();
+        }
+
+        private static ACHStep ParseAchStepFromEnvironment()
+        {
+            var achStepEnv = Environment.GetEnvironmentVariable(Constants.DefaultAchStepEnvironmentVariable) ?? Constants.DefaultAchStep;
+
+            if (achStepEnv.StartsWith(Constants.AchStepPrefix) && int.TryParse(achStepEnv.Substring(Constants.AchStepPrefix.Length), out int envStepNum))
+            {
+                return (ACHStep)envStepNum;
+            }
+
+            return ACHStep.HypothesisGeneration; // Default to step 1
+        }
+
+        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ACHStep achStep)
+        {
+            var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
+            var factory = factorySelector.GetFactory(achStep);
+
+            ValidateExperimentConfiguration(experimentConfig);
+
+            var input = $"Key Intelligence Question: {experimentConfig.KeyIntelligenceQuestion}\n" +
+                        $"Context: {experimentConfig.Context}\n" +
+                        $"Task Instructions: {experimentConfig.TaskInstructions}";
+
+            Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
+
+            await ExecuteOrchestrationAsync(factory, achStep, input);
+
+            Console.WriteLine($"{new string('=', Constants.SeparatorLength)}\n");
+        }
+
+        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
+        {
+            if (string.IsNullOrWhiteSpace(config.Context))
+            {
+                throw new InvalidOperationException(
+                    "Context is not configured for this experiment. Please add 'Context' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.KeyIntelligenceQuestion))
+            {
+                throw new InvalidOperationException(
+                    "KIQ is not configured for this experiment. Please add 'KeyIntelligenceQuestion' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.TaskInstructions))
+            {
+                throw new InvalidOperationException(
+                    "Task instructions are not configured for this experiment. Please add 'TaskInstructions' to the experiment settings in appsettings.json.");
+            }
+        }
+
         private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
         {
             switch (step)
@@ -90,146 +202,6 @@ namespace SemanticKernelPractice
             }
         }
 
-        static async Task Main(string[] args)
-        {
-            var host = CreateHostBuilder(args).Build();
-
-            DisplayStartupMessage(args);
-
-            var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
-            DisplayExperimentInfo(experimentConfig);
-
-            var achStep = ParseAchStepFromArgs(args);
-            DisplayTaskInfo(achStep);
-
-            try
-            {
-                await RunOrchestrationAsync(host, experimentConfig, achStep);
-            }
-            catch (Exception ex)
-            {
-                DisplayError(ex);
-            }
-            finally
-            {
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
-            }
-        }
-
-        private static void DisplayStartupMessage(string[] args)
-        {
-            Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
-
-            if (args.Length >= 2)
-            {
-                Console.WriteLine($"Command-line args: ACH Step {args[0]}, Experiment Index {args[1]}");
-            }
-            else if (args.Length >= 1)
-            {
-                Console.WriteLine($"Command-line args: ACH Step {args[0]}, using default experiment");
-            }
-        }
-
-        private static void DisplayExperimentInfo(ExperimentConfiguration config)
-        {
-            Console.WriteLine($"Experiment: {config.Name}");
-            Console.WriteLine($"AI Provider: {config.Provider}\n");
-        }
-
-        private static void DisplayTaskInfo(ACHStep achStep)
-        {
-            Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
-            Console.WriteLine(new string('=', Constants.SeparatorLength));
-        }
-
-        private static void DisplayError(Exception ex)
-        {
-            Console.WriteLine($"\nError: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
-        }
-
-        private static ACHStep ParseAchStepFromArgs(string[] args)
-        {
-            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
-            {
-                return (ACHStep)stepNum;
-            }
-
-            return ParseAchStepFromEnvironment();
-        }
-
-        private static ACHStep ParseAchStepFromEnvironment()
-        {
-            var achStepEnv = Environment.GetEnvironmentVariable(Constants.DefaultAchStepEnvironmentVariable)
-                ?? Constants.DefaultAchStep;
-
-            if (achStepEnv.StartsWith(Constants.AchStepPrefix) &&
-                int.TryParse(achStepEnv.Substring(Constants.AchStepPrefix.Length), out int envStepNum))
-            {
-                return (ACHStep)envStepNum;
-            }
-
-            return ACHStep.EvidenceExtraction; // Default to step 2
-        }
-
-        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ACHStep achStep)
-        {
-            var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
-            var factory = factorySelector.GetFactory(achStep);
-
-            ValidateExperimentConfiguration(experimentConfig);
-
-            var input = BuildInputString(experimentConfig);
-
-            Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
-
-            await ExecuteOrchestrationAsync(factory, achStep, input);
-
-            Console.WriteLine($"{new string('=', Constants.SeparatorLength)}\n");
-        }
-
-        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
-        {
-            if (string.IsNullOrWhiteSpace(config.Context))
-            {
-                throw new InvalidOperationException(
-                    "Context is not configured for this experiment. Please add 'Context' to the experiment settings in appsettings.json.");
-            }
-
-            if (string.IsNullOrWhiteSpace(config.TaskInstructions))
-            {
-                throw new InvalidOperationException(
-                    "Task instructions are not configured for this experiment. Please add 'TaskInstructions' to the experiment settings in appsettings.json.");
-            }
-        }
-
-        private static string BuildInputString(ExperimentConfiguration config)
-        {
-            return $"Key Intelligence Question: {config.KeyIntelligenceQuestion}\n" +
-                   $"Context: {config.Context}\n" +
-                   $"Instructions: {config.TaskInstructions}";
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args)
-        {
-            var (achStepNumber, experimentIndex) = ParseCommandLineArguments(args);
-
-            return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
-                    config.AddEnvironmentVariables();
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    RegisterConfiguration(services, context.Configuration, achStepNumber, experimentIndex);
-                    RegisterKernelServices(services);
-                    RegisterOrchestrationServices(services);
-                    RegisterLogging(services, context.Configuration);
-                });
-        }
-
         private static (int? achStepNumber, int? experimentIndex) ParseCommandLineArguments(string[] args)
         {
             int? achStepNumber = null;
@@ -258,7 +230,17 @@ namespace SemanticKernelPractice
             services.AddSingleton<ExperimentConfiguration>(sp =>
                 BuildExperimentConfiguration(sp, achStepNumber, experimentIndex));
 
-            RegisterBackwardCompatibilityServices(services);
+            services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return experimentConfig.AgentConfigurations;
+            });
+
+            services.AddSingleton<IOptions<OrchestrationSettings>>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return Options.Create(experimentConfig.OrchestrationSettings);
+            });
         }
 
         private static string DetermineAchStepName(int? achStepNumber)
@@ -324,21 +306,6 @@ namespace SemanticKernelPractice
                 ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
         }
 
-        private static void RegisterBackwardCompatibilityServices(IServiceCollection services)
-        {
-            services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
-            {
-                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
-                return experimentConfig.AgentConfigurations;
-            });
-
-            services.AddSingleton<IOptions<OrchestrationSettings>>(sp =>
-            {
-                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
-                return Options.Create(experimentConfig.OrchestrationSettings);
-            });
-        }
-
         private static void RegisterKernelServices(IServiceCollection services)
         {
             services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
@@ -376,6 +343,8 @@ namespace SemanticKernelPractice
                 builder.AddConfiguration(configuration.GetSection("LoggingSettings"));
             });
         }
+
+        #endregion
     }
 }
 
