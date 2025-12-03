@@ -12,54 +12,18 @@ using SemanticKernelPractice.Services.KernelBuilders;
 
 namespace SemanticKernelPractice
 {
-
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 
     class Program
     {
-        /// <summary>
-        /// Executes the orchestration factory and displays results based on the ACH step.
-        /// </summary>
-        private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
+        private static class Constants
         {
-            switch (step)
-            {
-                case ACHStep.HypothesisGeneration:
-                    var hypothesisFactory = factory as IOrchestrationFactory<List<Hypothesis>>;
-                    if (hypothesisFactory == null)
-                        throw new InvalidOperationException("Factory is not of the expected type for Hypothesis Generation.");
-
-                    var hypotheses = await hypothesisFactory.ExecuteCoreAsync(input);
-
-                    Console.WriteLine("\n" + new string('=', 70));
-                    Console.WriteLine("\nGenerated Hypotheses:");
-                    int hypothesisNum = 1;
-                    foreach (var hypothesis in hypotheses)
-                    {
-                        Console.WriteLine($"\n{hypothesisNum}. {hypothesis.Title}");
-                        Console.WriteLine($"   Rationale: {hypothesis.Rationale}");
-                        hypothesisNum++;
-                    }
-                    break;
-
-                case ACHStep.EvidenceExtraction:
-                    var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>;
-                    if (evidenceFactory == null)
-                        throw new InvalidOperationException("Factory is not of the expected type for Evidence Extraction.");
-
-                    var evidence = await evidenceFactory.ExecuteCoreAsync(input);
-
-                    Console.WriteLine("\n" + new string('=', 70));
-                    Console.WriteLine("\nExtracted Evidence:");
-                    foreach (var item in evidence)
-                    {
-                        Console.WriteLine($"Type: {item.Type}\tDescription: {item.Description}\n");
-                    }
-                    break;
-
-                default:
-                    throw new NotSupportedException($"ACH Step {step} is not yet implemented.");
-            }
+            public const string DefaultAchStepEnvironmentVariable = "ACH_STEP";
+            public const string DefaultExperimentName = "Baseline";
+            public const string ExperimentNameEnvironmentVariable = "ACH_EXPERIMENT_NAME";
+            public const string AchStepPrefix = "ACHStep";
+            public const string DefaultAchStep = "ACHStep1";
+            public const int SeparatorLength = 70;
         }
 
         static async Task Main(string[] args)
@@ -68,67 +32,22 @@ namespace SemanticKernelPractice
 
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
-            // Display command-line argument usage
-            if (args.Length >= 2)
+            if (args.Length >= 1)
             {
-                Console.WriteLine($"Command-line args: ACH Step {args[0]}, Experiment Index {args[1]}");
-            }
-            else if (args.Length >= 1)
-            {
-                Console.WriteLine($"Command-line args: ACH Step {args[0]}, using default experiment");
+                Console.WriteLine($"Command-line args: ACH Step {args[0]}");
             }
 
             var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
             Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
-            // Determine ACH step from command-line args or environment variable
-            ACHStep achStep = ACHStep.EvidenceExtraction; // Default to step 2
-            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
-            {
-                achStep = (ACHStep)stepNum;
-            }
-            else
-            {
-                var achStepEnv = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
-                if (achStepEnv.StartsWith("ACHStep") && int.TryParse(achStepEnv.Substring(7), out int envStepNum))
-                {
-                    achStep = (ACHStep)envStepNum;
-                }
-            }
-
+            var achStep = ParseAchStepFromArgs(args);
             Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
-            Console.WriteLine(new string('=', 70));
+            Console.WriteLine(new string('=', Constants.SeparatorLength));
 
             try
             {
-                // Get the appropriate factory for this ACH step
-                var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
-                var factory = factorySelector.GetFactory(achStep);
-
-                // Get KIQ, context and task instructions from experiment configuration
-                var kiq = experimentConfig.KeyIntelligenceQuestion;
-                var context = experimentConfig.Context;
-                var instructions = experimentConfig.TaskInstructions;
-
-                if (string.IsNullOrWhiteSpace(context))
-                {
-                    throw new InvalidOperationException("Context is not configured for this experiment. Please add 'Context' to the experiment settings in appsettings.json.");
-                }
-
-                if (string.IsNullOrWhiteSpace(instructions))
-                {
-                    throw new InvalidOperationException("Task instructions are not configured for this experiment. Please add 'TaskInstructions' to the experiment settings in appsettings.json.");
-                }
-
-                var input = $"Key Intelligence Question: {kiq}\nContext: {context}\nInstructions: {instructions}";
-
-                Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
-
-                // Execute the factory and handle the result based on step type
-                await ExecuteOrchestrationAsync(factory, achStep, input);
-
-                Console.WriteLine(new string('=', 70) + "\n");
+                await RunOrchestrationAsync(host, experimentConfig, achStep);
             }
             catch (Exception ex)
             {
@@ -144,9 +63,147 @@ namespace SemanticKernelPractice
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            // Parse command-line arguments
-            // args[0] = ACH step number (e.g., 1 for ACHStep1, 2 for ACHStep2)
-            // args[1] = Experiment index (e.g., 0 for first experiment, 1 for second)
+            var (achStepNumber, experimentIndex) = ParseCommandLineArguments(args);
+
+            return Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((context, config) =>
+                {
+                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
+                    config.AddEnvironmentVariables();
+                })
+                .ConfigureServices((context, services) =>
+                {
+                    RegisterConfiguration(services, context.Configuration, achStepNumber, experimentIndex);
+                    RegisterKernelServices(services);
+                    RegisterOrchestrationServices(services);
+                    RegisterLogging(services, context.Configuration);
+                });
+        }
+
+        #region Private Methods
+        private static ACHStep ParseAchStepFromArgs(string[] args)
+        {
+            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
+            {
+                return (ACHStep)stepNum;
+            }
+
+            return ParseAchStepFromEnvironment();
+        }
+
+        private static ACHStep ParseAchStepFromEnvironment()
+        {
+            var achStepEnv = Environment.GetEnvironmentVariable(Constants.DefaultAchStepEnvironmentVariable) ?? Constants.DefaultAchStep;
+
+            if (achStepEnv.StartsWith(Constants.AchStepPrefix) && int.TryParse(achStepEnv.Substring(Constants.AchStepPrefix.Length), out int envStepNum))
+            {
+                return (ACHStep)envStepNum;
+            }
+
+            return ACHStep.HypothesisGeneration; // Default to step 1
+        }
+
+        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ACHStep achStep)
+        {
+            var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
+            var factory = factorySelector.GetFactory(achStep);
+
+            ValidateExperimentConfiguration(experimentConfig);
+
+            var input = $"Key Intelligence Question: {experimentConfig.KeyIntelligenceQuestion}\n" +
+                        $"Context: {experimentConfig.Context}\n" +
+                        $"Task Instructions: {experimentConfig.TaskInstructions}";
+
+            Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
+
+            await ExecuteOrchestrationAsync(factory, achStep, input);
+
+            Console.WriteLine($"{new string('=', Constants.SeparatorLength)}\n");
+        }
+
+        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
+        {
+            if (string.IsNullOrWhiteSpace(config.Context))
+            {
+                throw new InvalidOperationException(
+                    "Context is not configured for this experiment. Please add 'Context' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.KeyIntelligenceQuestion))
+            {
+                throw new InvalidOperationException(
+                    "KIQ is not configured for this experiment. Please add 'KeyIntelligenceQuestion' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.TaskInstructions))
+            {
+                throw new InvalidOperationException(
+                    "Task instructions are not configured for this experiment. Please add 'TaskInstructions' to the experiment settings in appsettings.json.");
+            }
+        }
+
+        private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
+        {
+            switch (step)
+            {
+                case ACHStep.HypothesisGeneration:
+                    await ExecuteHypothesisGenerationAsync(factory, input);
+                    break;
+
+                case ACHStep.EvidenceExtraction:
+                    await ExecuteEvidenceExtractionAsync(factory, input);
+                    break;
+
+                default:
+                    throw new NotSupportedException($"ACH Step {step} is not yet implemented.");
+            }
+        }
+
+        private static async Task ExecuteHypothesisGenerationAsync(object factory, string input)
+        {
+            var hypothesisFactory = factory as IOrchestrationFactory<List<Hypothesis>>
+                ?? throw new InvalidOperationException("Factory is not of the expected type for Hypothesis Generation.");
+
+            var hypotheses = await hypothesisFactory.ExecuteCoreAsync(input);
+            DisplayHypotheses(hypotheses);
+        }
+
+        private static async Task ExecuteEvidenceExtractionAsync(object factory, string input)
+        {
+            var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>
+                ?? throw new InvalidOperationException("Factory is not of the expected type for Evidence Extraction.");
+
+            var evidence = await evidenceFactory.ExecuteCoreAsync(input);
+            DisplayEvidence(evidence);
+        }
+
+        private static void DisplayHypotheses(List<Hypothesis> hypotheses)
+        {
+            Console.WriteLine($"\n{new string('=', Constants.SeparatorLength)}");
+            Console.WriteLine("\nGenerated Hypotheses:");
+
+            int hypothesisNum = 1;
+            foreach (var hypothesis in hypotheses)
+            {
+                Console.WriteLine($"\n{hypothesisNum}. {hypothesis.Title}");
+                Console.WriteLine($"   Rationale: {hypothesis.Rationale}");
+                hypothesisNum++;
+            }
+        }
+
+        private static void DisplayEvidence(List<Evidence> evidence)
+        {
+            Console.WriteLine($"\n{new string('=', Constants.SeparatorLength)}");
+            Console.WriteLine("\nExtracted Evidence:");
+
+            foreach (var item in evidence)
+            {
+                Console.WriteLine($"Type: {item.Type}\tDescription: {item.Description}\n");
+            }
+        }
+
+        private static (int? achStepNumber, int? experimentIndex) ParseCommandLineArguments(string[] args)
+        {
             int? achStepNumber = null;
             int? experimentIndex = null;
 
@@ -160,141 +217,135 @@ namespace SemanticKernelPractice
                 experimentIndex = expIndex;
             }
 
-            return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
-                    config.AddEnvironmentVariables();
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    // Register global AI service settings (from AIServiceSettings section)
-                    services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIServiceSettings"));
-
-                    // Get ACH step from command-line args, environment variable, or use default
-                    string achStep;
-                    if (achStepNumber.HasValue)
-                    {
-                        achStep = $"ACHStep{achStepNumber.Value}";
-                    }
-                    else
-                    {
-                        achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
-                    }
-
-                    // Register ACH Step settings dynamically based on step
-                    services.Configure<ACHStepSettings>(context.Configuration.GetSection(achStep));
-
-                    // Build and register ExperimentConfiguration based on selected experiment
-                    services.AddSingleton<ExperimentConfiguration>(sp =>
-                    {
-                        var config = sp.GetRequiredService<IConfiguration>();
-
-                        // Load global AI service settings
-                        var globalAISettings = config.GetSection("AIServiceSettings").Get<AIServiceSettings>()
-                            ?? throw new InvalidOperationException("AIServiceSettings section not found in configuration");
-
-                        // Get ACH step from command-line args, environment variable, or use default
-                        string achStepName;
-                        if (achStepNumber.HasValue)
-                        {
-                            achStepName = $"ACHStep{achStepNumber.Value}";
-                        }
-                        else
-                        {
-                            achStepName = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
-                        }
-
-                        // Load ACH Step settings
-                        var achStepSettings = config.GetSection(achStepName).Get<ACHStepSettings>()
-                            ?? throw new InvalidOperationException($"{achStepName} section not found in configuration");
-
-                        ExperimentConfiguration experiment;
-
-                        if (experimentIndex.HasValue)
-                        {
-                            // Use experiment index from command-line args
-                            if (achStepSettings.Experiments == null || experimentIndex.Value < 0 || experimentIndex.Value >= achStepSettings.Experiments.Count())
-                            {
-                                throw new InvalidOperationException($"Invalid experiment index {experimentIndex.Value}. {achStepName} has {achStepSettings.Experiments?.Count() ?? 0} experiments.");
-                            }
-                            experiment = achStepSettings.Experiments[experimentIndex.Value];
-                        }
-                        else
-                        {
-                            // Get experiment name from environment variable or use default
-                            var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
-
-                            // Find the experiment by name
-                            experiment = achStepSettings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
-                                ?? achStepSettings.Experiments?.FirstOrDefault()
-                                ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
-                        }
-
-                        Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
-
-                        // Inject global AI service settings into the experiment configuration
-                        experiment.GlobalAIServiceSettings = globalAISettings;
-
-                        return experiment;
-                    });
-
-                    // For backward compatibility, register AgentConfiguration array and OrchestrationSettings from ExperimentConfiguration
-                    services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
-                    {
-                        var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
-                        return experimentConfig.AgentConfigurations;
-                    });
-
-                    services.AddSingleton<IOptions<OrchestrationSettings>>(sp =>
-                    {
-                        var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
-                        return Options.Create(experimentConfig.OrchestrationSettings);
-                    });
-
-                    // Register kernel builder adapters
-                    services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
-                    services.AddSingleton<IKernelBuilderAdapter, HuggingFaceKernelAdapter>();
-                    services.AddSingleton<IKernelBuilderAdapter, OllamaKernelAdapter>();
-                    services.AddSingleton<IKernelBuilderAdapter, OpenAIKernelAdapter>();
-
-                    // Register kernel builder service (uses adapters)
-                    services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
-
-                    // Register Kernel as a singleton using the KernelBuilderService
-                    services.AddSingleton<Kernel>(sp =>
-                    {
-                        var kernelBuilder = sp.GetRequiredService<IKernelBuilderService>();
-                        return kernelBuilder.BuildKernel();
-                    });
-
-                    // Register agent creation service (uses kernel builder service)
-                    services.AddSingleton<IAgentService, AgentService>();
-
-                    // Register workflow logging services
-                    services.AddSingleton<ConsoleFormatter>();
-                    services.AddTransient<WorkflowLogger>();
-
-                    // Register orchestration factories
-                    services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisGenerationOrchestrationFactory>();
-                    services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
-
-                    // Register orchestration factory selector
-                    services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
-
-                    // Configure logging
-                    services.AddLogging(builder =>
-                    {
-                        builder.AddConsole();
-                        builder.AddDebug();
-                        builder.AddConfiguration(context.Configuration.GetSection("LoggingSettings"));
-                    });
-                });
+            return (achStepNumber, experimentIndex);
         }
+
+        private static void RegisterConfiguration(IServiceCollection services, IConfiguration configuration, int? achStepNumber, int? experimentIndex)
+        {
+            services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
+
+            var achStepName = DetermineAchStepName(achStepNumber);
+            services.Configure<ACHStepSettings>(configuration.GetSection(achStepName));
+
+            services.AddSingleton<ExperimentConfiguration>(sp =>
+                BuildExperimentConfiguration(sp, achStepNumber, experimentIndex));
+
+            services.AddSingleton<IEnumerable<AgentConfiguration>>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return experimentConfig.AgentConfigurations;
+            });
+
+            services.AddSingleton<IOptions<OrchestrationSettings>>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return Options.Create(experimentConfig.OrchestrationSettings);
+            });
+        }
+
+        private static string DetermineAchStepName(int? achStepNumber)
+        {
+            if (achStepNumber.HasValue)
+            {
+                return $"{Constants.AchStepPrefix}{achStepNumber.Value}";
+            }
+
+            return Environment.GetEnvironmentVariable(Constants.DefaultAchStepEnvironmentVariable)
+                ?? Constants.DefaultAchStep;
+        }
+
+        private static ExperimentConfiguration BuildExperimentConfiguration(IServiceProvider sp, int? achStepNumber, int? experimentIndex)
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+
+            var globalAISettings = config.GetSection("AIServiceSettings").Get<AIServiceSettings>()
+                ?? throw new InvalidOperationException("AIServiceSettings section not found in configuration");
+
+            var achStepName = DetermineAchStepName(achStepNumber);
+
+            var achStepSettings = config.GetSection(achStepName).Get<ACHStepSettings>()
+                ?? throw new InvalidOperationException($"{achStepName} section not found in configuration");
+
+            var experiment = SelectExperiment(achStepSettings, achStepName, experimentIndex);
+
+            Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
+
+            experiment.GlobalAIServiceSettings = globalAISettings;
+
+            return experiment;
+        }
+
+        private static ExperimentConfiguration SelectExperiment(ACHStepSettings achStepSettings, string achStepName, int? experimentIndex)
+        {
+            if (experimentIndex.HasValue)
+            {
+                return SelectExperimentByIndex(achStepSettings, achStepName, experimentIndex.Value);
+            }
+
+            return SelectExperimentByName(achStepSettings, achStepName);
+        }
+
+        private static ExperimentConfiguration SelectExperimentByIndex(ACHStepSettings achStepSettings, string achStepName, int index)
+        {
+            if (achStepSettings.Experiments == null || index < 0 || index >= achStepSettings.Experiments.Count())
+            {
+                throw new InvalidOperationException(
+                    $"Invalid experiment index {index}. {achStepName} has {achStepSettings.Experiments?.Count() ?? 0} experiments.");
+            }
+
+            return achStepSettings.Experiments[index];
+        }
+
+        private static ExperimentConfiguration SelectExperimentByName(ACHStepSettings achStepSettings, string achStepName)
+        {
+            var experimentName = Environment.GetEnvironmentVariable(Constants.ExperimentNameEnvironmentVariable)
+                ?? Constants.DefaultExperimentName;
+
+            return achStepSettings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
+                ?? achStepSettings.Experiments?.FirstOrDefault()
+                ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
+        }
+
+        private static void RegisterKernelServices(IServiceCollection services)
+        {
+            services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
+            services.AddSingleton<IKernelBuilderAdapter, HuggingFaceKernelAdapter>();
+            services.AddSingleton<IKernelBuilderAdapter, OllamaKernelAdapter>();
+            services.AddSingleton<IKernelBuilderAdapter, OpenAIKernelAdapter>();
+
+            services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
+
+            services.AddSingleton<Kernel>(sp =>
+            {
+                var kernelBuilder = sp.GetRequiredService<IKernelBuilderService>();
+                return kernelBuilder.BuildKernel();
+            });
+
+            services.AddSingleton<IAgentService, AgentService>();
+
+            services.AddSingleton<ConsoleFormatter>();
+            services.AddTransient<WorkflowLogger>();
+        }
+
+        private static void RegisterOrchestrationServices(IServiceCollection services)
+        {
+            services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisGenerationOrchestrationFactory>();
+            services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
+            services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
+        }
+
+        private static void RegisterLogging(IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.AddDebug();
+                builder.AddConfiguration(configuration.GetSection("LoggingSettings"));
+            });
+        }
+
+        #endregion
     }
 }
-
-
-    
 
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
