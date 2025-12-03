@@ -26,6 +26,9 @@ namespace SemanticKernelPractice
             public const int SeparatorLength = 70;
         }
 
+        /// <summary>
+        /// Entry point that starts the application and runs the ACH orchestration.
+        /// </summary>
         static async Task Main(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
@@ -61,6 +64,9 @@ namespace SemanticKernelPractice
             }
         }
 
+        /// <summary>
+        /// Creates and configures the application host with services and configuration.
+        /// </summary>
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
             var (achStepNumber, experimentIndex) = ParseCommandLineArguments(args);
@@ -81,6 +87,9 @@ namespace SemanticKernelPractice
         }
 
         #region Private Methods
+        /// <summary>
+        /// Gets the ACH step number from command-line arguments.
+        /// </summary>
         private static ACHStep ParseAchStepFromArgs(string[] args)
         {
             if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
@@ -91,6 +100,9 @@ namespace SemanticKernelPractice
             return ParseAchStepFromEnvironment();
         }
 
+        /// <summary>
+        /// Gets the ACH step from environment variables or uses the default.
+        /// </summary>
         private static ACHStep ParseAchStepFromEnvironment()
         {
             var achStepEnv = Environment.GetEnvironmentVariable(Constants.DefaultAchStepEnvironmentVariable) ?? Constants.DefaultAchStep;
@@ -103,6 +115,9 @@ namespace SemanticKernelPractice
             return ACHStep.HypothesisGeneration; // Default to step 1
         }
 
+        /// <summary>
+        /// Runs the orchestration workflow for the specified ACH step.
+        /// </summary>
         private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ACHStep achStep)
         {
             var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
@@ -121,6 +136,9 @@ namespace SemanticKernelPractice
             Console.WriteLine($"{new string('=', Constants.SeparatorLength)}\n");
         }
 
+        /// <summary>
+        /// Checks that the experiment configuration has all required fields.
+        /// </summary>
         private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
         {
             if (string.IsNullOrWhiteSpace(config.Context))
@@ -142,6 +160,9 @@ namespace SemanticKernelPractice
             }
         }
 
+        /// <summary>
+        /// Routes to the correct orchestration method based on the ACH step.
+        /// </summary>
         private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
         {
             switch (step)
@@ -159,6 +180,9 @@ namespace SemanticKernelPractice
             }
         }
 
+        /// <summary>
+        /// Runs the hypothesis generation step and displays the results.
+        /// </summary>
         private static async Task ExecuteHypothesisGenerationAsync(object factory, string input)
         {
             var hypothesisFactory = factory as IOrchestrationFactory<List<Hypothesis>>
@@ -168,6 +192,9 @@ namespace SemanticKernelPractice
             DisplayHypotheses(hypotheses);
         }
 
+        /// <summary>
+        /// Runs the evidence extraction step and displays the results.
+        /// </summary>
         private static async Task ExecuteEvidenceExtractionAsync(object factory, string input)
         {
             var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>
@@ -177,6 +204,9 @@ namespace SemanticKernelPractice
             DisplayEvidence(evidence);
         }
 
+        /// <summary>
+        /// Prints the generated hypotheses to the console.
+        /// </summary>
         private static void DisplayHypotheses(List<Hypothesis> hypotheses)
         {
             Console.WriteLine($"\n{new string('=', Constants.SeparatorLength)}");
@@ -191,6 +221,9 @@ namespace SemanticKernelPractice
             }
         }
 
+        /// <summary>
+        /// Prints the extracted evidence to the console.
+        /// </summary>
         private static void DisplayEvidence(List<Evidence> evidence)
         {
             Console.WriteLine($"\n{new string('=', Constants.SeparatorLength)}");
@@ -202,6 +235,9 @@ namespace SemanticKernelPractice
             }
         }
 
+        /// <summary>
+        /// Extracts the ACH step number and experiment index from command-line arguments.
+        /// </summary>
         private static (int? achStepNumber, int? experimentIndex) ParseCommandLineArguments(string[] args)
         {
             int? achStepNumber = null;
@@ -220,6 +256,9 @@ namespace SemanticKernelPractice
             return (achStepNumber, experimentIndex);
         }
 
+        /// <summary>
+        /// Registers configuration settings in the dependency injection container.
+        /// </summary>
         private static void RegisterConfiguration(IServiceCollection services, IConfiguration configuration, int? achStepNumber, int? experimentIndex)
         {
             services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
@@ -243,6 +282,9 @@ namespace SemanticKernelPractice
             });
         }
 
+        /// <summary>
+        /// Builds the ACH step configuration key name from the step number or environment.
+        /// </summary>
         private static string DetermineAchStepName(int? achStepNumber)
         {
             if (achStepNumber.HasValue)
@@ -254,6 +296,9 @@ namespace SemanticKernelPractice
                 ?? Constants.DefaultAchStep;
         }
 
+        /// <summary>
+        /// Loads and creates the experiment configuration for the specified ACH step.
+        /// </summary>
         private static ExperimentConfiguration BuildExperimentConfiguration(IServiceProvider sp, int? achStepNumber, int? experimentIndex)
         {
             var config = sp.GetRequiredService<IConfiguration>();
@@ -275,6 +320,9 @@ namespace SemanticKernelPractice
             return experiment;
         }
 
+        /// <summary>
+        /// Chooses an experiment by index or name from the ACH step settings.
+        /// </summary>
         private static ExperimentConfiguration SelectExperiment(ACHStepSettings achStepSettings, string achStepName, int? experimentIndex)
         {
             if (experimentIndex.HasValue)
@@ -285,6 +333,9 @@ namespace SemanticKernelPractice
             return SelectExperimentByName(achStepSettings, achStepName);
         }
 
+        /// <summary>
+        /// Gets an experiment from the settings using its array position.
+        /// </summary>
         private static ExperimentConfiguration SelectExperimentByIndex(ACHStepSettings achStepSettings, string achStepName, int index)
         {
             if (achStepSettings.Experiments == null || index < 0 || index >= achStepSettings.Experiments.Count())
@@ -296,6 +347,9 @@ namespace SemanticKernelPractice
             return achStepSettings.Experiments[index];
         }
 
+        /// <summary>
+        /// Finds an experiment in the settings by matching its name.
+        /// </summary>
         private static ExperimentConfiguration SelectExperimentByName(ACHStepSettings achStepSettings, string achStepName)
         {
             var experimentName = Environment.GetEnvironmentVariable(Constants.ExperimentNameEnvironmentVariable)
@@ -306,6 +360,9 @@ namespace SemanticKernelPractice
                 ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
         }
 
+        /// <summary>
+        /// Registers Semantic Kernel services and AI adapters in the container.
+        /// </summary>
         private static void RegisterKernelServices(IServiceCollection services)
         {
             services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
@@ -327,6 +384,9 @@ namespace SemanticKernelPractice
             services.AddTransient<WorkflowLogger>();
         }
 
+        /// <summary>
+        /// Registers orchestration factories for each ACH step in the container.
+        /// </summary>
         private static void RegisterOrchestrationServices(IServiceCollection services)
         {
             services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisGenerationOrchestrationFactory>();
@@ -334,6 +394,9 @@ namespace SemanticKernelPractice
             services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
         }
 
+        /// <summary>
+        /// Sets up logging providers and configuration for the application.
+        /// </summary>
         private static void RegisterLogging(IServiceCollection services, IConfiguration configuration)
         {
             services.AddLogging(builder =>
