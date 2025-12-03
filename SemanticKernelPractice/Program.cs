@@ -4,14 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.Agents.Orchestration;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
-using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
-using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Factories;
 using SemanticKernelPractice.Models;
@@ -31,11 +23,25 @@ namespace SemanticKernelPractice
 
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
+            // Display command-line argument usage
+            if (args.Length >= 2)
+            {
+                Console.WriteLine($"Command-line args: ACH Step {args[0]}, Experiment Index {args[1]}");
+            }
+            else if (args.Length >= 1)
+            {
+                Console.WriteLine($"Command-line args: ACH Step {args[0]}, using default experiment");
+            }
+
             var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
             Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
             var achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
+            {
+                achStep = $"ACHStep{stepNum}";
+            }
             Console.WriteLine($"Task: Extracting evidence for {achStep}.\n");
             Console.WriteLine(new string('=', 70));
 
@@ -84,8 +90,25 @@ namespace SemanticKernelPractice
             }
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            // Parse command-line arguments
+            // args[0] = ACH step number (e.g., 1 for ACHStep1, 2 for ACHStep2)
+            // args[1] = Experiment index (e.g., 0 for first experiment, 1 for second)
+            int? achStepNumber = null;
+            int? experimentIndex = null;
+
+            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
+            {
+                achStepNumber = stepNum;
+            }
+
+            if (args.Length >= 2 && int.TryParse(args[1], out int expIndex))
+            {
+                experimentIndex = expIndex;
+            }
+
+            return Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
                     config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
@@ -96,10 +119,18 @@ namespace SemanticKernelPractice
                     // Register global AI service settings (from AIServiceSettings section)
                     services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIServiceSettings"));
 
-                    // Get ACH step from environment variable or use default
-                    var achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+                    // Get ACH step from command-line args, environment variable, or use default
+                    string achStep;
+                    if (achStepNumber.HasValue)
+                    {
+                        achStep = $"ACHStep{achStepNumber.Value}";
+                    }
+                    else
+                    {
+                        achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+                    }
 
-                    // Register ACH Step settings dynamically based on environment variable
+                    // Register ACH Step settings dynamically based on step
                     services.Configure<ACHStepSettings>(context.Configuration.GetSection(achStep));
 
                     // Build and register ExperimentConfiguration based on selected experiment
@@ -111,20 +142,42 @@ namespace SemanticKernelPractice
                         var globalAISettings = config.GetSection("AIServiceSettings").Get<AIServiceSettings>()
                             ?? throw new InvalidOperationException("AIServiceSettings section not found in configuration");
 
-                        // Get ACH step from environment variable or use default
-                        var achStepName = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+                        // Get ACH step from command-line args, environment variable, or use default
+                        string achStepName;
+                        if (achStepNumber.HasValue)
+                        {
+                            achStepName = $"ACHStep{achStepNumber.Value}";
+                        }
+                        else
+                        {
+                            achStepName = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+                        }
 
                         // Load ACH Step settings
                         var achStepSettings = config.GetSection(achStepName).Get<ACHStepSettings>()
                             ?? throw new InvalidOperationException($"{achStepName} section not found in configuration");
 
-                        // Get experiment name from environment variable or use default
-                        var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
+                        ExperimentConfiguration experiment;
 
-                        // Find the experiment by name
-                        var experiment = achStepSettings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
-                            ?? achStepSettings.Experiments?.FirstOrDefault()
-                            ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
+                        if (experimentIndex.HasValue)
+                        {
+                            // Use experiment index from command-line args
+                            if (achStepSettings.Experiments == null || experimentIndex.Value < 0 || experimentIndex.Value >= achStepSettings.Experiments.Count())
+                            {
+                                throw new InvalidOperationException($"Invalid experiment index {experimentIndex.Value}. {achStepName} has {achStepSettings.Experiments?.Count() ?? 0} experiments.");
+                            }
+                            experiment = achStepSettings.Experiments[experimentIndex.Value];
+                        }
+                        else
+                        {
+                            // Get experiment name from environment variable or use default
+                            var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
+
+                            // Find the experiment by name
+                            experiment = achStepSettings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
+                                ?? achStepSettings.Experiments?.FirstOrDefault()
+                                ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
+                        }
 
                         Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
 
@@ -181,7 +234,8 @@ namespace SemanticKernelPractice
                         builder.AddConfiguration(context.Configuration.GetSection("LoggingSettings"));
                     });
                 });
-    } 
+        }
+    }
 }
 
 
