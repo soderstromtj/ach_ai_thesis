@@ -1,9 +1,9 @@
 namespace SemanticKernelPractice.Configuration
 {
     /// <summary>
-    /// Configuration for ACH Step 2 experiments
+    /// Configuration for ACH experiments for any step
     /// </summary>
-    public class ACHStep2Settings
+    public class ACHStepSettings
     {
         public ExperimentConfiguration[] Experiments { get; set; } = Array.Empty<ExperimentConfiguration>();
     }

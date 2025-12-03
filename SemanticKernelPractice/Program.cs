@@ -35,7 +35,8 @@ namespace SemanticKernelPractice
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
             Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
-            Console.WriteLine("Task: Extracting evidence for ACH step 2.\n");
+            var achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+            Console.WriteLine($"Task: Extracting evidence for {achStep}.\n");
             Console.WriteLine(new string('=', 70));
 
             try
@@ -95,8 +96,11 @@ namespace SemanticKernelPractice
                     // Register global AI service settings (from AIServiceSettings section)
                     services.Configure<AIServiceSettings>(context.Configuration.GetSection("AIServiceSettings"));
 
-                    // Register ACH Step 2 settings
-                    services.Configure<ACHStep2Settings>(context.Configuration.GetSection("ACHStep2"));
+                    // Get ACH step from environment variable or use default
+                    var achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+
+                    // Register ACH Step settings dynamically based on environment variable
+                    services.Configure<ACHStepSettings>(context.Configuration.GetSection(achStep));
 
                     // Build and register ExperimentConfiguration based on selected experiment
                     services.AddSingleton<ExperimentConfiguration>(sp =>
@@ -107,17 +111,20 @@ namespace SemanticKernelPractice
                         var globalAISettings = config.GetSection("AIServiceSettings").Get<AIServiceSettings>()
                             ?? throw new InvalidOperationException("AIServiceSettings section not found in configuration");
 
-                        // Load ACH Step 2 settings
-                        var achStep2Settings = config.GetSection("ACHStep2").Get<ACHStep2Settings>()
-                            ?? throw new InvalidOperationException("ACHStep2 section not found in configuration");
+                        // Get ACH step from environment variable or use default
+                        var achStepName = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+
+                        // Load ACH Step settings
+                        var achStepSettings = config.GetSection(achStepName).Get<ACHStepSettings>()
+                            ?? throw new InvalidOperationException($"{achStepName} section not found in configuration");
 
                         // Get experiment name from environment variable or use default
                         var experimentName = Environment.GetEnvironmentVariable("ACH_EXPERIMENT_NAME") ?? "Baseline";
 
                         // Find the experiment by name
-                        var experiment = achStep2Settings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
-                            ?? achStep2Settings.Experiments?.FirstOrDefault()
-                            ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}'");
+                        var experiment = achStepSettings.Experiments?.FirstOrDefault(e => e.Name == experimentName)
+                            ?? achStepSettings.Experiments?.FirstOrDefault()
+                            ?? throw new InvalidOperationException($"No experiment found with name '{experimentName}' in {achStepName}");
 
                         Console.WriteLine($"Selected experiment: {experiment.Name} - {experiment.Description}");
 
