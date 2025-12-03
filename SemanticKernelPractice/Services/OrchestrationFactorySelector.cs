@@ -1,0 +1,56 @@
+using Microsoft.Extensions.DependencyInjection;
+using SemanticKernelPractice.Factories;
+using SemanticKernelPractice.Models;
+
+namespace SemanticKernelPractice.Services
+{
+    /// <summary>
+    /// Selects the appropriate orchestration factory based on the ACH step.
+    /// </summary>
+    public class OrchestrationFactorySelector : IOrchestrationFactorySelector
+    {
+        private readonly IServiceProvider _serviceProvider;
+
+        public OrchestrationFactorySelector(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
+        /// <summary>
+        /// Gets the orchestration factory appropriate for the specified ACH step.
+        /// </summary>
+        /// <param name="step">The ACH step for which to get the factory.</param>
+        /// <returns>The orchestration factory instance for the specified step.</returns>
+        /// <exception cref="NotSupportedException">Thrown when the specified ACH step is not supported.</exception>
+        public object GetFactory(ACHStep step)
+        {
+            return step switch
+            {
+                ACHStep.HypothesisGeneration => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Hypothesis>>>(),
+                ACHStep.EvidenceExtraction => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Evidence>>>(),
+                ACHStep.EvidenceEvaluation => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                ACHStep.HypothesisRefinement => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                ACHStep.ConclusionDrawing => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                _ => throw new NotSupportedException($"Unknown ACH step: {step}")
+            };
+        }
+
+        /// <summary>
+        /// Gets the result type for the specified ACH step.
+        /// </summary>
+        /// <param name="step">The ACH step.</param>
+        /// <returns>The Type of the result produced by the factory for this step.</returns>
+        public Type GetResultType(ACHStep step)
+        {
+            return step switch
+            {
+                ACHStep.HypothesisGeneration => typeof(List<Hypothesis>),
+                ACHStep.EvidenceExtraction => typeof(List<Evidence>),
+                ACHStep.EvidenceEvaluation => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                ACHStep.HypothesisRefinement => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                ACHStep.ConclusionDrawing => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
+                _ => throw new NotSupportedException($"Unknown ACH step: {step}")
+            };
+        }
+    }
+}
