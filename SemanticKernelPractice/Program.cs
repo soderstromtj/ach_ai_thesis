@@ -4,14 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.AzureAI;
-using Microsoft.SemanticKernel.Agents.Orchestration;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
-using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
-using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Factories;
 using SemanticKernelPractice.Models;
@@ -170,9 +162,9 @@ namespace SemanticKernelPractice
                         if (experimentIndex.HasValue)
                         {
                             // Use experiment index from command-line args
-                            if (achStepSettings.Experiments == null || experimentIndex.Value < 0 || experimentIndex.Value >= achStepSettings.Experiments.Count)
+                            if (achStepSettings.Experiments == null || experimentIndex.Value < 0 || experimentIndex.Value >= achStepSettings.Experiments.Count())
                             {
-                                throw new InvalidOperationException($"Invalid experiment index {experimentIndex.Value}. {achStepName} has {achStepSettings.Experiments?.Count ?? 0} experiments.");
+                                throw new InvalidOperationException($"Invalid experiment index {experimentIndex.Value}. {achStepName} has {achStepSettings.Experiments?.Count() ?? 0} experiments.");
                             }
                             experiment = achStepSettings.Experiments[experimentIndex.Value];
                         }
@@ -242,7 +234,8 @@ namespace SemanticKernelPractice
                         builder.AddConfiguration(context.Configuration.GetSection("LoggingSettings"));
                     });
                 });
-        } 
+        }
+    }
 }
 
 
