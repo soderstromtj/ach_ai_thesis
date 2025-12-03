@@ -17,6 +17,51 @@ namespace SemanticKernelPractice
 
     class Program
     {
+        /// <summary>
+        /// Executes the orchestration factory and displays results based on the ACH step.
+        /// </summary>
+        private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
+        {
+            switch (step)
+            {
+                case ACHStep.HypothesisGeneration:
+                    var hypothesisFactory = factory as IOrchestrationFactory<List<Hypothesis>>;
+                    if (hypothesisFactory == null)
+                        throw new InvalidOperationException("Factory is not of the expected type for Hypothesis Generation.");
+
+                    var hypotheses = await hypothesisFactory.ExecuteCoreAsync(input);
+
+                    Console.WriteLine("\n" + new string('=', 70));
+                    Console.WriteLine("\nGenerated Hypotheses:");
+                    int hypothesisNum = 1;
+                    foreach (var hypothesis in hypotheses)
+                    {
+                        Console.WriteLine($"\n{hypothesisNum}. {hypothesis.Title}");
+                        Console.WriteLine($"   Rationale: {hypothesis.Rationale}");
+                        hypothesisNum++;
+                    }
+                    break;
+
+                case ACHStep.EvidenceExtraction:
+                    var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>;
+                    if (evidenceFactory == null)
+                        throw new InvalidOperationException("Factory is not of the expected type for Evidence Extraction.");
+
+                    var evidence = await evidenceFactory.ExecuteCoreAsync(input);
+
+                    Console.WriteLine("\n" + new string('=', 70));
+                    Console.WriteLine("\nExtracted Evidence:");
+                    foreach (var item in evidence)
+                    {
+                        Console.WriteLine($"Type: {item.Type}\tDescription: {item.Description}\n");
+                    }
+                    break;
+
+                default:
+                    throw new NotSupportedException($"ACH Step {step} is not yet implemented.");
+            }
+        }
+
         static async Task Main(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
@@ -37,17 +82,29 @@ namespace SemanticKernelPractice
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
             Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
 
-            var achStep = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+            // Determine ACH step from command-line args or environment variable
+            ACHStep achStep = ACHStep.EvidenceExtraction; // Default to step 2
             if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
             {
-                achStep = $"ACHStep{stepNum}";
+                achStep = (ACHStep)stepNum;
             }
-            Console.WriteLine($"Task: Extracting evidence for {achStep}.\n");
+            else
+            {
+                var achStepEnv = Environment.GetEnvironmentVariable("ACH_STEP") ?? "ACHStep2";
+                if (achStepEnv.StartsWith("ACHStep") && int.TryParse(achStepEnv.Substring(7), out int envStepNum))
+                {
+                    achStep = (ACHStep)envStepNum;
+                }
+            }
+
+            Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
             Console.WriteLine(new string('=', 70));
 
             try
             {
-                var factory = host.Services.GetRequiredService<IOrchestrationFactory<List<Evidence>>>();
+                // Get the appropriate factory for this ACH step
+                var factorySelector = host.Services.GetRequiredService<IOrchestrationFactorySelector>();
+                var factory = factorySelector.GetFactory(achStep);
 
                 // Get KIQ, context and task instructions from experiment configuration
                 var kiq = experimentConfig.KeyIntelligenceQuestion;
@@ -66,16 +123,11 @@ namespace SemanticKernelPractice
 
                 var input = $"Key Intelligence Question: {kiq}\nContext: {context}\nInstructions: {instructions}";
 
-                Console.WriteLine("\nExecuting Evidence Extraction Orchestration...\n");
+                Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
 
-                var result = await factory.ExecuteCoreAsync(input);
+                // Execute the factory and handle the result based on step type
+                await ExecuteOrchestrationAsync(factory, achStep, input);
 
-                Console.WriteLine("\n" + new string('=', 70));
-                Console.WriteLine("\nList of Evidence");
-                foreach (Evidence evidence in result)
-                {
-                    Console.WriteLine($"Type: {evidence.Type}\tDescription: {evidence.Description}\n");
-                }
                 Console.WriteLine(new string('=', 70) + "\n");
             }
             catch (Exception ex)
@@ -224,7 +276,11 @@ namespace SemanticKernelPractice
                     services.AddTransient<WorkflowLogger>();
 
                     // Register orchestration factories
+                    services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisGenerationOrchestrationFactory>();
                     services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
+
+                    // Register orchestration factory selector
+                    services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
 
                     // Configure logging
                     services.AddLogging(builder =>
