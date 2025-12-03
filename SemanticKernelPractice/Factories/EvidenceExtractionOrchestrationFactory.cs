@@ -63,7 +63,6 @@ namespace SemanticKernelPractice.Factories
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
                 {
-                    Temperature = 0.7,
                     ResponseFormat = typeof(EvidenceResult)
                 });
 
