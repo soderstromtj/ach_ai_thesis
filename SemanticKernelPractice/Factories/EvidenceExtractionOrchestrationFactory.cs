@@ -9,7 +9,9 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 
 namespace SemanticKernelPractice.Factories
 {
@@ -24,6 +26,9 @@ namespace SemanticKernelPractice.Factories
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
+
+        // Buffer streaming chunks per agent to allow assembling partials before final arrives.
+        private readonly ConcurrentDictionary<string, StringBuilder> _streamBuffers = new();
 
         public EvidenceExtractionOrchestrationFactory(
             IAgentService agentService,
@@ -70,7 +75,8 @@ namespace SemanticKernelPractice.Factories
             GroupChatOrchestration<string, EvidenceResult> orchestration = new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
             {
                 ResponseCallback = ResponseCallback,
-                ResultTransform = outputTransform.TransformAsync
+                ResultTransform = outputTransform.TransformAsync,
+                StreamingResponseCallback = StreamingResponseCallback,
             };
 
             // Create in-process runtime that will execute the orchestration and manage state
@@ -177,6 +183,41 @@ namespace SemanticKernelPractice.Factories
             }
         }
 
+        private async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
+        {
+            var agentName = response.AuthorName ?? "Unknown";
+            var chunk = response.Content ?? string.Empty;
+
+            // Append chunk into per-agent buffer
+            var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
+            buffer.Append(chunk);
+
+            // Show streaming output to console (simple live append)
+            // Use Write rather than WriteLine so output appears as it streams.
+            if (_orchestrationSettings.ShowFullResponseContent)
+            {
+                Console.Write(chunk);
+            }
+            else
+            {
+                // If not showing full content, show a short preview instead
+                var preview = buffer.Length > 200 ? buffer.ToString(0, 200) + "..." : buffer.ToString();
+                Console.Write("\r" + preview);
+            }
+
+            // When the orchestrator indicates final chunk, remove buffer (final response will be passed to ResponseCallback)
+            if (isFinal)
+            {
+                // Optionally write a newline to finalize console output for this agent
+                Console.WriteLine();
+
+                // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
+                _streamBuffers.TryRemove(agentName, out _);
+            }
+
+            await ValueTask.CompletedTask;
+        }
+
         private async ValueTask<ChatMessageContent> InteractiveCallback()
         {
             return await ValueTask.FromResult(new ChatMessageContent
@@ -228,9 +269,6 @@ namespace SemanticKernelPractice.Factories
 
             // Start timer for next response
             _responseStopwatch.Restart();
-
-            // Log the agent response with full content
-            _workflowLogger.LogAgentResponse(agentName, content, tokenCount, responseDuration);
 
             return ValueTask.CompletedTask;
         }
