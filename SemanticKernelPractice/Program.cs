@@ -42,7 +42,7 @@ namespace SemanticKernelPractice
 
             var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
-            Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
+            Console.WriteLine($"AI Provider: Unified (Multi-Provider support enabled)\n");
 
             var achStep = ParseAchStepFromArgs(args);
             Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
@@ -365,10 +365,7 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterKernelServices(IServiceCollection services)
         {
-            services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, HuggingFaceKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, OllamaKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, OpenAIKernelAdapter>();
+            // Register only the UnifiedKernelAdapter which handles all AI providers
             services.AddSingleton<IKernelBuilderAdapter, UnifiedKernelAdapter>();
 
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
