@@ -369,6 +369,7 @@ namespace SemanticKernelPractice
             services.AddSingleton<IKernelBuilderAdapter, HuggingFaceKernelAdapter>();
             services.AddSingleton<IKernelBuilderAdapter, OllamaKernelAdapter>();
             services.AddSingleton<IKernelBuilderAdapter, OpenAIKernelAdapter>();
+            services.AddSingleton<IKernelBuilderAdapter, UnifiedKernelAdapter>();
 
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 
