@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
+using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 using System.Collections.Concurrent;
@@ -43,7 +44,7 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken)
         {
             // Log orchestration start
             _workflowLogger.LogOrchestrationStart(
@@ -64,7 +65,11 @@ namespace SemanticKernelPractice.Factories
                     ResponseFormat = typeof(HypothesisResult)
                 });
 
-            var manager = new RoundRobinGroupChatManager
+            var manager = new HypothesisGenerationGroupChatManager(
+                input, 
+                agents.Select(a => a.Name).ToList(), 
+                _orchestrationSettings.MaximumInvocationCount, 
+                kernel.GetRequiredService<IChatCompletionService>())
             {
                 InteractiveCallback = InteractiveCallback,
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
@@ -84,7 +89,7 @@ namespace SemanticKernelPractice.Factories
             try
             {
                 // Invoke orchestration with input and runtime context
-                var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
+                var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
                 // Log structured output transformation attempt
                 _workflowLogger.LogStructuredOutputStart("HypothesisResult (List<Hypothesis>)", _orchestrationSettings.TimeoutInMinutes);

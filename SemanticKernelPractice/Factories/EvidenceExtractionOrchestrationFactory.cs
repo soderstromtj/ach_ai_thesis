@@ -43,7 +43,9 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<List<Evidence>> IOrchestrationFactory<List<Evidence>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        public ChatHistory GetHistory() => _history;
+
+        async Task<List<Evidence>> IOrchestrationFactory<List<Evidence>>.ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken)
         {
             // Log orchestration start
             _workflowLogger.LogOrchestrationStart(
@@ -86,7 +88,7 @@ namespace SemanticKernelPractice.Factories
             try
             {
                 // Invoke orchestration with input and runtime context
-                var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
+                var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
                 // Log structured output transformation attempt
                 _workflowLogger.LogStructuredOutputStart("EvidenceResult (List<Evidence>)", _orchestrationSettings.TimeoutInMinutes);
@@ -183,6 +185,7 @@ namespace SemanticKernelPractice.Factories
             }
         }
 
+        #region Private Callbacks
         private async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
             var agentName = response.AuthorName ?? "Unknown";
@@ -272,8 +275,8 @@ namespace SemanticKernelPractice.Factories
 
             return ValueTask.CompletedTask;
         }
+        #endregion
 
-        public ChatHistory GetHistory() => _history;
     }
 }
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
