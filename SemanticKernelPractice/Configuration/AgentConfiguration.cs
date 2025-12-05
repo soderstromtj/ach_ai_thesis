@@ -8,7 +8,7 @@
 
         /// <summary>
         /// Optional service ID to specify which AI provider this agent should use.
-        /// Valid values: "ollama", "openai", "azure", "huggingface"
+        /// Valid values: "ollama", "openai", "azure"
         /// If not specified, the kernel's default service will be used.
         /// </summary>
         public string? ServiceId { get; set; }

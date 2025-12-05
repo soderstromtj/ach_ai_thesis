@@ -52,7 +52,14 @@ namespace SemanticKernelPractice.Factories
                 _orchestrationSettings.MaximumInvocationCount,
                 _orchestrationSettings.TimeoutInMinutes);
 
-            Agent[] agents = _agentService.CreateAgents().ToArray();
+            IEnumerable<Agent> agents = _agentService.CreateAgents();
+
+            // Use .Where and .Select to filter out nulls and project to string
+            var agentNames = agents
+                .Select(a => a.Name)
+                .Where(name => name != null)
+                .Cast<string>()
+                .ToList();
 
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
@@ -67,7 +74,7 @@ namespace SemanticKernelPractice.Factories
 
             var manager = new HypothesisGenerationGroupChatManager(
                 input, 
-                agents.Select(a => a.Name).ToList(), 
+                agentNames,
                 _orchestrationSettings.MaximumInvocationCount, 
                 kernel.GetRequiredService<IChatCompletionService>())
             {
@@ -75,7 +82,7 @@ namespace SemanticKernelPractice.Factories
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
             };
 
-            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
+            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents.ToArray())
             {
                 StreamingResponseCallback = StreamingResponseCallback,
                 ResponseCallback = ResponseCallback,

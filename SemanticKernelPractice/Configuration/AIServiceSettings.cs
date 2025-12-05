@@ -9,6 +9,5 @@
         public AzureOpenAISettings? AzureOpenAI { get; set; }
         public OpenAISettings? OpenAI { get; set; }
         public OllamaSettings? Ollama { get; set; }
-        public HuggingFaceSettings? HuggingFace { get; set; }
     }
 }

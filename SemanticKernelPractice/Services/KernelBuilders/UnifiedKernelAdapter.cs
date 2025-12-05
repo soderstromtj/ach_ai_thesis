@@ -66,18 +66,6 @@ namespace SemanticKernelPractice.Services.KernelBuilders
                 servicesAdded++;
             }
 
-            // Add HuggingFace if configured with API key
-            if (_aiServiceSettings.HuggingFace != null &&
-                !string.IsNullOrWhiteSpace(_aiServiceSettings.HuggingFace.ApiKey) &&
-                !string.IsNullOrWhiteSpace(_aiServiceSettings.HuggingFace.ModelId))
-            {
-                builder.AddHuggingFaceChatCompletion(
-                    model: _aiServiceSettings.HuggingFace.ModelId,
-                    apiKey: _aiServiceSettings.HuggingFace.ApiKey,
-                    serviceId: "huggingface");
-                servicesAdded++;
-            }
-
             if (servicesAdded == 0)
             {
                 throw new InvalidOperationException(
