@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
+using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 using System.Collections.Concurrent;
@@ -43,7 +44,7 @@ namespace SemanticKernelPractice.Factories
             _history = new ChatHistory();
         }
 
-        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(string input, CancellationToken cancellationToken)
+        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken)
         {
             // Log orchestration start
             _workflowLogger.LogOrchestrationStart(
@@ -51,7 +52,14 @@ namespace SemanticKernelPractice.Factories
                 _orchestrationSettings.MaximumInvocationCount,
                 _orchestrationSettings.TimeoutInMinutes);
 
-            Agent[] agents = _agentService.CreateAgents().ToArray();
+            IEnumerable<Agent> agents = _agentService.CreateAgents();
+
+            // Use .Where and .Select to filter out nulls and project to string
+            var agentNames = agents
+                .Select(a => a.Name)
+                .Where(name => name != null)
+                .Cast<string>()
+                .ToList();
 
             // Build kernel for output transformation
             Kernel kernel = _kernelBuilderService.BuildKernel();
@@ -64,13 +72,17 @@ namespace SemanticKernelPractice.Factories
                     ResponseFormat = typeof(HypothesisResult)
                 });
 
-            var manager = new RoundRobinGroupChatManager
+            var manager = new HypothesisGenerationGroupChatManager(
+                input, 
+                agentNames,
+                _orchestrationSettings.MaximumInvocationCount, 
+                kernel.GetRequiredService<IChatCompletionService>())
             {
                 InteractiveCallback = InteractiveCallback,
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
             };
 
-            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
+            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents.ToArray())
             {
                 StreamingResponseCallback = StreamingResponseCallback,
                 ResponseCallback = ResponseCallback,
@@ -84,7 +96,7 @@ namespace SemanticKernelPractice.Factories
             try
             {
                 // Invoke orchestration with input and runtime context
-                var result = await orchestration.InvokeAsync(input, runtime, cancellationToken);
+                var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
                 // Log structured output transformation attempt
                 _workflowLogger.LogStructuredOutputStart("HypothesisResult (List<Hypothesis>)", _orchestrationSettings.TimeoutInMinutes);

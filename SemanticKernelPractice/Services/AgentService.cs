@@ -20,12 +20,26 @@ namespace SemanticKernelPractice.Services
         // Need to update to include other types of agents based on the kernel type
         IEnumerable<Agent> IAgentService.CreateAgents()
         {
-            return _agentConfigurations.Select(config => new ChatCompletionAgent
+            // Replace the agent creation logic to use object initializer for init-only properties
+            return _agentConfigurations.Select(config =>
             {
-                Name = config.Name,
-                Description = config.Description,
-                Instructions = config.Instructions,
-                Kernel = _kernel
+                var arguments = !string.IsNullOrWhiteSpace(config.ServiceId)
+                    ? new KernelArguments(new PromptExecutionSettings
+                    {
+                        ServiceId = config.ServiceId
+                    })
+                    : null;
+
+                var agent = new ChatCompletionAgent
+                {
+                    Name = config.Name,
+                    Description = config.Description,
+                    Instructions = config.Instructions,
+                    Kernel = _kernel,
+                    Arguments = arguments
+                };
+
+                return agent;
             }).ToList();
         }
     }

@@ -42,7 +42,7 @@ namespace SemanticKernelPractice
 
             var experimentConfig = host.Services.GetRequiredService<ExperimentConfiguration>();
             Console.WriteLine($"Experiment: {experimentConfig.Name}");
-            Console.WriteLine($"AI Provider: {experimentConfig.Provider}\n");
+            Console.WriteLine($"AI Provider: Unified (Multi-Provider support enabled)\n");
 
             var achStep = ParseAchStepFromArgs(args);
             Console.WriteLine($"Task: Running ACH {achStep} (Step {(int)achStep}).\n");
@@ -125,9 +125,14 @@ namespace SemanticKernelPractice
 
             ValidateExperimentConfiguration(experimentConfig);
 
-            var input = $"Key Intelligence Question: {experimentConfig.KeyIntelligenceQuestion}\n" +
-                        $"Context: {experimentConfig.Context}\n" +
-                        $"Task Instructions: {experimentConfig.TaskInstructions}";
+            var input = new OrchestrationPromptInput()
+            {
+                KeyQuestion = experimentConfig.KeyIntelligenceQuestion,
+                Context = experimentConfig.Context,
+                TaskInstructions = experimentConfig.TaskInstructions,
+                HypothesisResult = null,
+                EvidenceResult = null
+            };
 
             Console.WriteLine($"\nExecuting {achStep} Orchestration...\n");
 
@@ -163,7 +168,7 @@ namespace SemanticKernelPractice
         /// <summary>
         /// Routes to the correct orchestration method based on the ACH step.
         /// </summary>
-        private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, string input)
+        private static async Task ExecuteOrchestrationAsync(object factory, ACHStep step, OrchestrationPromptInput input)
         {
             switch (step)
             {
@@ -183,7 +188,7 @@ namespace SemanticKernelPractice
         /// <summary>
         /// Runs the hypothesis generation step and displays the results.
         /// </summary>
-        private static async Task ExecuteHypothesisGenerationAsync(object factory, string input)
+        private static async Task ExecuteHypothesisGenerationAsync(object factory, OrchestrationPromptInput input)
         {
             var hypothesisFactory = factory as IOrchestrationFactory<List<Hypothesis>>
                 ?? throw new InvalidOperationException("Factory is not of the expected type for Hypothesis Generation.");
@@ -195,7 +200,7 @@ namespace SemanticKernelPractice
         /// <summary>
         /// Runs the evidence extraction step and displays the results.
         /// </summary>
-        private static async Task ExecuteEvidenceExtractionAsync(object factory, string input)
+        private static async Task ExecuteEvidenceExtractionAsync(object factory, OrchestrationPromptInput input)
         {
             var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>
                 ?? throw new InvalidOperationException("Factory is not of the expected type for Evidence Extraction.");
@@ -365,10 +370,8 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterKernelServices(IServiceCollection services)
         {
-            services.AddSingleton<IKernelBuilderAdapter, AzureOpenAIKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, HuggingFaceKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, OllamaKernelAdapter>();
-            services.AddSingleton<IKernelBuilderAdapter, OpenAIKernelAdapter>();
+            // Register only the UnifiedKernelAdapter which handles all AI providers
+            services.AddSingleton<IKernelBuilderAdapter, UnifiedKernelAdapter>();
 
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 

@@ -6,5 +6,6 @@
         OpenAI,
         Ollama,
         HuggingFace,
+        Unified,
     }
 }
