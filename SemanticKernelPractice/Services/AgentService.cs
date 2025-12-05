@@ -11,6 +11,7 @@ namespace SemanticKernelPractice.Services
         private readonly IEnumerable<AgentConfiguration> _agentConfigurations;
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger _logger;
 
         public AgentService(
             IEnumerable<AgentConfiguration> agentConfigurations,
@@ -20,11 +21,15 @@ namespace SemanticKernelPractice.Services
             _agentConfigurations = agentConfigurations;
             _aiServiceSettings = aiServiceSettings;
             _loggerFactory = loggerFactory;
+            _logger = loggerFactory.CreateLogger<AgentService>();
         }
 
         IEnumerable<Agent> IAgentService.CreateAgents()
         {
-            return _agentConfigurations.Select(config =>
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Creating agents based on configuration.");
+
+            // Create agents based on the configurations from appsettings
+            List<ChatCompletionAgent> agents = _agentConfigurations.Select(config =>
             {
                 // Build a kernel for this agent based on its ServiceId
                 var kernel = BuildKernelForAgent(config.ServiceId);
@@ -39,10 +44,16 @@ namespace SemanticKernelPractice.Services
 
                 return agent;
             }).ToList();
+
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Created {agents.Count} agents. Agent names are: {string.Join(", ", agents.Select(a => a.Name))}");
+
+            return agents;
         }
 
         private Kernel BuildKernelForAgent(string? serviceId)
         {
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Building kernel for agent with ServiceId: '{serviceId ?? "openai (default)"}'.");
+
             // Default to OpenAI if no ServiceId specified
             var effectiveServiceId = string.IsNullOrWhiteSpace(serviceId) ? "openai" : serviceId.ToLowerInvariant();
 
@@ -55,6 +66,8 @@ namespace SemanticKernelPractice.Services
                     $"Unsupported ServiceId: '{serviceId}'. Valid values are: 'openai', 'azure', 'ollama'")
             };
 
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Using '{adapter.SupportedProvider}' adapter to build kernel.");
+
             return adapter.BuildKernel();
         }
 
@@ -66,7 +79,11 @@ namespace SemanticKernelPractice.Services
                     "OpenAI service is not configured. Please ensure AIServiceSettings.OpenAI is properly configured in appsettings.");
             }
 
-            return new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _loggerFactory);
+            var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _loggerFactory);
+
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: OpenAI adapter created successfully.");
+
+            return adapter;
         }
 
         private IKernelBuilderAdapter CreateAzureOpenAIAdapter()
@@ -80,7 +97,11 @@ namespace SemanticKernelPractice.Services
                     "Azure OpenAI service is not configured. Please ensure AIServiceSettings.AzureOpenAI is properly configured in appsettings.");
             }
 
-            return new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _loggerFactory);
+            var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _loggerFactory);
+
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: AzureOpenAI adapter created successfully.");
+
+            return adapter;
         }
 
         private IKernelBuilderAdapter CreateOllamaAdapter()
@@ -93,7 +114,11 @@ namespace SemanticKernelPractice.Services
                     "Ollama service is not configured. Please ensure AIServiceSettings.Ollama is properly configured in appsettings.");
             }
 
-            return new OllamaKernelAdapter(_aiServiceSettings.Ollama, _loggerFactory);
+            var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _loggerFactory);
+
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Ollama adapter created successfully.");
+
+            return adapter;
         }
     }
 }

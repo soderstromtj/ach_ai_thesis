@@ -3,12 +3,18 @@ using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Models;
+using SemanticKernelPractice.Services;
 using System.Text.Json;
 
 namespace SemanticKernelPractice.Managers
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class HypothesisGenerationGroupChatManager(OrchestrationPromptInput input, List<string> agentNames, int maximumInvocationLimit, IChatCompletionService chatCompletion) : GroupChatManager
+    public class HypothesisGenerationGroupChatManager(
+        OrchestrationPromptInput input, 
+        List<string> agentNames, 
+        int maximumInvocationLimit, 
+        IChatCompletionService chatCompletion
+        ) : GroupChatManager
     {
         private static class Prompts
         {
@@ -56,6 +62,7 @@ namespace SemanticKernelPractice.Managers
 
         public override ValueTask<GroupChatManagerResult<string>> FilterResults(ChatHistory history, CancellationToken cancellationToken = default)
         {
+            
             return this.GetResponseAsync<string>(history, Prompts.Filter(input), cancellationToken);
         }
 

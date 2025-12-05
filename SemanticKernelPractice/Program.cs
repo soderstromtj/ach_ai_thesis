@@ -3,12 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Factories;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
-using SemanticKernelPractice.Services.KernelBuilders;
 
 namespace SemanticKernelPractice
 {
@@ -383,7 +381,6 @@ namespace SemanticKernelPractice
             services.AddSingleton<IAgentService, AgentService>();
 
             services.AddSingleton<ConsoleFormatter>();
-            services.AddTransient<WorkflowLogger>();
         }
 
         /// <summary>
@@ -401,6 +398,7 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterLogging(IServiceCollection services, IConfiguration configuration)
         {
+            // Configure logging to use Console and Debug providers
             services.AddLogging(builder =>
             {
                 builder.AddConsole();
