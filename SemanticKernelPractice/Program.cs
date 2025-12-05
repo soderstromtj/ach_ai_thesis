@@ -285,6 +285,12 @@ namespace SemanticKernelPractice
                 var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
                 return Options.Create(experimentConfig.OrchestrationSettings);
             });
+
+            services.AddSingleton<AIServiceSettings>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return experimentConfig.GlobalAIServiceSettings;
+            });
         }
 
         /// <summary>
@@ -370,17 +376,10 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterKernelServices(IServiceCollection services)
         {
-            // Register only the UnifiedKernelAdapter which handles all AI providers
-            services.AddSingleton<IKernelBuilderAdapter, UnifiedKernelAdapter>();
-
+            // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 
-            services.AddSingleton<Kernel>(sp =>
-            {
-                var kernelBuilder = sp.GetRequiredService<IKernelBuilderService>();
-                return kernelBuilder.BuildKernel();
-            });
-
+            // AgentService builds individual kernels per agent based on ServiceId in appsettings
             services.AddSingleton<IAgentService, AgentService>();
 
             services.AddSingleton<ConsoleFormatter>();
