@@ -18,7 +18,6 @@ namespace SemanticKernelPractice.Managers
     {
         private readonly OrchestrationPromptInput _input;
         private readonly List<string> _agentNames;
-        private readonly int _maximumInvocationLimit;
         private readonly IChatCompletionService _chatCompletion;
         private readonly IGroupChatPromptStrategy _promptStrategy;
         private readonly AgentParticipationTracker _participationTracker;
@@ -102,9 +101,9 @@ namespace SemanticKernelPractice.Managers
             _logger.LogDebug(
                 "Selecting next agent. Turn: {TurnCount}/{MaxLimit}",
                 turnCount,
-                _maximumInvocationLimit > 0 ? _maximumInvocationLimit.ToString() : "unlimited");
+                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
 
-            string prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames, turnCount, _maximumInvocationLimit);
+            string prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames, turnCount, MaximumInvocationCount);
             return GetResponseAsync<string>(history, prompt, cancellationToken);
         }
 

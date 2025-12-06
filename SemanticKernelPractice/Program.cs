@@ -403,7 +403,7 @@ namespace SemanticKernelPractice
             {
                 builder.AddConsole();
                 builder.AddDebug();
-                builder.AddConfiguration(configuration.GetSection("LoggingSettings"));
+                builder.AddConfiguration(configuration.GetSection("Logging"));
             });
         }
 
