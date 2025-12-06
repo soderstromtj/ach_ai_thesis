@@ -102,7 +102,7 @@ namespace SemanticKernelPractice.Factories
 
                 List<Hypothesis>? output = null;
                 string? transformFailureReason = null;
-
+                
                 try
                 {
                     // Attempt to get structured output with timeout

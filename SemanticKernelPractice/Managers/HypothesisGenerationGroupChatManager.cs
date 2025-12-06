@@ -20,26 +20,30 @@ namespace SemanticKernelPractice.Managers
         {
             public static string Termination(OrchestrationPromptInput input, List<string> agentNames) =>
                 $"""
-                You are the group chat manager for a team of expert agents tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
+                You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
                 This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
-                Your job is to determine whether the current list of hypotheses is sufficient, if more hypotheses should be generated, or if discussion should continue.
+                Your job is to determine whether the current list of hypotheses is sufficient or or if discussion should continue.
 
                 You must ensure the following criteria are met before deciding to end the discussion:
                 - Each agent has had a chance to contribute at least once. The agents are: {string.Join(", ", agentNames)}.
                 - The hypotheses are mutually exclusive and collectively exhaustive.
                 - The hypotheses are relevant to the key question.
 
-                If you would like to end the discussion, please repond with "True". Otherwise, respond with "False". Do not add any additional commentary or reasoning.
+                Your response must be either "True" to end the discussion or "False" to continue.
                 """;
 
             public static string Selection(OrchestrationPromptInput input, List<string> agentNames, int turnCount, int maxInvocationLimit) =>
                 $"""
-                You are the group chat manager for a team of expert agents tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
+                You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
                 This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
                 Your job is to select the next agent to contribute to the discussion.
-                The agents are: {string.Join(", ", agentNames)}.
+                The analysts are named: {string.Join(", ", agentNames)}.
+
                 The current turn count is {turnCount} and the maximum amount of turns is {maxInvocationLimit}. Please select the next agent to contribute, ensuring that all agents have an opportunity to participate.
-                Respond with only the name of the selected agent. Do not add any additional commentary or reasoning.
+
+                Respond with only the name of the selected agent. For example, if you select "{agentNames[0]}", respond only with: {agentNames[0]}.
+                
+                Do not add any additional commentary or reasoning.
                 """;
 
             public static string Filter(OrchestrationPromptInput input) =>
@@ -47,6 +51,7 @@ namespace SemanticKernelPractice.Managers
                 You are the group chat manager for a team of expert agents tasked with generating hypotheses on the following key question: "{{{input.KeyQuestion}}}".
                 This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
                 Your job is to review the most current list of hypotheses and organize it into a JSON object with the following structure:
+
                 {{"Hypotheses": [
                         {{ "Title": "Hypothesis 1", "Rationale": "" }},
                         {{ "Title": "Hypothesis 2", "Rationale": "" }}
@@ -62,7 +67,6 @@ namespace SemanticKernelPractice.Managers
 
         public override ValueTask<GroupChatManagerResult<string>> FilterResults(ChatHistory history, CancellationToken cancellationToken = default)
         {
-            
             return this.GetResponseAsync<string>(history, Prompts.Filter(input), cancellationToken);
         }
 
@@ -80,15 +84,39 @@ namespace SemanticKernelPractice.Managers
                 });
         }
 
-        public override ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(ChatHistory history, CancellationToken cancellationToken = default)
+        public override async ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(ChatHistory history, CancellationToken cancellationToken = default)
         {
             
-
-            return ValueTask.FromResult(
-                new GroupChatManagerResult<bool>(false)
+            if (maximumInvocationLimit > 0 && _turnCount >= maximumInvocationLimit)
+            {
+                return new GroupChatManagerResult<bool>(true)
                 {
-                    Reason = "Continue conversation to further refine the ACH Evidence list."
-                });
+                    Reason = $"Maximum invocation limit of {maximumInvocationLimit} reached."
+                };
+            }
+
+            // Determine if all agents have contributed at least once
+            var participatingAgents = new HashSet<string>(
+                history
+                .Where(msg => msg.Role == AuthorRole.Assistant)
+                .Select(msg => msg.AuthorName ?? string.Empty)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                );
+
+            if (participatingAgents.Count < agentNames.Count)
+            {
+                return new GroupChatManagerResult<bool>(false)
+                {
+                    Reason = "Not all agents have contributed at least once."
+                };
+            }
+
+            var responseTask = await this.GetResponseAsync<bool>(history, Prompts.Termination(input, agentNames), cancellationToken);
+
+            return new GroupChatManagerResult<bool>(responseTask.Value)
+            {
+                Reason = "Determined by group chat manager prompt response."
+            };
         }
 
         #region Private Methods
@@ -100,9 +128,10 @@ namespace SemanticKernelPractice.Managers
             var response = await chatCompletion.GetChatMessageContentsAsync(request, executionSettings, kernel: null, cancellationToken);
             string responseText = response.FirstOrDefault()?.ToString() ?? string.Empty;
 
-            return
-                JsonSerializer.Deserialize<GroupChatManagerResult<TValue>>(responseText) ??
+            var result = JsonSerializer.Deserialize<GroupChatManagerResult<TValue>>(responseText) ??
                 throw new InvalidOperationException($"Failed to parse response: {responseText}");
+
+            return result;                
         }
 
         #endregion
