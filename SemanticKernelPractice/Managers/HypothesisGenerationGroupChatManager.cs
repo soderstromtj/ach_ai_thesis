@@ -1,82 +1,125 @@
-﻿using Microsoft.SemanticKernel;
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using SemanticKernelPractice.Exceptions;
 using SemanticKernelPractice.Models;
-using SemanticKernelPractice.Services;
 using System.Text.Json;
 
 namespace SemanticKernelPractice.Managers
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class HypothesisGenerationGroupChatManager(
-        OrchestrationPromptInput input, 
-        List<string> agentNames, 
-        int maximumInvocationLimit, 
-        IChatCompletionService chatCompletion
-        ) : GroupChatManager
+    /// <summary>
+    /// Group chat manager for hypothesis generation workflows using the Analysis of Competing Hypotheses (ACH) framework.
+    /// Orchestrates a team of agents to collaboratively generate hypotheses for a given key question.
+    /// </summary>
+    public class HypothesisGenerationGroupChatManager : GroupChatManager
     {
-        private static class Prompts
+        private readonly OrchestrationPromptInput _input;
+        private readonly List<string> _agentNames;
+        private readonly int _maximumInvocationLimit;
+        private readonly IChatCompletionService _chatCompletion;
+        private readonly IGroupChatPromptStrategy _promptStrategy;
+        private readonly AgentParticipationTracker _participationTracker;
+        private readonly ILogger<HypothesisGenerationGroupChatManager> _logger;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HypothesisGenerationGroupChatManager"/> class.
+        /// </summary>
+        /// <param name="input">The orchestration prompt input containing the key question and context.</param>
+        /// <param name="agentNames">The names of all agents participating in the group chat.</param>
+        /// <param name="maximumInvocationLimit">The maximum number of turns allowed (0 or negative for unlimited).</param>
+        /// <param name="chatCompletion">The chat completion service for LLM interactions.</param>
+        /// <param name="promptStrategy">The strategy for generating prompts.</param>
+        /// <param name="participationTracker">The tracker for monitoring agent participation.</param>
+        /// <param name="logger">The logger for diagnostic information.</param>
+        /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when agentNames is empty.</exception>
+        public HypothesisGenerationGroupChatManager(
+            OrchestrationPromptInput input,
+            List<string> agentNames,
+            IChatCompletionService chatCompletion,
+            IGroupChatPromptStrategy promptStrategy,
+            AgentParticipationTracker participationTracker,
+            ILogger<HypothesisGenerationGroupChatManager> logger)
         {
-            public static string Termination(OrchestrationPromptInput input, List<string> agentNames) =>
-                $"""
-                You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
-                This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
-                Your job is to determine whether the current list of hypotheses is sufficient or or if discussion should continue.
+            ArgumentNullException.ThrowIfNull(input);
+            ArgumentNullException.ThrowIfNull(agentNames);
+            ArgumentNullException.ThrowIfNull(chatCompletion);
+            ArgumentNullException.ThrowIfNull(promptStrategy);
+            ArgumentNullException.ThrowIfNull(participationTracker);
+            ArgumentNullException.ThrowIfNull(logger);
 
-                You must ensure the following criteria are met before deciding to end the discussion:
-                - Each agent has had a chance to contribute at least once. The agents are: {string.Join(", ", agentNames)}.
-                - The hypotheses are mutually exclusive and collectively exhaustive.
-                - The hypotheses are relevant to the key question.
+            if (agentNames.Count == 0)
+            {
+                throw new ArgumentException("At least one agent name is required", nameof(agentNames));
+            }
 
-                Your response must be either "True" to end the discussion or "False" to continue.
-                """;
+            _input = input;
+            _agentNames = agentNames;
+            _chatCompletion = chatCompletion;
+            _promptStrategy = promptStrategy;
+            _participationTracker = participationTracker;
+            _logger = logger;
 
-            public static string Selection(OrchestrationPromptInput input, List<string> agentNames, int turnCount, int maxInvocationLimit) =>
-                $"""
-                You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
-                This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
-                Your job is to select the next agent to contribute to the discussion.
-                The analysts are named: {string.Join(", ", agentNames)}.
-
-                The current turn count is {turnCount} and the maximum amount of turns is {maxInvocationLimit}. Please select the next agent to contribute, ensuring that all agents have an opportunity to participate.
-
-                Respond with only the name of the selected agent. For example, if you select "{agentNames[0]}", respond only with: {agentNames[0]}.
-                
-                Do not add any additional commentary or reasoning.
-                """;
-
-            public static string Filter(OrchestrationPromptInput input) =>
-                $$$"""
-                You are the group chat manager for a team of expert agents tasked with generating hypotheses on the following key question: "{{{input.KeyQuestion}}}".
-                This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
-                Your job is to review the most current list of hypotheses and organize it into a JSON object with the following structure:
-
-                {{"Hypotheses": [
-                        {{ "Title": "Hypothesis 1", "Rationale": "" }},
-                        {{ "Title": "Hypothesis 2", "Rationale": "" }}
-                    ]}}
-
-                You must ensure to only respond with the JSON object and no additional commentary or reasoning.
-                """;
-
+            _logger.LogInformation(
+                "HypothesisGenerationGroupChatManager created with {AgentCount} agents and max limit of {MaxLimit}",
+                agentNames.Count,
+                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
         }
 
-        // Count how many times we have selected an agent (a rough "turn" count).
-        private int _turnCount = 0;
-
-        public override ValueTask<GroupChatManagerResult<string>> FilterResults(ChatHistory history, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Filters and formats the results from the group chat into a structured format.
+        /// </summary>
+        /// <param name="history">The chat history containing the conversation.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result containing the filtered and formatted hypotheses.</returns>
+        public override ValueTask<GroupChatManagerResult<string>> FilterResults(
+            ChatHistory history,
+            CancellationToken cancellationToken = default)
         {
-            return this.GetResponseAsync<string>(history, Prompts.Filter(input), cancellationToken);
+            _logger.LogDebug("Filtering results from chat history with {MessageCount} messages", history.Count);
+
+            string prompt = _promptStrategy.GetFilterPrompt(_input);
+            return GetResponseAsync<string>(history, prompt, cancellationToken);
         }
 
-        public override ValueTask<GroupChatManagerResult<string>> SelectNextAgent(ChatHistory history, GroupChatTeam team, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Selects the next agent to contribute to the group chat.
+        /// </summary>
+        /// <param name="history">The chat history containing the conversation.</param>
+        /// <param name="team">The group chat team.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result containing the name of the selected agent.</returns>
+        public override ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
+            ChatHistory history,
+            GroupChatTeam team,
+            CancellationToken cancellationToken = default)
         {
-            return this.GetResponseAsync<string>(history, Prompts.Selection(input, agentNames, ++_turnCount, maximumInvocationLimit), cancellationToken);
+            int turnCount = GetTurnCount(history);
+
+            _logger.LogDebug(
+                "Selecting next agent. Turn: {TurnCount}/{MaxLimit}",
+                turnCount,
+                _maximumInvocationLimit > 0 ? _maximumInvocationLimit.ToString() : "unlimited");
+
+            string prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames, turnCount, _maximumInvocationLimit);
+            return GetResponseAsync<string>(history, prompt, cancellationToken);
         }
 
-        public override ValueTask<GroupChatManagerResult<bool>> ShouldRequestUserInput(ChatHistory history, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Determines whether user input should be requested.
+        /// </summary>
+        /// <param name="history">The chat history containing the conversation.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result indicating that user input is not needed for automated workflows.</returns>
+        public override ValueTask<GroupChatManagerResult<bool>> ShouldRequestUserInput(
+            ChatHistory history,
+            CancellationToken cancellationToken = default)
         {
+            _logger.LogTrace("User input not required for automated ACH workflow");
+
             return ValueTask.FromResult(
                 new GroupChatManagerResult<bool>(false)
                 {
@@ -84,34 +127,106 @@ namespace SemanticKernelPractice.Managers
                 });
         }
 
-        public override async ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(ChatHistory history, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Determines whether the group chat should terminate based on various criteria.
+        /// </summary>
+        /// <param name="history">The chat history containing the conversation.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result indicating whether the chat should terminate and the reason.</returns>
+        public override async ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(
+            ChatHistory history,
+            CancellationToken cancellationToken = default)
         {
-            
-            if (maximumInvocationLimit > 0 && _turnCount >= maximumInvocationLimit)
+            int turnCount = GetTurnCount(history);
+
+            _logger.LogDebug(
+                "Evaluating termination. Turn count: {TurnCount}, Max: {MaxLimit}",
+                turnCount,
+                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
+
+            // Check if maximum invocation limit has been reached
+            if (HasReachedMaximumLimit(turnCount))
             {
+                _logger.LogInformation(
+                    "Terminating: Maximum invocation limit of {Limit} reached",
+                    MaximumInvocationCount);
+
                 return new GroupChatManagerResult<bool>(true)
                 {
-                    Reason = $"Maximum invocation limit of {maximumInvocationLimit} reached."
+                    Reason = $"Maximum invocation limit of {MaximumInvocationCount} reached."
                 };
             }
 
-            // Determine if all agents have contributed at least once
-            var participatingAgents = new HashSet<string>(
-                history
-                .Where(msg => msg.Role == AuthorRole.Assistant)
-                .Select(msg => msg.AuthorName ?? string.Empty)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                );
-
-            if (participatingAgents.Count < agentNames.Count)
+            // Check if all agents have participated at least once
+            if (!HaveAllAgentsParticipated(history))
             {
+                var nonParticipating = _participationTracker.GetNonParticipatingAgents(history, _agentNames);
+
+                _logger.LogDebug(
+                    "Continuing: Not all agents have contributed. Missing: {MissingAgents}",
+                    string.Join(", ", nonParticipating));
+
                 return new GroupChatManagerResult<bool>(false)
                 {
                     Reason = "Not all agents have contributed at least once."
                 };
             }
 
-            var responseTask = await this.GetResponseAsync<bool>(history, Prompts.Termination(input, agentNames), cancellationToken);
+            // Delegate to LLM for quality assessment
+            return await EvaluateTerminationCriteria(history, cancellationToken);
+        }
+
+        #region Private Methods
+
+        /// <summary>
+        /// Gets the current turn count from the chat history.
+        /// </summary>
+        /// <param name="history">The chat history to analyze.</param>
+        /// <returns>The number of assistant messages in the history.</returns>
+        private int GetTurnCount(ChatHistory history)
+        {
+            return history.Count(msg => msg.Role == AuthorRole.Assistant);
+        }
+
+        /// <summary>
+        /// Checks if the maximum invocation limit has been reached.
+        /// </summary>
+        /// <param name="turnCount">The current turn count.</param>
+        /// <returns>True if the limit has been reached; otherwise, false.</returns>
+        private bool HasReachedMaximumLimit(int turnCount)
+        {
+            return MaximumInvocationCount > 0 && turnCount >= MaximumInvocationCount;
+        }
+
+        /// <summary>
+        /// Checks if all expected agents have participated in the conversation.
+        /// </summary>
+        /// <param name="history">The chat history to analyze.</param>
+        /// <returns>True if all agents have participated; otherwise, false.</returns>
+        private bool HaveAllAgentsParticipated(ChatHistory history)
+        {
+            return _participationTracker.HaveAllAgentsParticipated(history, _agentNames);
+        }
+
+        /// <summary>
+        /// Evaluates termination criteria by delegating to the LLM for quality assessment.
+        /// </summary>
+        /// <param name="history">The chat history to analyze.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result indicating whether to terminate based on hypothesis quality.</returns>
+        private async ValueTask<GroupChatManagerResult<bool>> EvaluateTerminationCriteria(
+            ChatHistory history,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("Delegating termination decision to LLM for quality assessment");
+
+            string prompt = _promptStrategy.GetTerminationPrompt(_input, _agentNames);
+            var responseTask = await GetResponseAsync<bool>(history, prompt, cancellationToken);
+
+            _logger.LogInformation(
+                "Termination decision from LLM: {Decision}. Reason: {Reason}",
+                responseTask.Value,
+                responseTask.Reason ?? "No reason provided");
 
             return new GroupChatManagerResult<bool>(responseTask.Value)
             {
@@ -119,19 +234,67 @@ namespace SemanticKernelPractice.Managers
             };
         }
 
-        #region Private Methods
-        private async ValueTask<GroupChatManagerResult<TValue>> GetResponseAsync<TValue>(ChatHistory history, string prompt, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Gets a response from the chat completion service using structured output.
+        /// </summary>
+        /// <typeparam name="TValue">The type of value expected in the response.</typeparam>
+        /// <param name="history">The chat history for context.</param>
+        /// <param name="prompt">The prompt to send to the LLM.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A result containing the parsed response value.</returns>
+        /// <exception cref="ChatManagerException">Thrown when the response cannot be parsed or is null.</exception>
+        private async ValueTask<GroupChatManagerResult<TValue>> GetResponseAsync<TValue>(
+            ChatHistory history,
+            string prompt,
+            CancellationToken cancellationToken = default)
         {
-            OpenAIPromptExecutionSettings executionSettings = new() { ResponseFormat = typeof(GroupChatManagerResult<TValue>) };
+            try
+            {
+                OpenAIPromptExecutionSettings executionSettings = new()
+                {
+                    ResponseFormat = typeof(GroupChatManagerResult<TValue>)
+                };
 
-            ChatHistory request = [.. history, new ChatMessageContent(AuthorRole.System, prompt)];
-            var response = await chatCompletion.GetChatMessageContentsAsync(request, executionSettings, kernel: null, cancellationToken);
-            string responseText = response.FirstOrDefault()?.ToString() ?? string.Empty;
+                ChatHistory request = [.. history, new ChatMessageContent(AuthorRole.System, prompt)];
 
-            var result = JsonSerializer.Deserialize<GroupChatManagerResult<TValue>>(responseText) ??
-                throw new InvalidOperationException($"Failed to parse response: {responseText}");
+                _logger.LogTrace("Sending request to LLM with {HistoryCount} history messages", history.Count);
 
-            return result;                
+                var response = await _chatCompletion.GetChatMessageContentsAsync(
+                    request,
+                    executionSettings,
+                    kernel: null,
+                    cancellationToken);
+
+                string responseText = response.FirstOrDefault()?.ToString() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(responseText))
+                {
+                    _logger.LogError("Received empty response from LLM");
+                    throw new ChatManagerException("LLM returned an empty response");
+                }
+
+                var result = JsonSerializer.Deserialize<GroupChatManagerResult<TValue>>(responseText);
+
+                if (result == null)
+                {
+                    _logger.LogError("Deserialization returned null. Response length: {Length}", responseText.Length);
+                    throw new ChatManagerException("Failed to deserialize LLM response to expected format");
+                }
+
+                _logger.LogTrace("Successfully parsed LLM response to {Type}", typeof(TValue).Name);
+
+                return result;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing failed while deserializing LLM response");
+                throw new ChatManagerException("Invalid JSON response from LLM", ex);
+            }
+            catch (Exception ex) when (ex is not ChatManagerException)
+            {
+                _logger.LogError(ex, "Unexpected error while getting LLM response");
+                throw new ChatManagerException("Error communicating with LLM", ex);
+            }
         }
 
         #endregion

@@ -142,6 +142,8 @@ namespace SemanticKernelPractice.Factories
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Class: {nameof(EvidenceExtractionOrchestrationFactory)}\tMessage: Exception during orchestration invocation: {ex.GetType().Name} - {ex.Message}");
+
                 return new List<Evidence>
                 {
                     new Evidence
