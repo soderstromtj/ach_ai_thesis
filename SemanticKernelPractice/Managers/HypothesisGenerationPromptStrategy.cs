@@ -5,14 +5,14 @@ namespace SemanticKernelPractice.Managers
     /// <summary>
     /// Default implementation of <see cref="IGroupChatPromptStrategy"/> for hypothesis generation workflows.
     /// </summary>
-    public class HypothesisPromptStrategy : IGroupChatPromptStrategy
+    public class HypothesisGenerationPromptStrategy : IGroupChatPromptStrategy
     {
         /// <inheritdoc/>
         public string GetTerminationPrompt(OrchestrationPromptInput input, List<string> agentNames) =>
             $"""
             You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
             This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
-            Your job is to determine whether the current list of hypotheses is sufficient or or if discussion should continue.
+            Your job is to determine whether the current list of hypotheses is sufficient or if discussion should continue.
 
             You must ensure the following criteria are met before deciding to end the discussion:
             - Each agent has had a chance to contribute at least once. The agents are: {string.Join(", ", agentNames)}.

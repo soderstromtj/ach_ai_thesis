@@ -39,7 +39,6 @@ namespace SemanticKernelPractice.Managers
         public HypothesisGenerationGroupChatManager(
             OrchestrationPromptInput input,
             List<string> agentNames,
-            int maximumInvocationLimit,
             IChatCompletionService chatCompletion,
             IGroupChatPromptStrategy promptStrategy,
             AgentParticipationTracker participationTracker,
@@ -59,7 +58,6 @@ namespace SemanticKernelPractice.Managers
 
             _input = input;
             _agentNames = agentNames;
-            _maximumInvocationLimit = maximumInvocationLimit;
             _chatCompletion = chatCompletion;
             _promptStrategy = promptStrategy;
             _participationTracker = participationTracker;
@@ -68,7 +66,7 @@ namespace SemanticKernelPractice.Managers
             _logger.LogInformation(
                 "HypothesisGenerationGroupChatManager created with {AgentCount} agents and max limit of {MaxLimit}",
                 agentNames.Count,
-                maximumInvocationLimit > 0 ? maximumInvocationLimit.ToString() : "unlimited");
+                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
         }
 
         /// <summary>
@@ -144,18 +142,18 @@ namespace SemanticKernelPractice.Managers
             _logger.LogDebug(
                 "Evaluating termination. Turn count: {TurnCount}, Max: {MaxLimit}",
                 turnCount,
-                _maximumInvocationLimit > 0 ? _maximumInvocationLimit.ToString() : "unlimited");
+                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
 
             // Check if maximum invocation limit has been reached
             if (HasReachedMaximumLimit(turnCount))
             {
                 _logger.LogInformation(
                     "Terminating: Maximum invocation limit of {Limit} reached",
-                    _maximumInvocationLimit);
+                    MaximumInvocationCount);
 
                 return new GroupChatManagerResult<bool>(true)
                 {
-                    Reason = $"Maximum invocation limit of {_maximumInvocationLimit} reached."
+                    Reason = $"Maximum invocation limit of {MaximumInvocationCount} reached."
                 };
             }
 
@@ -197,7 +195,7 @@ namespace SemanticKernelPractice.Managers
         /// <returns>True if the limit has been reached; otherwise, false.</returns>
         private bool HasReachedMaximumLimit(int turnCount)
         {
-            return _maximumInvocationLimit > 0 && turnCount >= _maximumInvocationLimit;
+            return MaximumInvocationCount > 0 && turnCount >= MaximumInvocationCount;
         }
 
         /// <summary>

@@ -61,7 +61,7 @@ namespace SemanticKernelPractice.Factories
             // Build kernel for orchestration (different from agents' kernels)
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Setting up output transform settings. Expect an output of type {nameof(HypothesisResult)}.");
+            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Setting up output transform settings. Expect an output of type {nameof(HypothesisResult)}.");
 
             // Use HypothesisResult wrapper - OpenAI structured output requires top-level object, not array
             var outputTransform = new StructuredOutputTransform<HypothesisResult>(
@@ -71,19 +71,20 @@ namespace SemanticKernelPractice.Factories
                     ResponseFormat = typeof(HypothesisResult)
                 });
 
+            // Create custom group chat manager with custom prompt strategy and participation tracker
             var manager = new HypothesisGenerationGroupChatManager(
                 input,
                 agentNames,
-                _orchestrationSettings.MaximumInvocationCount,
                 kernel.GetRequiredService<IChatCompletionService>(),
-                new HypothesisPromptStrategy(),
+                new HypothesisGenerationPromptStrategy(),
                 new AgentParticipationTracker(),
                 _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>())
             {
                 InteractiveCallback = InteractiveCallback,
-                MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
+                MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount
             };
 
+            // Create GroupChatOrchestration with agents and custom chat manager
             GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents.ToArray())
             {
                 StreamingResponseCallback = StreamingResponseCallback,
@@ -91,19 +92,22 @@ namespace SemanticKernelPractice.Factories
                 ResultTransform = outputTransform.TransformAsync
             };
 
-            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and {nameof(manager)} for the manager.");
+            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and {nameof(manager)} for the manager.");
 
-            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
+            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
+
+            // Start in-process runtime and execute orchestration
             var runtime = new InProcessRuntime();
             await runtime.StartAsync(cancellationToken);
 
             try
             {
                 // Attempt to invoke orchestration with input
-                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Invoking orchestration with input.");
+                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Invoking orchestration with input.");
+                
                 var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
-                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Orchestration invocation completed. Processing result.");
+                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Orchestration invocation completed. Processing result.");
 
                 List<Hypothesis>? output = null;
                 string? transformFailureReason = null;
@@ -111,7 +115,8 @@ namespace SemanticKernelPractice.Factories
                 try
                 {
                     // Attempt to get structured output with timeout
-                    _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Attempting to retrieve structured output from orchestration result.");
+                    _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Attempting to retrieve structured output from orchestration result.");
+
                     var hypothesisResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
                         cancellationToken);
@@ -125,7 +130,7 @@ namespace SemanticKernelPractice.Factories
                     {
                         // Unwrap the HypothesisResult to get List<Hypothesis>
                         output = hypothesisResult.Hypotheses;
-                        _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Successfully retrieved structured output with {output.Count} evidence items.");
+                        _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Successfully retrieved structured output with {output.Count} evidence items.");
                     }
                 }
                 catch (TimeoutException tex)
@@ -149,6 +154,8 @@ namespace SemanticKernelPractice.Factories
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Exception during orchestration invocation: {ex.GetType().Name} - {ex.Message}");
+
                 return new List<Hypothesis>
                 {
                     new Hypothesis
@@ -159,7 +166,7 @@ namespace SemanticKernelPractice.Factories
             }
             finally
             {
-                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Stopping in-process runtime.");
+                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Stopping in-process runtime.");
                 await runtime.RunUntilIdleAsync();
             }
         }
@@ -192,7 +199,7 @@ namespace SemanticKernelPractice.Factories
 
         private async ValueTask<ChatMessageContent> InteractiveCallback()
         {
-            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
+            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
             return await ValueTask.FromResult(new ChatMessageContent
             {
                 Content = "Continuing orchestration without user input."
@@ -236,7 +243,7 @@ namespace SemanticKernelPractice.Factories
             _responseStopwatch.Restart();
 
             // Future TODO: Store or process response metrics as needed
-            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
+            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
             return ValueTask.CompletedTask;
         }
