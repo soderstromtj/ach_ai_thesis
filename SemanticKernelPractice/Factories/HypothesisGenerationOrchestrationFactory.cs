@@ -2,16 +2,18 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernelPractice.Configuration;
+using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
+    public class HypothesisGenerationOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
-        public EvidenceExtractionOrchestrationFactory(
+        public HypothesisGenerationOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -22,50 +24,55 @@ namespace SemanticKernelPractice.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
+            return loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
         }
 
         protected override ChatManagerBase CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
         {
-            return new RoundRobinGroupChatManager();
+            return new HypothesisGenerationGroupChatManager(
+                input,
+                agentNames,
+                kernel.GetRequiredService<IChatCompletionService>(),
+                new HypothesisGenerationPromptStrategy(),
+                new AgentParticipationTracker(),
+                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
         }
 
         protected override string GetResultTypeName()
         {
-            return nameof(EvidenceResult);
+            return nameof(HypothesisResult);
         }
 
-        protected override List<Evidence> UnwrapResult(EvidenceResult wrapper)
+        protected override List<Hypothesis> UnwrapResult(HypothesisResult wrapper)
         {
-            return wrapper.Evidence;
+            return wrapper.Hypotheses;
         }
 
-        protected override int GetItemCount(List<Evidence> result)
+        protected override int GetItemCount(List<Hypothesis> result)
         {
             return result.Count;
         }
 
-        protected override List<Evidence> CreateEmptyResult()
+        protected override List<Hypothesis> CreateEmptyResult()
         {
-            return new List<Evidence>();
+            return new List<Hypothesis>();
         }
 
-        protected override List<Evidence> CreateErrorResult()
+        protected override List<Hypothesis> CreateErrorResult()
         {
-            return new List<Evidence>
+            return new List<Hypothesis>
             {
-                new Evidence
+                new Hypothesis
                 {
-                    Id = -1,
-                    Description = "Error during orchestration",
-                    Type = EvidenceType.Fact
+                    Title = "Error during orchestration",
+                    Description = "An error occurred during the orchestration process"
                 }
             };
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"Round-robin selection after {previousAgentName}";
+            return $"{nameof(HypothesisGenerationGroupChatManager)} selection after {previousAgentName}";
         }
     }
 }
