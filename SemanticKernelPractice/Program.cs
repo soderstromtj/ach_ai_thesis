@@ -3,12 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Factories;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
-using SemanticKernelPractice.Services.KernelBuilders;
 
 namespace SemanticKernelPractice
 {
@@ -285,6 +283,12 @@ namespace SemanticKernelPractice
                 var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
                 return Options.Create(experimentConfig.OrchestrationSettings);
             });
+
+            services.AddSingleton<AIServiceSettings>(sp =>
+            {
+                var experimentConfig = sp.GetRequiredService<ExperimentConfiguration>();
+                return experimentConfig.GlobalAIServiceSettings;
+            });
         }
 
         /// <summary>
@@ -370,21 +374,13 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterKernelServices(IServiceCollection services)
         {
-            // Register only the UnifiedKernelAdapter which handles all AI providers
-            services.AddSingleton<IKernelBuilderAdapter, UnifiedKernelAdapter>();
-
+            // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 
-            services.AddSingleton<Kernel>(sp =>
-            {
-                var kernelBuilder = sp.GetRequiredService<IKernelBuilderService>();
-                return kernelBuilder.BuildKernel();
-            });
-
+            // AgentService builds individual kernels per agent based on ServiceId in appsettings
             services.AddSingleton<IAgentService, AgentService>();
 
             services.AddSingleton<ConsoleFormatter>();
-            services.AddTransient<WorkflowLogger>();
         }
 
         /// <summary>
@@ -402,6 +398,7 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterLogging(IServiceCollection services, IConfiguration configuration)
         {
+            // Configure logging to use Console and Debug providers
             services.AddLogging(builder =>
             {
                 builder.AddConsole();

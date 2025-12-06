@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
@@ -22,8 +23,8 @@ namespace SemanticKernelPractice.Factories
         private readonly IAgentService _agentService;
         private readonly IKernelBuilderService _kernelBuilderService;
         private readonly OrchestrationSettings _orchestrationSettings;
-        private readonly WorkflowLogger _workflowLogger;
         private readonly ChatHistory _history;
+        private readonly ILogger _logger;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
@@ -35,23 +36,17 @@ namespace SemanticKernelPractice.Factories
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
-            WorkflowLogger workflowLogger)
+            ILoggerFactory loggerFactory)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
             _orchestrationSettings = orchestrationSettings.Value;
-            _workflowLogger = workflowLogger;
             _history = new ChatHistory();
+            _logger = loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
         }
 
         async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken)
         {
-            // Log orchestration start
-            _workflowLogger.LogOrchestrationStart(
-                "Generate hypotheses (ACH Step 1) for ACH analysis",
-                _orchestrationSettings.MaximumInvocationCount,
-                _orchestrationSettings.TimeoutInMinutes);
-
             IEnumerable<Agent> agents = _agentService.CreateAgents();
 
             // Use .Where and .Select to filter out nulls and project to string
@@ -61,8 +56,10 @@ namespace SemanticKernelPractice.Factories
                 .Cast<string>()
                 .ToList();
 
-            // Build kernel for output transformation
+            // Build kernel for orchestration (different from agents' kernels)
             Kernel kernel = _kernelBuilderService.BuildKernel();
+
+            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Setting up output transform settings. Expect an output of type {nameof(HypothesisResult)}.");
 
             // Use HypothesisResult wrapper - OpenAI structured output requires top-level object, not array
             var outputTransform = new StructuredOutputTransform<HypothesisResult>(
@@ -89,25 +86,27 @@ namespace SemanticKernelPractice.Factories
                 ResultTransform = outputTransform.TransformAsync
             };
 
-            // Create in-process runtime that will execute the orchestration and manage state
+            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and {nameof(manager)} for the manager.");
+
+            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
             var runtime = new InProcessRuntime();
             await runtime.StartAsync(cancellationToken);
 
             try
             {
-                // Invoke orchestration with input and runtime context
+                // Attempt to invoke orchestration with input
+                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Invoking orchestration with input.");
                 var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
-                // Log structured output transformation attempt
-                _workflowLogger.LogStructuredOutputStart("HypothesisResult (List<Hypothesis>)", _orchestrationSettings.TimeoutInMinutes);
+                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Orchestration invocation completed. Processing result.");
 
                 List<Hypothesis>? output = null;
                 string? transformFailureReason = null;
-                bool transformSucceeded = false;
-
+                
                 try
                 {
                     // Attempt to get structured output with timeout
+                    _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Attempting to retrieve structured output from orchestration result.");
                     var hypothesisResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
                         cancellationToken);
@@ -115,59 +114,29 @@ namespace SemanticKernelPractice.Factories
                     if (hypothesisResult == null)
                     {
                         transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
-                        _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
+                        _logger.LogError($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
                     }
                     else
                     {
                         // Unwrap the HypothesisResult to get List<Hypothesis>
                         output = hypothesisResult.Hypotheses;
-                        transformSucceeded = true;
-                        _workflowLogger.LogStructuredOutputResult(true, resultCount: output?.Count ?? 0);
+                        _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Successfully retrieved structured output with {output.Count} evidence items.");
                     }
                 }
                 catch (TimeoutException tex)
                 {
                     transformFailureReason = $"Timeout after {_orchestrationSettings.TimeoutInMinutes} minutes while waiting for structured output";
-                    _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
-                    _workflowLogger.LogError($"Structured output timeout: {tex.Message}", tex);
+                    _logger.LogError(tex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
                 }
                 catch (Exception ex)
                 {
                     transformFailureReason = $"Exception during structured output transformation: {ex.GetType().Name} - {ex.Message}";
-                    _workflowLogger.LogStructuredOutputResult(false, transformFailureReason);
-                    _workflowLogger.LogError($"Structured output transformation error: {ex.Message}", ex);
-                }
-
-                // Determine termination reason
-                string terminationReason;
-                if (!transformSucceeded)
-                {
-                    terminationReason = transformFailureReason ?? "Structured output transformation failed";
-                }
-                else if (_currentTurn >= _orchestrationSettings.MaximumInvocationCount)
-                {
-                    terminationReason = "Maximum invocation count reached";
-                }
-                else
-                {
-                    terminationReason = "Orchestration completed successfully";
-                }
-
-                _workflowLogger.LogOrchestrationComplete(terminationReason, output?.Count);
-
-                // Save to file if configured
-                if (_orchestrationSettings.SaveWorkflowToFile)
-                {
-                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    var filename = Path.Combine(_orchestrationSettings.WorkflowLogDirectory, $"workflow_{timestamp}.json");
-                    Directory.CreateDirectory(_orchestrationSettings.WorkflowLogDirectory);
-                    await _workflowLogger.SaveToFileAsync(filename);
+                    _logger.LogError(ex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
                 }
 
                 // Return output with null safety
                 if (output == null)
                 {
-                    _workflowLogger.LogError("Returning empty list due to null output from structured transformation");
                     return new List<Hypothesis>();
                 }
 
@@ -175,8 +144,6 @@ namespace SemanticKernelPractice.Factories
             }
             catch (Exception ex)
             {
-                _workflowLogger.LogError($"Orchestration error: {ex.Message}", ex);
-
                 return new List<Hypothesis>
                 {
                     new Hypothesis
@@ -187,6 +154,7 @@ namespace SemanticKernelPractice.Factories
             }
             finally
             {
+                _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Stopping in-process runtime.");
                 await runtime.RunUntilIdleAsync();
             }
         }
@@ -202,16 +170,7 @@ namespace SemanticKernelPractice.Factories
 
             // Show streaming output to console (simple live append)
             // Use Write rather than WriteLine so output appears as it streams.
-            if (_orchestrationSettings.ShowFullResponseContent)
-            {
-                Console.Write(chunk);
-            }
-            else
-            {
-                // If not showing full content, show a short preview instead
-                var preview = buffer.Length > 200 ? buffer.ToString(0, 200) + "..." : buffer.ToString();
-                Console.Write("\r" + preview);
-            }
+            Console.Write(chunk);
 
             // When the orchestrator indicates final chunk, remove buffer (final response will be passed to ResponseCallback)
             if (isFinal)
@@ -228,6 +187,7 @@ namespace SemanticKernelPractice.Factories
 
         private async ValueTask<ChatMessageContent> InteractiveCallback()
         {
+            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
             return await ValueTask.FromResult(new ChatMessageContent
             {
                 Content = "Continuing orchestration without user input."
@@ -251,15 +211,7 @@ namespace SemanticKernelPractice.Factories
             {
                 var reason = _currentTurn == 1
                     ? "First agent in orchestration"
-                    : $"Round-robin selection after {_previousAgentName}";
-
-                _workflowLogger.LogAgentSelection(agentName, reason, _currentTurn);
-
-                // Log handoff if not the first turn
-                if (_currentTurn > 1 && _previousAgentName != null)
-                {
-                    _workflowLogger.LogHandoff(_previousAgentName, agentName, "Round-robin manager selected next agent");
-                }
+                    : $"{nameof(HypothesisGenerationGroupChatManager)} selection after {_previousAgentName}";
 
                 _previousAgentName = agentName;
             }
@@ -277,6 +229,9 @@ namespace SemanticKernelPractice.Factories
 
             // Start timer for next response
             _responseStopwatch.Restart();
+
+            // Future TODO: Store or process response metrics as needed
+            _logger.LogDebug($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
             return ValueTask.CompletedTask;
         }
