@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using SemanticKernelPractice.Configuration;
+using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 
@@ -25,7 +26,7 @@ namespace SemanticKernelPractice.Factories
             return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
         }
 
-        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
+        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, IGroupChatPromptStrategy? promptStrategy, AgentParticipationTracker? agentParticipationTracker)
         {
             return new RoundRobinGroupChatManager();
         }

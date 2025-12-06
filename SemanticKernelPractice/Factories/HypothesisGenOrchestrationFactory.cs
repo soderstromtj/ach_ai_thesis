@@ -18,14 +18,9 @@ using System.Text;
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class HypothesisGenerationOrchestrationFactory : IOrchestrationFactory<List<Hypothesis>>
+    public class HypothesisGenerationOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
-        private readonly IAgentService _agentService;
-        private readonly IKernelBuilderService _kernelBuilderService;
-        private readonly OrchestrationSettings _orchestrationSettings;
-        private readonly ChatHistory _history;
-        private readonly ILogger _logger;
-        private readonly ILoggerFactory _loggerFactory;
+
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
@@ -38,138 +33,8 @@ namespace SemanticKernelPractice.Factories
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
             ILoggerFactory loggerFactory)
-        {
-            _agentService = agentService;
-            _kernelBuilderService = kernelBuilderService;
-            _orchestrationSettings = orchestrationSettings.Value;
-            _history = new ChatHistory();
-            _loggerFactory = loggerFactory;
-            _logger = loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
-        }
-
-        async Task<List<Hypothesis>> IOrchestrationFactory<List<Hypothesis>>.ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken)
-        {
-            IEnumerable<Agent> agents = _agentService.CreateAgents();
-
-            // Use .Where and .Select to filter out nulls and project to string
-            var agentNames = agents
-                .Select(a => a.Name)
-                .Where(name => name != null)
-                .Cast<string>()
-                .ToList();
-
-            // Build kernel for orchestration (different from agents' kernels)
-            Kernel kernel = _kernelBuilderService.BuildKernel();
-
-            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Setting up output transform settings. Expect an output of type {nameof(HypothesisResult)}.");
-
-            // Use HypothesisResult wrapper - OpenAI structured output requires top-level object, not array
-            var outputTransform = new StructuredOutputTransform<HypothesisResult>(
-                kernel.GetRequiredService<IChatCompletionService>(),
-                new OpenAIPromptExecutionSettings
-                {
-                    ResponseFormat = typeof(HypothesisResult)
-                });
-
-            // Create custom group chat manager with custom prompt strategy and participation tracker
-            var manager = new HypothesisGenerationGroupChatManager(
-                input,
-                agentNames,
-                kernel.GetRequiredService<IChatCompletionService>(),
-                new HypothesisGenerationPromptStrategy(),
-                new AgentParticipationTracker(),
-                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>())
-            {
-                InteractiveCallback = InteractiveCallback,
-                MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount
-            };
-
-            // Create GroupChatOrchestration with agents and custom chat manager
-            GroupChatOrchestration<string, HypothesisResult> orchestration = new GroupChatOrchestration<string, HypothesisResult>(manager, agents.ToArray())
-            {
-                StreamingResponseCallback = StreamingResponseCallback,
-                ResponseCallback = ResponseCallback,
-                ResultTransform = outputTransform.TransformAsync
-            };
-
-            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and {nameof(manager)} for the manager.");
-
-            _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
-
-            // Start in-process runtime and execute orchestration
-            var runtime = new InProcessRuntime();
-            await runtime.StartAsync(cancellationToken);
-
-            try
-            {
-                // Attempt to invoke orchestration with input
-                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Invoking orchestration with input.");
-                
-                var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
-
-                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Orchestration invocation completed. Processing result.");
-
-                List<Hypothesis>? output = null;
-                string? transformFailureReason = null;
-                
-                try
-                {
-                    // Attempt to get structured output with timeout
-                    _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Attempting to retrieve structured output from orchestration result.");
-
-                    var hypothesisResult = await result.GetValueAsync(
-                        TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
-                        cancellationToken);
-
-                    if (hypothesisResult == null)
-                    {
-                        transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
-                        _logger.LogError($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
-                    }
-                    else
-                    {
-                        // Unwrap the HypothesisResult to get List<Hypothesis>
-                        output = hypothesisResult.Hypotheses;
-                        _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Successfully retrieved structured output with {output.Count} evidence items.");
-                    }
-                }
-                catch (TimeoutException tex)
-                {
-                    transformFailureReason = $"Timeout after {_orchestrationSettings.TimeoutInMinutes} minutes while waiting for structured output";
-                    _logger.LogError(tex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
-                }
-                catch (Exception ex)
-                {
-                    transformFailureReason = $"Exception during structured output transformation: {ex.GetType().Name} - {ex.Message}";
-                    _logger.LogError(ex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: {transformFailureReason}");
-                }
-
-                // Return output with null safety
-                if (output == null)
-                {
-                    return new List<Hypothesis>();
-                }
-
-                return output;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Exception during orchestration invocation: {ex.GetType().Name} - {ex.Message}");
-
-                return new List<Hypothesis>
-                {
-                    new Hypothesis
-                    {
-                        Title = "Error during orchestration"
-                    }
-                };
-            }
-            finally
-            {
-                _logger.LogTrace($"Class: {nameof(HypothesisGenerationOrchestrationFactory)}\tMessage: Stopping in-process runtime.");
-                await runtime.RunUntilIdleAsync();
-            }
-        }
+            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
+        { }
 
         private async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
@@ -248,7 +113,63 @@ namespace SemanticKernelPractice.Factories
             return ValueTask.CompletedTask;
         }
 
-        public ChatHistory GetHistory() => _history;
+        protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
+        {
+            return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
+        }
+
+        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, IGroupChatPromptStrategy? promptStrategy, AgentParticipationTracker? agentParticipationTracker)
+        {
+            var manager = new HypothesisGenerationGroupChatManager(
+                input,
+                agentNames,
+                kernel.GetRequiredService<IChatCompletionService>(),
+                new HypothesisGenerationPromptStrategy(),
+                new AgentParticipationTracker(),
+                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>())
+            {
+                InteractiveCallback = InteractiveCallback,
+                MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount
+            };
+
+            return manager;
+        }
+
+        protected override string GetResultTypeName()
+        {
+            return nameof(EvidenceResult);
+        }
+
+        protected override List<Hypothesis> UnwrapResult(HypothesisResult wrapper)
+        {
+            return wrapper.Hypotheses;
+        }
+
+        protected override int GetItemCount(List<Hypothesis> result)
+        {
+            return result.Count;
+        }
+
+        protected override List<Hypothesis> CreateEmptyResult()
+        {
+            return new List<Hypothesis>();
+        }
+
+        protected override List<Hypothesis> CreateErrorResult()
+        {
+            return new List<Hypothesis>
+            {
+                new Hypothesis
+                {
+                    Title = "Error during orchestration"
+                }
+            };
+        }
+
+        protected override string GetAgentSelectionReason(string? previousAgentName)
+        {
+            return $"Round-robin selection after {previousAgentName}";
+        }
     }
 }
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using SemanticKernelPractice.Configuration;
+using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 using System.Collections.Concurrent;
@@ -54,8 +55,6 @@ namespace SemanticKernelPractice.Factories
             _logger = CreateLogger(loggerFactory);
         }
 
-        public ChatHistory GetHistory() => _history;
-
         public async Task<TResult> ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken = default)
         {
             // Create agents to be used in orchestration
@@ -83,8 +82,6 @@ namespace SemanticKernelPractice.Factories
 
             // Allow derived classes to create their specific manager
             var manager = CreateManager(input, agentNames, kernel);
-            manager.InteractiveCallback = InteractiveCallback;
-            manager.MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount;
 
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and manager.");
 
@@ -250,7 +247,12 @@ namespace SemanticKernelPractice.Factories
         /// <summary>
         /// Creates the chat manager specific to this orchestration type.
         /// </summary>
-        protected abstract GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel);
+        protected abstract GroupChatManager CreateManager(
+            OrchestrationPromptInput input, 
+            List<string> agentNames, 
+            Kernel kernel,
+            IGroupChatPromptStrategy? promptStrategy = null,
+            AgentParticipationTracker? agentParticipationTracker = null);
 
         /// <summary>
         /// Gets the name of the result type for logging purposes.
