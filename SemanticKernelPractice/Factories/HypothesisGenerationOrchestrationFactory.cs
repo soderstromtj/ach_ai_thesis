@@ -27,7 +27,7 @@ namespace SemanticKernelPractice.Factories
             return loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
         }
 
-        protected override ChatManagerBase CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
+        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
         {
             return new HypothesisGenerationGroupChatManager(
                 input,

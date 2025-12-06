@@ -250,7 +250,7 @@ namespace SemanticKernelPractice.Factories
         /// <summary>
         /// Creates the chat manager specific to this orchestration type.
         /// </summary>
-        protected abstract ChatManagerBase CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel);
+        protected abstract GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel);
 
         /// <summary>
         /// Gets the name of the result type for logging purposes.
