@@ -25,6 +25,7 @@ namespace SemanticKernelPractice.Factories
         private readonly OrchestrationSettings _orchestrationSettings;
         private readonly ChatHistory _history;
         private readonly ILogger _logger;
+        private readonly ILoggerFactory _loggerFactory;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
@@ -42,6 +43,7 @@ namespace SemanticKernelPractice.Factories
             _kernelBuilderService = kernelBuilderService;
             _orchestrationSettings = orchestrationSettings.Value;
             _history = new ChatHistory();
+            _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
         }
 
@@ -70,10 +72,13 @@ namespace SemanticKernelPractice.Factories
                 });
 
             var manager = new HypothesisGenerationGroupChatManager(
-                input, 
+                input,
                 agentNames,
-                _orchestrationSettings.MaximumInvocationCount, 
-                kernel.GetRequiredService<IChatCompletionService>())
+                _orchestrationSettings.MaximumInvocationCount,
+                kernel.GetRequiredService<IChatCompletionService>(),
+                new HypothesisPromptStrategy(),
+                new AgentParticipationTracker(),
+                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>())
             {
                 InteractiveCallback = InteractiveCallback,
                 MaximumInvocationCount = _orchestrationSettings.MaximumInvocationCount,
