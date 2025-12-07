@@ -23,16 +23,20 @@ namespace SemanticKernelPractice.Managers
             """;
 
         /// <inheritdoc/>
-        public string GetSelectionPrompt(OrchestrationPromptInput input, List<string> agentNames, int turnCount, int maxInvocationLimit) =>
+        public string GetSelectionPrompt(OrchestrationPromptInput input, List<string> agentNames) =>
             $"""
             You are the group chat manager for a team of expert analysts tasked with generating hypotheses on the following key question: "{input.KeyQuestion}".
             This process is step 1 of a larger workflow using the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
             Your job is to select the next agent to contribute to the discussion.
-            The analysts are named: {string.Join(", ", agentNames)}.
 
-            The current turn count is {turnCount} and the maximum amount of turns is {maxInvocationLimit}. Please select the next agent to contribute, ensuring that all agents have an opportunity to participate.
+            This discussion has 2 phases:
+            - Phase 1: Ensure all DIME-FIL agents and the Deception agent have contributed at least once.
+            - Phase 2: Once all DIME-FIL agents and Deception agent has contributed, the next agent must be the Hypothesis screening agent.
+            - Phase 3: After the Hypothesis screening agent has contributed, The summarizing agent must consolidate a final list of hypotheses.
 
-            Respond with only the name of the selected agent. For example, if you select "{agentNames[0]}", respond only with: {agentNames[0]}.
+            The only analysts you can consider for this round is: {string.Join(", ", agentNames)}.
+
+            Please select the next agent to contribute, and respond with only the name of the selected agent. For example, if you select "{agentNames[0]}", respond only with: {agentNames[0]}.
 
             Do not add any additional commentary or reasoning.
             """;

@@ -250,9 +250,7 @@ namespace SemanticKernelPractice.Factories
         protected abstract GroupChatManager CreateManager(
             OrchestrationPromptInput input, 
             List<string> agentNames, 
-            Kernel kernel,
-            IGroupChatPromptStrategy? promptStrategy = null,
-            AgentParticipationTracker? agentParticipationTracker = null);
+            Kernel kernel);
 
         /// <summary>
         /// Gets the name of the result type for logging purposes.

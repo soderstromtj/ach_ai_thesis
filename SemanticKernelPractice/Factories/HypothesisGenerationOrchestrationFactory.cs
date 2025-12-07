@@ -38,6 +38,7 @@ namespace SemanticKernelPractice.Factories
                 _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
         }
 
+
         protected override string GetResultTypeName()
         {
             return nameof(HypothesisResult);
@@ -65,7 +66,7 @@ namespace SemanticKernelPractice.Factories
                 new Hypothesis
                 {
                     Title = "Error during orchestration",
-                    Description = "An error occurred during the orchestration process"
+                    Rationale = "An error occurred during the orchestration process"
                 }
             };
         }

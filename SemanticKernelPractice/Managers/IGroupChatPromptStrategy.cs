@@ -20,10 +20,8 @@ namespace SemanticKernelPractice.Managers
         /// </summary>
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
         /// <param name="agentNames">The names of all agents participating in the chat.</param>
-        /// <param name="turnCount">The current turn count in the conversation.</param>
-        /// <param name="maxInvocationLimit">The maximum number of turns allowed.</param>
         /// <returns>A prompt string for agent selection.</returns>
-        string GetSelectionPrompt(OrchestrationPromptInput input, List<string> agentNames, int turnCount, int maxInvocationLimit);
+        string GetSelectionPrompt(OrchestrationPromptInput input, List<string> agentNames);
 
         /// <summary>
         /// Generates a prompt to filter and format the results from the group chat.

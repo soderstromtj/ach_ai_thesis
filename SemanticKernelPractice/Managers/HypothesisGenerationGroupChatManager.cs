@@ -98,13 +98,39 @@ namespace SemanticKernelPractice.Managers
         {
             int turnCount = GetTurnCount(history);
 
-            _logger.LogDebug(
-                "Selecting next agent. Turn: {TurnCount}/{MaxLimit}",
-                turnCount,
-                MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
+            // If all of the DIME-FIL and deception agents must participate first, ensure they do so before considering others
+            List<string> phaseOneAgents = new()
+            {
+                "DiplomaticHypothesisAgent",
+                "InformationHypothesisAgent",
+                "MilitaryHypothesisAgent",
+                "EconomicHypothesisAgent",
+                "FinancialHypothesisAgent",
+                "IntelligenceHypothesisAgent",
+                "LawEnforcementHypothesisAgent",
+                "DeceptionHypothesisAgent"
+            };
 
-            string prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames, turnCount, MaximumInvocationCount);
+            string prompt;
+            if (turnCount <= phaseOneAgents.Count)
+            {
+                _logger.LogDebug("Selecting next Phase 1 (brainstorming) agent.");
+                prompt = _promptStrategy.GetSelectionPrompt(_input, phaseOneAgents);
+                return GetResponseAsync<string>(history, prompt, cancellationToken);
+            }
+
+            if (turnCount == phaseOneAgents.Count + 1)
+            {
+                _logger.LogDebug("Selecting Hypothesis Screening Agent after Phase 1 completion");
+                prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "HypothesisScreeningAgent" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
+                return GetResponseAsync<string>(history, prompt, cancellationToken);
+            }
+
+            
+            _logger.LogDebug("Selecting Summarizing Agent after Hypothesis Screening completion");
+            prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "FinalHypothesisSummarizerFormatter" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
             return GetResponseAsync<string>(history, prompt, cancellationToken);
+            
         }
 
         /// <summary>
@@ -153,21 +179,6 @@ namespace SemanticKernelPractice.Managers
                 return new GroupChatManagerResult<bool>(true)
                 {
                     Reason = $"Maximum invocation limit of {MaximumInvocationCount} reached."
-                };
-            }
-
-            // Check if all agents have participated at least once
-            if (!HaveAllAgentsParticipated(history))
-            {
-                var nonParticipating = _participationTracker.GetNonParticipatingAgents(history, _agentNames);
-
-                _logger.LogDebug(
-                    "Continuing: Not all agents have contributed. Missing: {MissingAgents}",
-                    string.Join(", ", nonParticipating));
-
-                return new GroupChatManagerResult<bool>(false)
-                {
-                    Reason = "Not all agents have contributed at least once."
                 };
             }
 

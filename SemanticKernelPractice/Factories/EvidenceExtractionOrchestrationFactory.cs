@@ -26,7 +26,7 @@ namespace SemanticKernelPractice.Factories
             return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
         }
 
-        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, IGroupChatPromptStrategy? promptStrategy, AgentParticipationTracker? agentParticipationTracker)
+        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
         {
             return new RoundRobinGroupChatManager();
         }
