@@ -10,7 +10,7 @@ namespace SemanticKernelPractice.Configuration
         /// <summary>
         /// Unique identifier for this ACH step
         /// </summary>
-        public string Id { get; set; } = string.Empty;
+        public int Id { get; set; }
 
         /// <summary>
         /// The name of the ACH step (e.g., "MultiAgentChat")
@@ -26,16 +26,6 @@ namespace SemanticKernelPractice.Configuration
         /// The selected AI provider for this ACH step
         /// </summary>
         public AIServiceProvider Provider { get; set; }
-
-        /// <summary>
-        /// The key intelligence question for analysts to address
-        /// </summary>
-        public string KeyIntelligenceQuestion { get; set; } = string.Empty;
-
-        /// <summary>
-        /// The event context that agent analysts will analyze
-        /// </summary>
-        public string Context { get; set; } = string.Empty;
 
         /// <summary>
         /// Task instructions for the orchestration workflow

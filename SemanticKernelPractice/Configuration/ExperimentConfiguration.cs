@@ -24,6 +24,16 @@ namespace SemanticKernelPractice.Configuration
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
+        /// The Key question this experiment aims to answer
+        /// </summary>
+        public string KeyQuestion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The context or background information for this experiment
+        /// </summary>
+        public string Context { get; set; } = string.Empty;
+
+        /// <summary>
         /// The ACH steps that comprise this experiment
         /// </summary>
         public ACHStepConfiguration[] ACHSteps { get; set; } = Array.Empty<ACHStepConfiguration>();
