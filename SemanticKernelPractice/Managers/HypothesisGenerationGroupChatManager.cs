@@ -74,14 +74,17 @@ namespace SemanticKernelPractice.Managers
         /// <param name="history">The chat history containing the conversation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the filtered and formatted hypotheses.</returns>
-        public override ValueTask<GroupChatManagerResult<string>> FilterResults(
+        public override async ValueTask<GroupChatManagerResult<string>> FilterResults(
             ChatHistory history,
             CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Filtering results from chat history with {MessageCount} messages", history.Count);
 
             string prompt = _promptStrategy.GetFilterPrompt(_input);
-            return GetResponseAsync<string>(history, prompt, cancellationToken);
+
+            var response = await GetResponseAsync<string>(history, prompt, cancellationToken);
+
+            return response;
         }
 
         /// <summary>
@@ -91,7 +94,7 @@ namespace SemanticKernelPractice.Managers
         /// <param name="team">The group chat team.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the name of the selected agent.</returns>
-        public override ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
+        public override async ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
             ChatHistory history,
             GroupChatTeam team,
             CancellationToken cancellationToken = default)
@@ -116,20 +119,20 @@ namespace SemanticKernelPractice.Managers
             {
                 _logger.LogDebug("Selecting next Phase 1 (brainstorming) agent.");
                 prompt = _promptStrategy.GetSelectionPrompt(_input, phaseOneAgents);
-                return GetResponseAsync<string>(history, prompt, cancellationToken);
+                return await GetResponseAsync<string>(history, prompt, cancellationToken);
             }
 
             if (turnCount == phaseOneAgents.Count + 1)
             {
                 _logger.LogDebug("Selecting Hypothesis Screening Agent after Phase 1 completion");
                 prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "HypothesisScreeningAgent" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
-                return GetResponseAsync<string>(history, prompt, cancellationToken);
+                return await GetResponseAsync<string>(history, prompt, cancellationToken);
             }
 
             
             _logger.LogDebug("Selecting Summarizing Agent after Hypothesis Screening completion");
             prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "FinalHypothesisSummarizerFormatter" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
-            return GetResponseAsync<string>(history, prompt, cancellationToken);
+            return await GetResponseAsync<string>(history, prompt, cancellationToken);
             
         }
 

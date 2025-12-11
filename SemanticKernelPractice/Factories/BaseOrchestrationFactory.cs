@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.Agents.Runtime.InProcess;
@@ -85,12 +86,8 @@ namespace SemanticKernelPractice.Factories
 
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and manager.");
 
-            GroupChatOrchestration<string, TWrapper> orchestration = new GroupChatOrchestration<string, TWrapper>(manager, agents.ToArray())
-            {
-                ResponseCallback = ResponseCallback,
-                ResultTransform = outputTransform.TransformAsync,
-                StreamingResponseCallback = StreamingResponseCallback,
-            };
+            // Allow derived classes to customize orchestration creation
+            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(manager, agents.ToArray(), outputTransform);
 
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
             var runtime = new InProcessRuntime();
@@ -281,6 +278,28 @@ namespace SemanticKernelPractice.Factories
         /// Gets the reason for agent selection (e.g., "Round-robin selection" or custom manager name).
         /// </summary>
         protected abstract string GetAgentSelectionReason(string? previousAgentName);
+        #endregion
+
+        #region Virtual Methods - Customization Points
+        /// <summary>
+        /// Creates the orchestration object. Override this method to customize the orchestration configuration.
+        /// </summary>
+        /// <param name="manager">The group chat manager for agent coordination</param>
+        /// <param name="agents">The array of agents participating in the orchestration</param>
+        /// <param name="outputTransform">The structured output transform for result processing</param>
+        /// <returns>A configured GroupChatOrchestration instance</returns>
+        protected virtual GroupChatOrchestration<string, TWrapper> CreateOrchestration(
+            GroupChatManager manager,
+            Agent[] agents,
+            StructuredOutputTransform<TWrapper> outputTransform)
+        {
+            return new GroupChatOrchestration<string, TWrapper>(manager, agents)
+            {
+                ResponseCallback = ResponseCallback,
+                ResultTransform = outputTransform.TransformAsync,
+                StreamingResponseCallback = StreamingResponseCallback,
+            };
+        }
         #endregion
     }
 }
