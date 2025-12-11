@@ -26,10 +26,10 @@ namespace SemanticKernelPractice
             var host = CreateHostBuilder(args).Build();
 
             // Get the experiment settings
-            var experimentSettings = host.Services.GetRequiredService<ExperimentsSettings>();
-            if (experimentSettings == null)
+            var experimentSettings = host.Services.GetRequiredService<IOptions<ExperimentsSettings>>().Value;
+            if (experimentSettings == null || experimentSettings.Experiments == null || experimentSettings.Experiments.Length == 0)
             {
-                Console.WriteLine("Failed to retrieve experiment settings. Exiting application.");
+                Console.WriteLine("Failed to retrieve experiment settings or no experiments configured. Exiting application.");
                 return;
             }
 
@@ -81,7 +81,8 @@ namespace SemanticKernelPractice
                 {
                     try
                     {
-                        int index = int.Parse(args[0]);
+                        int index = int.Parse(rawArg);
+                        return index;
                     }
                     catch (Exception)
                     {
@@ -269,8 +270,24 @@ namespace SemanticKernelPractice
 
         private static void RegisterExperimentConfigurations(IServiceCollection services, IConfiguration configuration)
         {
-            // Map the "Experiments" section to ExperimentsSettings object
-            services.Configure<ExperimentsSettings>(configuration.GetSection("Experiments"));
+            // Map the root configuration to ExperimentsSettings (which has Experiments[] property)
+            services.Configure<ExperimentsSettings>(configuration);
+
+            // Map the AIServiceSettings section
+            services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
+
+            // Register a post-configuration action to inject AIServiceSettings into each experiment
+            services.PostConfigure<ExperimentsSettings>(settings =>
+            {
+                var aiSettings = configuration.GetSection("AIServiceSettings").Get<AIServiceSettings>();
+                if (aiSettings != null && settings.Experiments != null)
+                {
+                    foreach (var experiment in settings.Experiments)
+                    {
+                        experiment.GlobalAIServiceSettings = aiSettings;
+                    }
+                }
+            });
         }
 
         /// <summary>
@@ -281,8 +298,8 @@ namespace SemanticKernelPractice
             // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
 
-            // AgentService builds individual kernels per agent based on ServiceId in appsettings
-            services.AddSingleton<IAgentService, AgentService>();
+            // Note: AgentService is constructed manually per ACH step with step-specific configurations
+            // See ExecuteHypothesisBrainstormingAsync for usage
 
             services.AddSingleton<ConsoleFormatter>();
         }

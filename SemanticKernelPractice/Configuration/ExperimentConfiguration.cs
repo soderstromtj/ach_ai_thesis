@@ -26,6 +26,7 @@ namespace SemanticKernelPractice.Configuration
         /// <summary>
         /// The Key question this experiment aims to answer
         /// </summary>
+        [JsonPropertyName("KeyIntelligenceQuestion")]
         public string KeyQuestion { get; set; } = string.Empty;
 
         /// <summary>
