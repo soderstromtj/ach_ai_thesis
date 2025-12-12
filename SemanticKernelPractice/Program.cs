@@ -83,7 +83,7 @@ namespace SemanticKernelPractice
                     try
                     {
                         int index = int.Parse(rawArg);
-                        return index;
+                        return index - 1;
                     }
                     catch (Exception)
                     {
