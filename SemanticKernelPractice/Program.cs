@@ -150,7 +150,7 @@ namespace SemanticKernelPractice
                 TaskInstructions = achStepConfig.TaskInstructions,
             };
 
-            await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, experimentConfig.GlobalAIServiceSettings, input);
+            await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
 
             Console.WriteLine($"{new string('=', 70)}\n");
         }
@@ -190,12 +190,12 @@ namespace SemanticKernelPractice
         /// Runs the hypothesis brainstorming step and displays the results.
         /// </summary>
         private static async Task ExecuteHypothesisBrainstormingAsync(
-            IHost host, 
-            ACHStepConfiguration stepConfiguration, 
-            AIServiceSettings aiServiceSettings, 
+            IHost host,
+            ACHStepConfiguration stepConfiguration,
             OrchestrationPromptInput input)
         {
             var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
             var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
             var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
             var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
@@ -274,21 +274,8 @@ namespace SemanticKernelPractice
             // Map the root configuration to ExperimentsSettings (which has Experiments[] property)
             services.Configure<ExperimentsSettings>(configuration);
 
-            // Map the AIServiceSettings section
+            // Map the AIServiceSettings section - kept separate and injected where needed
             services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
-
-            // Register a post-configuration action to inject AIServiceSettings into each experiment
-            services.PostConfigure<ExperimentsSettings>(settings =>
-            {
-                var aiSettings = configuration.GetSection("AIServiceSettings").Get<AIServiceSettings>();
-                if (aiSettings != null && settings.Experiments != null)
-                {
-                    foreach (var experiment in settings.Experiments)
-                    {
-                        experiment.GlobalAIServiceSettings = aiSettings;
-                    }
-                }
-            });
         }
 
         /// <summary>

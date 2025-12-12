@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Services.KernelBuilders;
@@ -13,10 +14,10 @@ namespace SemanticKernelPractice.Services
         public AIServiceProvider CurrentProvider { get; private set; }
 
         public KernelBuilderService(
-            AIServiceSettings aiServiceSettings,
+            IOptions<AIServiceSettings> aiServiceSettings,
             ILoggerFactory loggerFactory)
         {
-            _aiServiceSettings = aiServiceSettings;
+            _aiServiceSettings = aiServiceSettings.Value;
             _loggerFactory = loggerFactory;
         }
 
