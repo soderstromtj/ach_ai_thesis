@@ -38,11 +38,5 @@ namespace SemanticKernelPractice.Configuration
         /// The ACH steps that comprise this experiment
         /// </summary>
         public ACHStepConfiguration[] ACHSteps { get; set; } = Array.Empty<ACHStepConfiguration>();
-
-        /// <summary>
-        /// Global AI service provider configurations (injected at runtime, not from JSON)
-        /// </summary>
-        [JsonIgnore]
-        public AIServiceSettings GlobalAIServiceSettings { get; set; } = new();
     }
 }
