@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Managers;
@@ -27,15 +30,29 @@ namespace SemanticKernelPractice.Factories
             return loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
         }
 
-        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
+        protected override AgentOrchestration<string, HypothesisResult> CreateOrchestration(
+            OrchestrationPromptInput input,
+            List<string> agentNames,
+            Kernel kernel,
+            Agent[] agents,
+            StructuredOutputTransform<HypothesisResult> outputTransform)
         {
-            return new HypothesisGenerationGroupChatManager(
+            // Create manager specific to hypothesis generation
+            var manager = new HypothesisGenerationGroupChatManager(
                 input,
                 agentNames,
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new HypothesisGenerationPromptStrategy(),
                 new AgentParticipationTracker(),
                 _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
+
+            // Create and return GroupChatOrchestration
+            return new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
+            {
+                ResponseCallback = ResponseCallback,
+                ResultTransform = outputTransform.TransformAsync,
+                StreamingResponseCallback = StreamingResponseCallback,
+            };
         }
 
         protected override string GetResultTypeName()

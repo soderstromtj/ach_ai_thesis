@@ -3,19 +3,22 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using SemanticKernelPractice.Configuration;
-using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
+    /// <summary>
+    /// Example factory demonstrating how to use ConcurrentOrchestration with the refactored BaseOrchestrationFactory.
+    /// ConcurrentOrchestration does not require a GroupChatManager - it only needs agents.
+    /// </summary>
+    public class ExampleConcurrentOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
     {
-        public EvidenceExtractionOrchestrationFactory(
+        public ExampleConcurrentOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -26,7 +29,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
+            return loggerFactory.CreateLogger<ExampleConcurrentOrchestrationFactory>();
         }
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
@@ -36,11 +39,9 @@ namespace SemanticKernelPractice.Factories
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
         {
-            // Create round-robin manager for evidence extraction
-            var manager = new RoundRobinGroupChatManager();
-
-            // Create and return GroupChatOrchestration
-            return new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
+            // ConcurrentOrchestration only needs agents - no manager required!
+            // All agents execute concurrently and their results are aggregated.
+            return new ConcurrentOrchestration<string, EvidenceResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -83,7 +84,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"Round-robin selection after {previousAgentName}";
+            return "Concurrent execution - all agents run simultaneously";
         }
     }
 }
