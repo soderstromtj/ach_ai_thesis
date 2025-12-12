@@ -154,8 +154,8 @@ namespace SemanticKernelPractice.Factories
             }
         }
 
-        #region Private Callbacks
-        private async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
+        #region Protected Callbacks
+        protected async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
             var agentName = response.AuthorName ?? "Unknown";
             var chunk = response.Content ?? string.Empty;
@@ -181,7 +181,7 @@ namespace SemanticKernelPractice.Factories
             await ValueTask.CompletedTask;
         }
 
-        private async ValueTask<ChatMessageContent> InteractiveCallback()
+        protected async ValueTask<ChatMessageContent> InteractiveCallback()
         {
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
             return await ValueTask.FromResult(new ChatMessageContent
@@ -190,7 +190,7 @@ namespace SemanticKernelPractice.Factories
             });
         }
 
-        private ValueTask ResponseCallback(ChatMessageContent response)
+        protected ValueTask ResponseCallback(ChatMessageContent response)
         {
             _history.Add(response);
             _currentTurn++;

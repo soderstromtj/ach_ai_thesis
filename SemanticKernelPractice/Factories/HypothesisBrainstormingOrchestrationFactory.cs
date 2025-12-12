@@ -16,9 +16,9 @@ namespace SemanticKernelPractice.Factories
     /// Example factory demonstrating how to use ConcurrentOrchestration with the refactored BaseOrchestrationFactory.
     /// ConcurrentOrchestration does not require a GroupChatManager - it only needs agents.
     /// </summary>
-    public class ExampleConcurrentOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
+    public class HypothesisBrainstormingOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
-        public ExampleConcurrentOrchestrationFactory(
+        public HypothesisBrainstormingOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -29,19 +29,18 @@ namespace SemanticKernelPractice.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<ExampleConcurrentOrchestrationFactory>();
+            return loggerFactory.CreateLogger<HypothesisBrainstormingOrchestrationFactory>();
         }
 
-        protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
+        protected override AgentOrchestration<string, HypothesisResult> CreateOrchestration(
             OrchestrationPromptInput input,
             List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
-            StructuredOutputTransform<EvidenceResult> outputTransform)
+            StructuredOutputTransform<HypothesisResult> outputTransform)
         {
-            // ConcurrentOrchestration only needs agents - no manager required!
             // All agents execute concurrently and their results are aggregated.
-            return new ConcurrentOrchestration<string, EvidenceResult>(agents)
+            return new ConcurrentOrchestration<string, HypothesisResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -51,33 +50,32 @@ namespace SemanticKernelPractice.Factories
 
         protected override string GetResultTypeName()
         {
-            return nameof(EvidenceResult);
+            return nameof(HypothesisResult);
         }
 
-        protected override List<Evidence> UnwrapResult(EvidenceResult wrapper)
+        protected override List<Hypothesis> UnwrapResult(HypothesisResult wrapper)
         {
-            return wrapper.Evidence;
+            return wrapper.Hypotheses;
         }
 
-        protected override int GetItemCount(List<Evidence> result)
+        protected override int GetItemCount(List<Hypothesis> result)
         {
             return result.Count;
         }
 
-        protected override List<Evidence> CreateEmptyResult()
+        protected override List<Hypothesis> CreateEmptyResult()
         {
-            return new List<Evidence>();
+            return new List<Hypothesis>();
         }
 
-        protected override List<Evidence> CreateErrorResult()
+        protected override List<Hypothesis> CreateErrorResult()
         {
-            return new List<Evidence>
+            return new List<Hypothesis>
             {
-                new Evidence
+                new Hypothesis
                 {
-                    Id = -1,
-                    Description = "Error during orchestration",
-                    Type = EvidenceType.Fact
+                    Title = "Error",
+                    Rationale = "An error occurred during concurrent orchestration."
                 }
             };
         }

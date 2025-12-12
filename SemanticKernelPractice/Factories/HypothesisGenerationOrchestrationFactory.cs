@@ -14,9 +14,9 @@ using SemanticKernelPractice.Services;
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class HypothesisGenerationOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
+    public class HypothesisRefinementOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
-        public HypothesisGenerationOrchestrationFactory(
+        public HypothesisRefinementOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -27,7 +27,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<HypothesisGenerationOrchestrationFactory>();
+            return loggerFactory.CreateLogger<HypothesisRefinementOrchestrationFactory>();
         }
 
         protected override AgentOrchestration<string, HypothesisResult> CreateOrchestration(

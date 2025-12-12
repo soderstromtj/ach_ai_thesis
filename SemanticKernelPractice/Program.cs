@@ -45,6 +45,7 @@ namespace SemanticKernelPractice
             Console.WriteLine($"Experiment {experimentSettings.Experiments[experimentIndex].Id}: {experimentSettings.Experiments[experimentIndex].Description}");
             Console.WriteLine(new string('=', 70));
 
+            // Attempt to run the orchestration workflow
             try
             {
                 await RunOrchestrationAsync(host, experimentConfiguration);
@@ -133,7 +134,7 @@ namespace SemanticKernelPractice
                 return;
             }
 
-            // Build a logger factory to pass into services
+            // Build a logger factory to pass into each of the agent orchestration services
             var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
 
             // Run the first ACH step for this example - Hypothesis Brainstorming
@@ -199,7 +200,7 @@ namespace SemanticKernelPractice
             var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
             var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
 
-            var hypothesisFactory = new HypothesisGenerationOrchestrationFactory(
+            var hypothesisFactory = new HypothesisBrainstormingOrchestrationFactory(
                 agentService,
                 kernelBuilderService,
                 orchestrationOptions,
@@ -309,7 +310,7 @@ namespace SemanticKernelPractice
         /// </summary>
         private static void RegisterOrchestrationServices(IServiceCollection services)
         {
-            services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisGenerationOrchestrationFactory>();
+            services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisRefinementOrchestrationFactory>();
             services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
             services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
         }
