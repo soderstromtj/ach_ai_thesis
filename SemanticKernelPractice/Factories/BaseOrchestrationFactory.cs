@@ -82,13 +82,10 @@ namespace SemanticKernelPractice.Factories
                     ResponseFormat = typeof(TWrapper)
                 });
 
-            // Allow derived classes to create their specific manager
-            var manager = CreateManager(input, agentNames, kernel);
+            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Creating orchestration object with {agents.Count()} agents.");
 
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Creating {nameof(GroupChatOrchestration)} object with {agents.Count()} agents and manager.");
-
-            // Allow derived classes to customize orchestration creation
-            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(manager, agents.ToArray(), outputTransform);
+            // Allow derived classes to create their specific orchestration type
+            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, agentNames, kernel, agents.ToArray(), outputTransform);
 
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
             var runtime = new InProcessRuntime();
@@ -157,8 +154,8 @@ namespace SemanticKernelPractice.Factories
             }
         }
 
-        #region Private Callbacks
-        private async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
+        #region Protected Callbacks
+        protected async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
             var agentName = response.AuthorName ?? "Unknown";
             var chunk = response.Content ?? string.Empty;
@@ -184,7 +181,7 @@ namespace SemanticKernelPractice.Factories
             await ValueTask.CompletedTask;
         }
 
-        private async ValueTask<ChatMessageContent> InteractiveCallback()
+        protected async ValueTask<ChatMessageContent> InteractiveCallback()
         {
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
             return await ValueTask.FromResult(new ChatMessageContent
@@ -193,7 +190,7 @@ namespace SemanticKernelPractice.Factories
             });
         }
 
-        private ValueTask ResponseCallback(ChatMessageContent response)
+        protected ValueTask ResponseCallback(ChatMessageContent response)
         {
             _history.Add(response);
             _currentTurn++;
@@ -243,12 +240,22 @@ namespace SemanticKernelPractice.Factories
         protected abstract ILogger CreateLogger(ILoggerFactory loggerFactory);
 
         /// <summary>
-        /// Creates the chat manager specific to this orchestration type.
+        /// Creates the orchestration object specific to this factory type.
+        /// Derived classes can create any type of AgentOrchestration (GroupChatOrchestration, ConcurrentOrchestration, etc.)
+        /// and handle manager creation internally if needed.
         /// </summary>
-        protected abstract GroupChatManager CreateManager(
-            OrchestrationPromptInput input, 
-            List<string> agentNames, 
-            Kernel kernel);
+        /// <param name="input">The orchestration prompt input</param>
+        /// <param name="agentNames">List of agent names participating in the orchestration</param>
+        /// <param name="kernel">The kernel instance for orchestration</param>
+        /// <param name="agents">The array of agents participating in the orchestration</param>
+        /// <param name="outputTransform">The structured output transform for result processing</param>
+        /// <returns>A configured AgentOrchestration instance</returns>
+        protected abstract AgentOrchestration<string, TWrapper> CreateOrchestration(
+            OrchestrationPromptInput input,
+            List<string> agentNames,
+            Kernel kernel,
+            Agent[] agents,
+            StructuredOutputTransform<TWrapper> outputTransform);
 
         /// <summary>
         /// Gets the name of the result type for logging purposes.
@@ -279,28 +286,6 @@ namespace SemanticKernelPractice.Factories
         /// Gets the reason for agent selection (e.g., "Round-robin selection" or custom manager name).
         /// </summary>
         protected abstract string GetAgentSelectionReason(string? previousAgentName);
-        #endregion
-
-        #region Virtual Methods - Customization Points
-        /// <summary>
-        /// Creates the orchestration object. Override this method to customize the orchestration configuration.
-        /// </summary>
-        /// <param name="manager">The group chat manager for agent coordination</param>
-        /// <param name="agents">The array of agents participating in the orchestration</param>
-        /// <param name="outputTransform">The structured output transform for result processing</param>
-        /// <returns>A configured GroupChatOrchestration instance</returns>
-        protected virtual GroupChatOrchestration<string, TWrapper> CreateOrchestration(
-            GroupChatManager manager,
-            Agent[] agents,
-            StructuredOutputTransform<TWrapper> outputTransform)
-        {
-            return new GroupChatOrchestration<string, TWrapper>(manager, agents)
-            {
-                ResponseCallback = ResponseCallback,
-                ResultTransform = outputTransform.TransformAsync,
-                StreamingResponseCallback = StreamingResponseCallback,
-            };
-        }
         #endregion
     }
 }

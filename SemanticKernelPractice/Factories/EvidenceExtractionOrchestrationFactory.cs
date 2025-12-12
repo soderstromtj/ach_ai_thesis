@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using SemanticKernelPractice.Configuration;
 using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
@@ -26,9 +29,23 @@ namespace SemanticKernelPractice.Factories
             return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
         }
 
-        protected override GroupChatManager CreateManager(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel)
+        protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
+            OrchestrationPromptInput input,
+            List<string> agentNames,
+            Kernel kernel,
+            Agent[] agents,
+            StructuredOutputTransform<EvidenceResult> outputTransform)
         {
-            return new RoundRobinGroupChatManager();
+            // Create round-robin manager for evidence extraction
+            var manager = new RoundRobinGroupChatManager();
+
+            // Create and return GroupChatOrchestration
+            return new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
+            {
+                ResponseCallback = ResponseCallback,
+                ResultTransform = outputTransform.TransformAsync,
+                StreamingResponseCallback = StreamingResponseCallback,
+            };
         }
 
         protected override string GetResultTypeName()

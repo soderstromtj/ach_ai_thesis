@@ -3,20 +3,22 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
-using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernelPractice.Configuration;
-using SemanticKernelPractice.Managers;
 using SemanticKernelPractice.Models;
 using SemanticKernelPractice.Services;
 
 namespace SemanticKernelPractice.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class HypothesisRefinementOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
+    /// <summary>
+    /// Example factory demonstrating how to use ConcurrentOrchestration with the refactored BaseOrchestrationFactory.
+    /// ConcurrentOrchestration does not require a GroupChatManager - it only needs agents.
+    /// </summary>
+    public class HypothesisBrainstormingOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
-        public HypothesisRefinementOrchestrationFactory(
+        public HypothesisBrainstormingOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -27,7 +29,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<HypothesisRefinementOrchestrationFactory>();
+            return loggerFactory.CreateLogger<HypothesisBrainstormingOrchestrationFactory>();
         }
 
         protected override AgentOrchestration<string, HypothesisResult> CreateOrchestration(
@@ -37,17 +39,8 @@ namespace SemanticKernelPractice.Factories
             Agent[] agents,
             StructuredOutputTransform<HypothesisResult> outputTransform)
         {
-            // Create manager specific to hypothesis generation
-            var manager = new HypothesisGenerationGroupChatManager(
-                input,
-                agentNames,
-                kernel.GetRequiredService<IChatCompletionService>(),
-                new HypothesisGenerationPromptStrategy(),
-                new AgentParticipationTracker(),
-                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
-
-            // Create and return GroupChatOrchestration
-            return new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
+            // All agents execute concurrently and their results are aggregated.
+            return new ConcurrentOrchestration<string, HypothesisResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -81,15 +74,15 @@ namespace SemanticKernelPractice.Factories
             {
                 new Hypothesis
                 {
-                    Title = "Error during orchestration",
-                    Rationale = "An error occurred during the orchestration process"
+                    Title = "Error",
+                    Rationale = "An error occurred during concurrent orchestration."
                 }
             };
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"{nameof(HypothesisGenerationGroupChatManager)} selection after {previousAgentName}";
+            return "Concurrent execution - all agents run simultaneously";
         }
     }
 }
