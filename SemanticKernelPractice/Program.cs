@@ -307,12 +307,12 @@ namespace SemanticKernelPractice
 
         /// <summary>
         /// Registers orchestration factories for each ACH step in the container.
+        /// Note: Factories are currently created manually per ACH step with step-specific configurations.
+        /// See ExecuteHypothesisBrainstormingAsync for example usage.
         /// </summary>
         private static void RegisterOrchestrationServices(IServiceCollection services)
         {
-            services.AddTransient<IOrchestrationFactory<List<Hypothesis>>, HypothesisRefinementOrchestrationFactory>();
-            services.AddTransient<IOrchestrationFactory<List<Evidence>>, EvidenceExtractionOrchestrationFactory>();
-            services.AddSingleton<IOrchestrationFactorySelector, OrchestrationFactorySelector>();
+            // No registrations needed - factories are created manually with step-specific configurations
         }
 
         /// <summary>
