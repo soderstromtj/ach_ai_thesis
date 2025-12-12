@@ -38,7 +38,6 @@ namespace SemanticKernelPractice.Factories
                 _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
         }
 
-
         protected override string GetResultTypeName()
         {
             return nameof(HypothesisResult);

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
+using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.Agents.Runtime.InProcess;

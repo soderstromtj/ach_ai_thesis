@@ -26,11 +26,10 @@ namespace SemanticKernelPractice.Services
         {
             return step switch
             {
-                ACHStep.HypothesisGeneration => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Hypothesis>>>(),
-                ACHStep.EvidenceExtraction => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Evidence>>>(),
+                ACHStep.HypothesisBrainstorming => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Hypothesis>>>(),
+                ACHStep.HypothesisRefinementSelection => _serviceProvider.GetRequiredService<IOrchestrationFactory<List<Evidence>>>(),
+                ACHStep.EvidenceExtraction => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
                 ACHStep.EvidenceEvaluation => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
-                ACHStep.HypothesisRefinement => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
-                ACHStep.ConclusionDrawing => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
                 _ => throw new NotSupportedException($"Unknown ACH step: {step}")
             };
         }
@@ -44,11 +43,10 @@ namespace SemanticKernelPractice.Services
         {
             return step switch
             {
-                ACHStep.HypothesisGeneration => typeof(List<Hypothesis>),
-                ACHStep.EvidenceExtraction => typeof(List<Evidence>),
+                ACHStep.HypothesisBrainstorming => typeof(List<Hypothesis>),
+                ACHStep.HypothesisRefinementSelection => typeof(List<Evidence>),
+                ACHStep.EvidenceExtraction => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
                 ACHStep.EvidenceEvaluation => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
-                ACHStep.HypothesisRefinement => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
-                ACHStep.ConclusionDrawing => throw new NotSupportedException($"ACH Step {step} is not yet implemented."),
                 _ => throw new NotSupportedException($"Unknown ACH step: {step}")
             };
         }

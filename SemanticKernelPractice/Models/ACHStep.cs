@@ -6,28 +6,23 @@ namespace SemanticKernelPractice.Models
     public enum ACHStep
     {
         /// <summary>
-        /// Step 1: Generate hypotheses for the intelligence question.
+        /// Step 1a: Generate hypotheses for the intelligence question.
         /// </summary>
-        HypothesisGeneration = 1,
+        HypothesisBrainstorming = 1,
 
         /// <summary>
-        /// Step 2: Extract and identify evidence relevant to the hypotheses.
+        /// Step 1b: Refine and select the most plausible hypotheses.
         /// </summary>
-        EvidenceExtraction = 2,
+        HypothesisRefinementSelection = 2,
 
         /// <summary>
-        /// Step 3: Evaluate evidence against hypotheses (future implementation).
+        /// Step 3: Extract and identify evidence relevant to the hypotheses.
         /// </summary>
-        EvidenceEvaluation = 3,
+        EvidenceExtraction = 3,
 
         /// <summary>
-        /// Step 4: Refine hypotheses based on evidence (future implementation).
+        /// Step 4: Evaluate evidence against hypotheses (future implementation).
         /// </summary>
-        HypothesisRefinement = 4,
-
-        /// <summary>
-        /// Step 5: Draw conclusions and identify intelligence gaps (future implementation).
-        /// </summary>
-        ConclusionDrawing = 5
+        EvidenceEvaluation = 4
     }
 }
