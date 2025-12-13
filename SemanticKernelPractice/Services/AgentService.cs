@@ -79,7 +79,7 @@ namespace SemanticKernelPractice.Services
                     "OpenAI service is not configured. Please ensure AIServiceSettings.OpenAI is properly configured in appsettings.");
             }
 
-            var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _loggerFactory);
+            var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: OpenAI adapter created successfully.");
 
@@ -97,7 +97,7 @@ namespace SemanticKernelPractice.Services
                     "Azure OpenAI service is not configured. Please ensure AIServiceSettings.AzureOpenAI is properly configured in appsettings.");
             }
 
-            var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _loggerFactory);
+            var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: AzureOpenAI adapter created successfully.");
 
@@ -114,7 +114,7 @@ namespace SemanticKernelPractice.Services
                     "Ollama service is not configured. Please ensure AIServiceSettings.Ollama is properly configured in appsettings.");
             }
 
-            var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _loggerFactory);
+            var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Ollama adapter created successfully.");
 

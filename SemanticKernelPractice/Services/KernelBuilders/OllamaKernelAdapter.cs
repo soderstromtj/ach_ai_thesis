@@ -8,15 +8,18 @@ namespace SemanticKernelPractice.Services.KernelBuilders
     public class OllamaKernelAdapter : IKernelBuilderAdapter
     {
         private readonly OllamaSettings _settings;
+        private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
 
         public AIServiceProvider SupportedProvider => AIServiceProvider.Ollama;
 
         public OllamaKernelAdapter(
             OllamaSettings settings,
+            AIServiceSettings aiServiceSettings,
             ILoggerFactory loggerFactory)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _aiServiceSettings = aiServiceSettings ?? throw new ArgumentNullException(nameof(aiServiceSettings));
             _loggerFactory = loggerFactory;
         }
 

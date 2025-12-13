@@ -30,7 +30,7 @@ namespace SemanticKernelPractice.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.OpenAI.ApiKey))
             {
                 CurrentProvider = AIServiceProvider.OpenAI;
-                var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _loggerFactory);
+                var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory);
                 return adapter.BuildKernel();
             }
 
@@ -40,7 +40,7 @@ namespace SemanticKernelPractice.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.AzureOpenAI.DeploymentName))
             {
                 CurrentProvider = AIServiceProvider.AzureOpenAI;
-                var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _loggerFactory);
+                var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory);
                 return adapter.BuildKernel();
             }
 
@@ -49,7 +49,7 @@ namespace SemanticKernelPractice.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.Ollama.ModelId))
             {
                 CurrentProvider = AIServiceProvider.Ollama;
-                var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _loggerFactory);
+                var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory);
                 return adapter.BuildKernel();
             }
 

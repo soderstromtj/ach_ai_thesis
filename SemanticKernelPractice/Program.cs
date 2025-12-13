@@ -140,7 +140,6 @@ namespace SemanticKernelPractice
             // Run the first ACH step for this example - Hypothesis Brainstorming
             Console.WriteLine($"\n{new string('=', 70)}");
             var achStepConfig = experimentConfig.ACHSteps[0];
-            var achStep = (ACHStep)achStepConfig.Id;
 
             // Build the input for the orchestration
             var input = new OrchestrationPromptInput
@@ -150,7 +149,22 @@ namespace SemanticKernelPractice
                 TaskInstructions = achStepConfig.TaskInstructions,
             };
 
-            await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
+            var hypotheses = await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
+            Console.WriteLine($"\nInitial Hypotheses after Brainstorming Step:");
+            DisplayHypotheses(hypotheses);
+
+            // Update the input with the generated hypotheses for the next step
+            input.HypothesisResult = new HypothesisResult
+            {
+                Hypotheses = hypotheses
+            };
+
+            // update the experiment configuration to the next ACH step
+            achStepConfig = experimentConfig.ACHSteps[1];
+
+            var refinedHypotheses = await ExecuteHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[1], input);
+            Console.WriteLine($"\nRefined Hypotheses after Evaluation Step:");
+            DisplayHypotheses(refinedHypotheses);
 
             Console.WriteLine($"{new string('=', 70)}\n");
         }
@@ -189,7 +203,7 @@ namespace SemanticKernelPractice
         /// <summary>
         /// Runs the hypothesis brainstorming step and displays the results.
         /// </summary>
-        private static async Task ExecuteHypothesisBrainstormingAsync(
+        private static async Task<List<Hypothesis>> ExecuteHypothesisBrainstormingAsync(
             IHost host,
             ACHStepConfiguration stepConfiguration,
             OrchestrationPromptInput input)
@@ -207,7 +221,30 @@ namespace SemanticKernelPractice
                 loggerFactory);
 
             var hypotheses = await hypothesisFactory.ExecuteCoreAsync(input);
-            DisplayHypotheses(hypotheses);
+
+            return hypotheses;
+        }
+
+        /// <summary>
+        /// Runs the hypothesis evaluation and refinement step and returns a refined list of hypotheses.
+        /// </summary>
+        private static async Task<List<Hypothesis>> ExecuteHypothesisEvaluationAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
+        {
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
+            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
+            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
+            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
+
+            var hypothesisEvaluationFactory = new HypothesisRefinementOrchestrationFactory(
+                agentService,
+                kernelBuilderService,
+                orchestrationOptions,
+                loggerFactory);
+
+            var refinedHypotheses = await hypothesisEvaluationFactory.ExecuteCoreAsync(input);
+
+            return refinedHypotheses;
         }
 
         /// <summary>
