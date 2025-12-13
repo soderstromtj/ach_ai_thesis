@@ -12,5 +12,13 @@
         /// If not specified, the kernel's default service will be used.
         /// </summary>
         public string? ServiceId { get; set; }
+
+        /// <summary>
+        /// Optional model ID to specify which specific model this agent should use.
+        /// If specified, overrides the default ModelId from the provider settings.
+        /// Examples: "gpt-4o", "gpt-3.5-turbo", "o1-preview", "claude-3-opus", etc.
+        /// If not specified, uses the ModelId from the provider settings.
+        /// </summary>
+        public string? ModelId { get; set; }
     }
 }

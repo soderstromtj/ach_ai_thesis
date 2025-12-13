@@ -11,7 +11,8 @@ namespace SemanticKernelPractice.Services.KernelBuilders
         /// <summary>
         /// Builds and configures a Kernel instance for the specific AI provider
         /// </summary>
-        Kernel BuildKernel();
+        /// <param name="modelIdOverride">Optional model ID to override the default model from provider settings</param>
+        Kernel BuildKernel(string? modelIdOverride = null);
 
         /// <summary>
         /// Gets the provider type this adapter supports

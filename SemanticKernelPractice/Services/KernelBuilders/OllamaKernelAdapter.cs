@@ -23,12 +23,15 @@ namespace SemanticKernelPractice.Services.KernelBuilders
             _loggerFactory = loggerFactory;
         }
 
-        public Kernel BuildKernel()
+        public Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();
 
+            // Use override if provided, otherwise use settings default
+            var modelId = modelIdOverride ?? _settings.ModelId;
+
             builder.AddOllamaChatCompletion(
-                modelId: _settings.ModelId,
+                modelId: modelId,
                 endpoint: new Uri(_settings.Endpoint),
                 serviceId: "ollama"
             );
