@@ -23,9 +23,12 @@ namespace SemanticKernelPractice.Services.KernelBuilders
             _loggerFactory = loggerFactory;
         }
 
-        public Kernel BuildKernel()
+        public Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();
+
+            // Use override if provided, otherwise use settings default
+            var modelId = modelIdOverride ?? _settings.ModelId ?? string.Empty;
 
             // Create custom HttpClient with extended timeout for large payloads
             var httpClient = new HttpClient
@@ -37,7 +40,7 @@ namespace SemanticKernelPractice.Services.KernelBuilders
                 deploymentName: _settings.DeploymentName,
                 apiKey: _settings.ApiKey,
                 endpoint: _settings.Endpoint,
-                modelId: _settings.ModelId ?? string.Empty,
+                modelId: modelId,
                 serviceId: "azure",
                 httpClient: httpClient
             );

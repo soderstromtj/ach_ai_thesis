@@ -31,8 +31,8 @@ namespace SemanticKernelPractice.Services
             // Create agents based on the configurations from appsettings
             List<ChatCompletionAgent> agents = _agentConfigurations.Select(config =>
             {
-                // Build a kernel for this agent based on its ServiceId
-                var kernel = BuildKernelForAgent(config.ServiceId);
+                // Build a kernel for this agent based on its ServiceId and ModelId
+                var kernel = BuildKernelForAgent(config);
 
                 var agent = new ChatCompletionAgent
                 {
@@ -50,9 +50,12 @@ namespace SemanticKernelPractice.Services
             return agents;
         }
 
-        private Kernel BuildKernelForAgent(string? serviceId)
+        private Kernel BuildKernelForAgent(AgentConfiguration agentConfig)
         {
-            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Building kernel for agent with ServiceId: '{serviceId ?? "openai (default)"}'.");
+            var serviceId = agentConfig.ServiceId;
+            var modelIdOverride = agentConfig.ModelId;
+
+            _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Building kernel for agent '{agentConfig.Name}' with ServiceId: '{serviceId ?? "openai (default)"}', ModelId: '{modelIdOverride ?? "default"}'.");
 
             // Default to OpenAI if no ServiceId specified
             var effectiveServiceId = string.IsNullOrWhiteSpace(serviceId) ? "openai" : serviceId.ToLowerInvariant();
@@ -68,7 +71,7 @@ namespace SemanticKernelPractice.Services
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Using '{adapter.SupportedProvider}' adapter to build kernel.");
 
-            return adapter.BuildKernel();
+            return adapter.BuildKernel(modelIdOverride);
         }
 
         private IKernelBuilderAdapter CreateOpenAIAdapter()

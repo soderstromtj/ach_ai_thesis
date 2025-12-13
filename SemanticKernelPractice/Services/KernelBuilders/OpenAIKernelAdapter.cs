@@ -23,9 +23,12 @@ namespace SemanticKernelPractice.Services.KernelBuilders
             _loggerFactory = loggerFactory;
         }
 
-        public Kernel BuildKernel()
+        public Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();
+
+            // Use override if provided, otherwise use settings default
+            var modelId = modelIdOverride ?? _settings.ModelId;
 
             // Create custom HttpClient with extended timeout for large payloads
             var httpClient = new HttpClient
@@ -34,7 +37,7 @@ namespace SemanticKernelPractice.Services.KernelBuilders
             };
 
             builder.AddOpenAIChatCompletion(
-                modelId: _settings.ModelId,
+                modelId: modelId,
                 apiKey: _settings.ApiKey,
                 orgId: _settings.OrganizationId ?? string.Empty,
                 serviceId: "openai",
