@@ -4,6 +4,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.ChatCompletion;
 using SemanticKernelPractice.Configuration;
@@ -37,22 +38,15 @@ namespace SemanticKernelPractice.Factories
             Agent[] agents,
             StructuredOutputTransform<HypothesisResult> outputTransform)
         {
-            // Create manager specific to hypothesis generation
-            var manager = new HypothesisGenerationGroupChatManager(
-                input,
-                agentNames,
-                kernel.GetRequiredService<IChatCompletionService>(),
-                new HypothesisGenerationPromptStrategy(),
-                new AgentParticipationTracker(),
-                _loggerFactory.CreateLogger<HypothesisGenerationGroupChatManager>());
-
-            // Create and return GroupChatOrchestration
-            return new GroupChatOrchestration<string, HypothesisResult>(manager, agents)
+            // Create and return a SequentialOrchestration instance
+            SequentialOrchestration<string, HypothesisResult> orchestration = new SequentialOrchestration<string, HypothesisResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
                 StreamingResponseCallback = StreamingResponseCallback,
             };
+
+            return orchestration;
         }
 
         protected override string GetResultTypeName()
@@ -89,7 +83,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"{nameof(HypothesisGenerationGroupChatManager)} selection after {previousAgentName}";
+            return $"Sequential selection after {previousAgentName}";
         }
     }
 }

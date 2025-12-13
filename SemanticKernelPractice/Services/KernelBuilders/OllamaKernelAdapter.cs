@@ -27,17 +27,10 @@ namespace SemanticKernelPractice.Services.KernelBuilders
         {
             var builder = Kernel.CreateBuilder();
 
-            // Create custom HttpClient with extended timeout for large payloads
-            var httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(_aiServiceSettings.HttpTimeoutSeconds)
-            };
-
             builder.AddOllamaChatCompletion(
                 modelId: _settings.ModelId,
                 endpoint: new Uri(_settings.Endpoint),
-                serviceId: "ollama",
-                httpClient: httpClient
+                serviceId: "ollama"
             );
 
             builder.Services.AddSingleton(_loggerFactory);
