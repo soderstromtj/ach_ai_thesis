@@ -286,7 +286,7 @@ namespace SemanticKernelPractice
 
             foreach (var item in evidence)
             {
-                Console.WriteLine($"Type: {item.Type}\tDescription: {item.Description}\n");
+                Console.WriteLine(item.ToString());
             }
         }
 

@@ -5,7 +5,9 @@ namespace SemanticKernelPractice.Models
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum EvidenceType
     {
-        Fact,
+        DirectQuote,
+        Paraphrase,
+        Derived,
         Assumption
     }
 }

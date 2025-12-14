@@ -70,15 +70,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override List<Evidence> CreateErrorResult()
         {
-            return new List<Evidence>
-            {
-                new Evidence
-                {
-                    Id = -1,
-                    Description = "Error during orchestration",
-                    Type = EvidenceType.Fact
-                }
-            };
+            return new List<Evidence>();
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)

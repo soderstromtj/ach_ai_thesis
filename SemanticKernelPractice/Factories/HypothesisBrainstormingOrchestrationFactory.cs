@@ -70,14 +70,7 @@ namespace SemanticKernelPractice.Factories
 
         protected override List<Hypothesis> CreateErrorResult()
         {
-            return new List<Hypothesis>
-            {
-                new Hypothesis
-                {
-                    Title = "Error",
-                    Rationale = "An error occurred during concurrent orchestration."
-                }
-            };
+            return new List<Hypothesis>();
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
