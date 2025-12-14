@@ -106,7 +106,17 @@ namespace SemanticKernelPractice
             return Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: false, reloadOnChange: true);
+                    // Base configuration with non-sensitive defaults (committed to source control)
+                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+                    // Environment-specific configuration (optional, can be committed or not)
+                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json",
+                        optional: true, reloadOnChange: true);
+
+                    // Secrets file - contains sensitive information (NOT committed to source control)
+                    config.AddJsonFile("appsettings.secrets.json", optional: true, reloadOnChange: true);
+
+                    // Environment variables can override all file-based configuration
                     config.AddEnvironmentVariables();
                 })
                 .ConfigureServices((context, services) =>
