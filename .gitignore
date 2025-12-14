@@ -3,8 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# Any appsettings.json files
-appsettings.json
+# Secrets files (never commit these)
+**/appsettings.secrets.json
+appsettings.secrets.json
 
 # User-specific files
 *.rsuser
@@ -364,6 +365,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/SemanticKernelPractice/appsettings.json
-/SemanticKernelPractice/develeopment.appsettings.json
-/SemanticKernelPractice/appsettings.development.json
