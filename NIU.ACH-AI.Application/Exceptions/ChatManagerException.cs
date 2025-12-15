@@ -1,4 +1,4 @@
-namespace NIU.ACHAI.Application.Exceptions
+namespace NIU.ACH_AI.Application.Exceptions
 {
     /// <summary>
     /// Exception thrown when a group chat manager encounters an error during orchestration.

@@ -1,4 +1,4 @@
-﻿namespace NIU.ACHAI.Application.Configuration
+﻿namespace NIU.ACH_AI.Application.Configuration
 {
     public class OrchestrationSettings
     {

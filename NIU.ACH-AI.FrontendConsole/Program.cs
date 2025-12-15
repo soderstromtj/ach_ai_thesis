@@ -1,12 +1,18 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Configuration;
+using DTOs;
+using Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NIU.ACHAI.Application.Configuration;
-using NIU.ACHAI.Application.Factories;
-using NIU.ACHAI.Application.Models;
-using NIU.ACHAI.Application.Services;
+using NIU.ACH_AI.Application.Configuration;
+using NIU.ACH_AI.Application.Factories;
+using NIU.ACH_AI.Application.Services;
+using NIU.ACH_AI.Domain.Entities;
+using NIU.ACH_AI.FrontendConsole.Presentation;
+using NIU.ACH_AI.Infrastructure.AI.Services;
+using NIU.ACH_AI.Infrastructure.Configuration;
 using System;
 
 namespace NIU.ACH_AI.FrontendConsole

@@ -1,4 +1,4 @@
-namespace NIU.ACHAI.Application.Configuration
+namespace NIU.ACH_AI.Application.Configuration
 {
     /// <summary>
     /// Root configuration class for binding the Experiments section from appsettings.json.

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace NIU.ACHAI.Application.Configuration
+namespace NIU.ACH_AI.Application.Configuration
 {
     /// <summary>
     /// Experiment configuration that can be deserialized from JSON and used at runtime.
