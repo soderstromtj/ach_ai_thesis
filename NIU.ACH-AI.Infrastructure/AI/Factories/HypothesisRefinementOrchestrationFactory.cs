@@ -69,14 +69,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override List<Hypothesis> CreateErrorResult()
         {
-            return new List<Hypothesis>
-            {
-                new Hypothesis
-                {
-                    Title = "Error during orchestration",
-                    Rationale = "An error occurred during the orchestration process"
-                }
-            };
+            return new List<Hypothesis>();
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)

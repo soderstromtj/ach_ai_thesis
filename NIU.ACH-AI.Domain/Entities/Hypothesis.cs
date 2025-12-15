@@ -2,7 +2,7 @@
 {
     public class Hypothesis
     {
-        public string Title { get; set; } = string.Empty;
-        public string Rationale { get; set; } = string.Empty;
+        public string ShortTitle { get; set; } = string.Empty;
+        public string HypothesisText { get; set; } = string.Empty;
     }
 }

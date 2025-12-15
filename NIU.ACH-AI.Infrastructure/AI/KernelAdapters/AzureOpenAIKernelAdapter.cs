@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Infrastructure.Configuration;
 
 namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
