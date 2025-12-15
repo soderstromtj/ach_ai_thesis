@@ -1,4 +1,4 @@
-﻿namespace SemanticKernelPractice.Models
+﻿namespace NIU.ACHAI.Application.Models
 {
     public class Evidence
     {

@@ -1,4 +1,4 @@
-﻿namespace SemanticKernelPractice.Models
+﻿namespace NIU.ACHAI.Application.Models
 {
     /// <summary>
     /// Wrapper class for structured output - OpenAI requires top-level object, not array

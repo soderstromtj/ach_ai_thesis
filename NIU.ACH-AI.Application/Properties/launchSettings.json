@@ -2,7 +2,7 @@
   "profiles": {
     "SemanticKernelPractice": {
       "commandName": "Project",
-      "commandLineArgs": "1 0",
+      "commandLineArgs": "1",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development"

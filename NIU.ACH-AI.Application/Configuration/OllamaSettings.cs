@@ -1,4 +1,4 @@
-﻿namespace SemanticKernelPractice.Configuration
+﻿namespace NIU.ACHAI.Application.Configuration
 {
     public class OllamaSettings
     {

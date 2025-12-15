@@ -1,4 +1,4 @@
-﻿using SemanticKernelPractice.Models;
+﻿using NIU.ACHAI.Application.Models;
 
 namespace NIU.ACHAI.Application.Factories
 {

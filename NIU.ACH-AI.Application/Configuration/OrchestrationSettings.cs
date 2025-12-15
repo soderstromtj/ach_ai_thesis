@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-
-namespace NIU.ACHAI.Application.Configuration
+﻿namespace NIU.ACHAI.Application.Configuration
 {
     public class OrchestrationSettings
     {

@@ -1,4 +1,4 @@
-﻿namespace SemanticKernelPractice.Configuration
+﻿namespace NIU.ACHAI.Application.Configuration
 {
     /// <summary>
     /// Global AI service provider configurations.
