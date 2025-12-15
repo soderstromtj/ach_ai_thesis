@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
+using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Infrastructure.AI.KernelAdapters;
 using NIU.ACH_AI.Infrastructure.Configuration;
