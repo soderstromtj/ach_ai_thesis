@@ -3,7 +3,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
+using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
@@ -36,16 +38,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
         {
-            // Create round-robin manager for evidence extraction
-            var manager = new RoundRobinGroupChatManager();
-
-            // Create and return GroupChatOrchestration
-            return new GroupChatOrchestration<string, EvidenceResult>(manager, agents)
+            // Create the ConcurrentOrchestration instance
+            var orchestration = new ConcurrentOrchestration<string, EvidenceResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
                 StreamingResponseCallback = StreamingResponseCallback,
             };
+
+            return orchestration;
         }
 
         protected override string GetResultTypeName()
@@ -75,7 +76,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"Round-robin selection after {previousAgentName}";
+            return $"Sequential selection after {previousAgentName}";
         }
     }
 }
