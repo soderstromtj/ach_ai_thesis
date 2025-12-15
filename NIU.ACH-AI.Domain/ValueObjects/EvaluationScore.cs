@@ -5,7 +5,7 @@ namespace NIU.ACH_AI.Domain.ValueObjects
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum EvaluationScore
     {
-        Concistent,
+        Consistent,
         Inconsistent,
         Neutral
     }

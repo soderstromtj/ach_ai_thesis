@@ -187,6 +187,32 @@ namespace NIU.ACH_AI.FrontendConsole
             DisplayEvidence(evidenceList);
 
             Console.WriteLine($"\n{new string('=', 70)}");
+
+            // Loop through each evidence and hypothesis and evaluate their relationship
+            foreach (var evidence in evidenceList)
+            {
+                foreach (var hypothesis in refinedHypotheses)
+                {
+                    Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
+
+                    // Update the input object with the current evidence and hypothesis
+                    input.EvidenceResult = new EvidenceResult
+                    {
+                        Evidence = new List<Evidence> { evidence }
+                    };
+                    input.HypothesisResult = new HypothesisResult
+                    {
+                        Hypotheses = new List<Hypothesis> { hypothesis }
+                    };
+
+                    // Evaluate the hypotheses against the evidence
+                    var evaluationResults = await ExecuteEvidenceHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[3], input);
+
+                    // Display the evaluation results
+                    Console.WriteLine("\nEvaluation Results:");
+                    evaluationResults.ToString();
+                }
+            }
         }
 
         /// <summary>
@@ -286,6 +312,27 @@ namespace NIU.ACH_AI.FrontendConsole
 
             var evidenceList = await evidenceFactory.ExecuteCoreAsync(input);
             return evidenceList;
+        }
+
+        /// <summary>
+        /// Runs the evidence evaluation step and returns the results.
+        /// </summary>
+        private static async Task<List<EvidenceHypothesisEvaluation>> ExecuteEvidenceHypothesisEvaluationAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
+        {
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
+            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
+            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
+            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
+            var evaluationFactory = new EvidenceHypothesisEvaluationOrchestrationFactory(
+                agentService,
+                kernelBuilderService,
+                orchestrationOptions,
+                loggerFactory);
+
+            var evaluationResult = await evaluationFactory.ExecuteCoreAsync(input);
+
+            return evaluationResult;
         }
 
         /// <summary>
