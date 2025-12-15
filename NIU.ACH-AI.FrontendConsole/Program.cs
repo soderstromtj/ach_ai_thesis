@@ -9,7 +9,7 @@ using NIU.ACHAI.Application.Models;
 using NIU.ACHAI.Application.Services;
 using System;
 
-namespace NIU.ACHAI.Application
+namespace NIU.ACH_AI.FrontendConsole
 {
 #pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 

@@ -1,9 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36511.14 d17.14
+VisualStudioVersion = 17.14.36511.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.Application", "NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj", "{3057D729-C175-41B5-B02E-03B79FAD00CA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895} = {6FB405D3-0FD3-422C-AEF5-40EFC6A26895}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.Domain", "NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj", "{6FB405D3-0FD3-422C-AEF5-40EFC6A26895}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.Infrastructure", "NIU.ACH-AI.Infrastructure\NIU.ACH-AI.Infrastructure.csproj", "{712796F2-EF2C-46F7-B036-0E1D5D452119}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3057D729-C175-41B5-B02E-03B79FAD00CA} = {3057D729-C175-41B5-B02E-03B79FAD00CA}
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895} = {6FB405D3-0FD3-422C-AEF5-40EFC6A26895}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.FrontendConsole", "NIU.ACH-AI.FrontendConsole\NIU.ACH-AI.FrontendConsole.csproj", "{B43C3F9D-2F91-4423-A5DE-B3826016D2CC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3057D729-C175-41B5-B02E-03B79FAD00CA} = {3057D729-C175-41B5-B02E-03B79FAD00CA}
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895} = {6FB405D3-0FD3-422C-AEF5-40EFC6A26895}
+		{712796F2-EF2C-46F7-B036-0E1D5D452119} = {712796F2-EF2C-46F7-B036-0E1D5D452119}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +33,18 @@ Global
 		{3057D729-C175-41B5-B02E-03B79FAD00CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3057D729-C175-41B5-B02E-03B79FAD00CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3057D729-C175-41B5-B02E-03B79FAD00CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FB405D3-0FD3-422C-AEF5-40EFC6A26895}.Release|Any CPU.Build.0 = Release|Any CPU
+		{712796F2-EF2C-46F7-B036-0E1D5D452119}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{712796F2-EF2C-46F7-B036-0E1D5D452119}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{712796F2-EF2C-46F7-B036-0E1D5D452119}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{712796F2-EF2C-46F7-B036-0E1D5D452119}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B43C3F9D-2F91-4423-A5DE-B3826016D2CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B43C3F9D-2F91-4423-A5DE-B3826016D2CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B43C3F9D-2F91-4423-A5DE-B3826016D2CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B43C3F9D-2F91-4423-A5DE-B3826016D2CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
