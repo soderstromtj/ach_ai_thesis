@@ -1,19 +1,15 @@
-﻿using Configuration;
-using DTOs;
-using Interfaces;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
-using NIU.ACH_AI.Application.Factories;
-using NIU.ACH_AI.Application.Services;
+using NIU.ACH_AI.Application.DTOs;
+using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
-using NIU.ACH_AI.FrontendConsole.Presentation;
+using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
-using System;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -286,10 +282,11 @@ namespace NIU.ACH_AI.FrontendConsole
             int hypothesisNum = 1;
             foreach (var hypothesis in hypotheses)
             {
-                Console.WriteLine($"\n{hypothesisNum}. {hypothesis.Title}");
-                Console.WriteLine($"   Rationale: {hypothesis.Rationale}");
+                Console.WriteLine($"\n{hypothesisNum}. {hypothesis.ShortTitle}");
+                Console.WriteLine($"Hypothesis: {hypothesis.HypothesisText}");
                 hypothesisNum++;
             }
+
         }
 
         /// <summary>
@@ -338,11 +335,6 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
-
-            // Note: AgentService is constructed manually per ACH step with step-specific configurations
-            // See ExecuteHypothesisBrainstormingAsync for usage
-
-            services.AddSingleton<ConsoleFormatter>();
         }
 
         /// <summary>

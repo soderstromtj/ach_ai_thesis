@@ -154,27 +154,30 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         #region Protected Callbacks
         protected async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
-            var agentName = response.AuthorName ?? "Unknown";
-            var chunk = response.Content ?? string.Empty;
-
-            // Append chunk into per-agent buffer
-            var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
-            buffer.Append(chunk);
-
-            // Show streaming output to console (simple live append)
-            // Use Write rather than WriteLine so output appears as it streams.
-            Console.Write(chunk);
-
-            // When the orchestrator indicates final chunk, remove buffer (final response will be passed to ResponseCallback)
-            if (isFinal)
+            if (_orchestrationSettings.StreamResponses)
             {
-                // Optionally write a newline to finalize console output for this agent
-                Console.WriteLine();
+                var agentName = response.AuthorName ?? "Unknown";
+                var chunk = response.Content ?? string.Empty;
 
-                // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
-                _streamBuffers.TryRemove(agentName, out _);
+                // Append chunk into per-agent buffer
+                var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
+                buffer.Append(chunk);
+
+                // Show streaming output to console (simple live append)
+                // Use Write rather than WriteLine so output appears as it streams.
+                Console.Write(chunk);
+
+                // When the orchestrator indicates final chunk, remove buffer (final response will be passed to ResponseCallback)
+                if (isFinal)
+                {
+                    // Optionally write a newline to finalize console output for this agent
+                    Console.WriteLine();
+
+                    // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
+                    _streamBuffers.TryRemove(agentName, out _);
+                }
             }
-
+            
             await ValueTask.CompletedTask;
         }
 
