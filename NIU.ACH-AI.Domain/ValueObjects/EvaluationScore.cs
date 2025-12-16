@@ -3,9 +3,10 @@
 namespace NIU.ACH_AI.Domain.ValueObjects
 {
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public enum EvidenceType
+    public enum EvaluationScore
     {
-        Fact,
-        Assumption
+        Consistent,
+        Inconsistent,
+        Neutral
     }
 }

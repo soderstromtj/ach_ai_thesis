@@ -227,6 +227,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _responseStopwatch.Restart();
 
             // Future TODO: Store or process response metrics as needed
+
+            // Optionally write response to console
+            if (_orchestrationSettings.WriteResponses)
+            {
+                Console.WriteLine($"\n[Turn {_currentTurn}] Agent '{agentName}' responded with {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.\n");
+                Console.WriteLine(content);
+            }
+
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
             return ValueTask.CompletedTask;

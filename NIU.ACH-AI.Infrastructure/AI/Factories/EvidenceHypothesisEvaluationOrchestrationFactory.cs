@@ -4,8 +4,6 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
-using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
@@ -15,9 +13,9 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
+    public class EvidenceHypothesisEvaluationOrchestrationFactory : BaseOrchestrationFactory<List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationResult>
     {
-        public EvidenceExtractionOrchestrationFactory(
+        public EvidenceHypothesisEvaluationOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
@@ -31,15 +29,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
         }
 
-        protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
+        protected override AgentOrchestration<string, EvidenceHypothesisEvaluationResult> CreateOrchestration(
             OrchestrationPromptInput input,
             List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
-            StructuredOutputTransform<EvidenceResult> outputTransform)
+            StructuredOutputTransform<EvidenceHypothesisEvaluationResult> outputTransform)
         {
             // Create the ConcurrentOrchestration instance
-            var orchestration = new ConcurrentOrchestration<string, EvidenceResult>(agents)
+            var orchestration = new ConcurrentOrchestration<string, EvidenceHypothesisEvaluationResult>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -54,30 +52,31 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             return nameof(EvidenceResult);
         }
 
-        protected override List<Evidence> UnwrapResult(EvidenceResult wrapper)
+        protected override List<EvidenceHypothesisEvaluation> UnwrapResult(EvidenceHypothesisEvaluationResult wrapper)
         {
-            return wrapper.Evidence;
+            return wrapper.Evaluations;
         }
 
-        protected override int GetItemCount(List<Evidence> result)
+        protected override int GetItemCount(List<EvidenceHypothesisEvaluation> result)
         {
             return result.Count;
         }
 
-        protected override List<Evidence> CreateEmptyResult()
+        protected override List<EvidenceHypothesisEvaluation> CreateEmptyResult()
         {
-            return new List<Evidence>();
+            return new List<EvidenceHypothesisEvaluation>();
         }
 
-        protected override List<Evidence> CreateErrorResult()
+        protected override List<EvidenceHypothesisEvaluation> CreateErrorResult()
         {
-            return new List<Evidence>();
+            return new List<EvidenceHypothesisEvaluation>();
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
             return $"Sequential selection after {previousAgentName}";
         }
+
     }
 }
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

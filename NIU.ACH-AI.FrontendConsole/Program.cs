@@ -179,6 +179,40 @@ namespace NIU.ACH_AI.FrontendConsole
             DisplayHypotheses(refinedHypotheses);
 
             Console.WriteLine($"{new string('=', 70)}\n");
+
+            // Update the experiment configuration to the next ACH step
+            achStepConfig = experimentConfig.ACHSteps[2];
+
+            var evidenceList = await ExecuteEvidenceExtractionAsync(host, experimentConfig.ACHSteps[2], input);
+            DisplayEvidence(evidenceList);
+
+            Console.WriteLine($"\n{new string('=', 70)}");
+
+            // Loop through each evidence and hypothesis and evaluate their relationship
+            foreach (var evidence in evidenceList)
+            {
+                foreach (var hypothesis in refinedHypotheses)
+                {
+                    Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
+
+                    // Update the input object with the current evidence and hypothesis
+                    input.EvidenceResult = new EvidenceResult
+                    {
+                        Evidence = new List<Evidence> { evidence }
+                    };
+                    input.HypothesisResult = new HypothesisResult
+                    {
+                        Hypotheses = new List<Hypothesis> { hypothesis }
+                    };
+
+                    // Evaluate the hypotheses against the evidence
+                    var evaluationResults = await ExecuteEvidenceHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[3], input);
+
+                    // Display the evaluation results
+                    Console.WriteLine("\nEvaluation Results:");
+                    evaluationResults.ToString();
+                }
+            }
         }
 
         /// <summary>
@@ -260,15 +294,45 @@ namespace NIU.ACH_AI.FrontendConsole
         }
 
         /// <summary>
-        /// Runs the evidence extraction step and displays the results.
+        /// Runs the evidence extraction step and returns the results.
         /// </summary>
-        private static async Task ExecuteEvidenceExtractionAsync(object factory, OrchestrationPromptInput input)
+        private static async Task<List<Evidence>> ExecuteEvidenceExtractionAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
         {
-            var evidenceFactory = factory as IOrchestrationFactory<List<Evidence>>
-                ?? throw new InvalidOperationException("Factory is not of the expected type for Evidence Extraction.");
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
+            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
+            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
+            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
 
-            var evidence = await evidenceFactory.ExecuteCoreAsync(input);
-            DisplayEvidence(evidence);
+            var evidenceFactory = new EvidenceExtractionOrchestrationFactory(
+                agentService,
+                kernelBuilderService,
+                orchestrationOptions,
+                loggerFactory);
+
+            var evidenceList = await evidenceFactory.ExecuteCoreAsync(input);
+            return evidenceList;
+        }
+
+        /// <summary>
+        /// Runs the evidence evaluation step and returns the results.
+        /// </summary>
+        private static async Task<List<EvidenceHypothesisEvaluation>> ExecuteEvidenceHypothesisEvaluationAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
+        {
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
+            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
+            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
+            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
+            var evaluationFactory = new EvidenceHypothesisEvaluationOrchestrationFactory(
+                agentService,
+                kernelBuilderService,
+                orchestrationOptions,
+                loggerFactory);
+
+            var evaluationResult = await evaluationFactory.ExecuteCoreAsync(input);
+
+            return evaluationResult;
         }
 
         /// <summary>
@@ -300,6 +364,10 @@ namespace NIU.ACH_AI.FrontendConsole
             foreach (var item in evidence)
             {
                 Console.WriteLine(item.ToString());
+                Console.WriteLine();
+                Console.WriteLine(new string('-', 40));
+                Console.WriteLine();
+
             }
         }
 
