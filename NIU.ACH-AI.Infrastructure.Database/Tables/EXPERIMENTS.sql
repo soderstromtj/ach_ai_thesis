@@ -1,0 +1,9 @@
+﻿CREATE TABLE [dbo].[EXPERIMENTS]
+(
+	[experiment_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY, 
+    [experiment_name] NVARCHAR(50) NOT NULL, 
+    [description] NVARCHAR(500) NULL, 
+    [kiq] NVARCHAR(255) NOT NULL, 
+    [scenario_id] UNIQUEIDENTIFIER NOT NULL, 
+    CONSTRAINT [FK_EXPERIMENTS_SCENARIOS] FOREIGN KEY ([scenario_id]) REFERENCES [SCENARIOS]([scenario_id])
+)
