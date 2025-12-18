@@ -23,11 +23,6 @@ namespace NIU.ACH_AI.Application.Configuration
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// The selected AI provider for this ACH step
-        /// </summary>
-        public AIServiceProvider Provider { get; set; }
-
-        /// <summary>
         /// Task instructions for the orchestration workflow
         /// </summary>
         public string TaskInstructions { get; set; } = string.Empty;
