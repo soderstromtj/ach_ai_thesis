@@ -59,7 +59,7 @@
     <Folder Include="Tables" />
   </ItemGroup>
   <ItemGroup>
-    <Build Include="Tables\ACH_STEP_WORKFLOW.sql">
+    <Build Include="Tables\STEP_EXECUTIONS.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Build>
     <Build Include="Tables\ACH_STEPS.sql">
@@ -82,6 +82,9 @@
     </Build>
     <Build Include="Tables\EVIDENCE_TYPES.sql" />
     <Build Include="Tables\EVALUATION_SCORES.sql" />
+    <Build Include="Tables\HYPOTHESES.sql" />
+    <Build Include="Tables\EVIDENCE.sql" />
+    <Build Include="Tables\EVIDENCE_HYPOTHESIS_EVALUATIONS.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="NIU.ACH-AI.Infrastructure.Database.refactorlog" />

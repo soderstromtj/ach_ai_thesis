@@ -4,5 +4,5 @@
     [provider_name] NVARCHAR(50) NOT NULL, 
     [description] NVARCHAR(255) NULL, 
     [is_active] BIT NOT NULL DEFAULT 1, 
-    [created_at] DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 )
