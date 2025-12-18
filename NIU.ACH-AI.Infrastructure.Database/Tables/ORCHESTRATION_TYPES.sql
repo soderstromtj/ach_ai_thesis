@@ -1,0 +1,5 @@
+﻿CREATE TABLE [dbo].[ORCHESTRATION_TYPES]
+(
+	[orchestration_type_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY, 
+    [description] NVARCHAR(50) NOT NULL
+)

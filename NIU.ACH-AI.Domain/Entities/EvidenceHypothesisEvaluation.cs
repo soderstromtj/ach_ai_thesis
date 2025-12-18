@@ -4,9 +4,11 @@ namespace NIU.ACH_AI.Domain.Entities
 {
     public class EvidenceHypothesisEvaluation
     {
-        public Hypothesis hypothesis { get; set; } = new Hypothesis();
-        public Evidence evidence { get; set; } = new Evidence();
-        public EvaluationScore score { get; set; }
-        public string rationale { get; set; } = string.Empty;
+        public Hypothesis Hypothesis { get; set; } = new Hypothesis();
+        public Evidence Evidence { get; set; } = new Evidence();
+        public EvaluationScore Score { get; set; }
+        public string ScoreRationale { get; set; } = string.Empty;
+        public decimal ConfidenceLevel { get; set; }
+        public string ConfidenceRationale { get; set; } = string.Empty;
     }
 }
