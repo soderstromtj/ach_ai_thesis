@@ -436,6 +436,194 @@ public class BaseOrchestrationFactoryTests
         Assert.Equal(string.Empty, factory.ExposedHistory.First().Content);
     }
 
+    /// <summary>
+    /// WHY: When WriteResponses is enabled, responses should be written to console.
+    /// This tests the console output path which is used for user feedback.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WhenWriteResponsesEnabled_WritesToConsole()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { WriteResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+        var response = new ChatMessageContent
+        {
+            AuthorName = "TestAgent",
+            Content = "Test console output"
+        };
+
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act
+            await factory.InvokeResponseCallback(response);
+
+            // Assert - Verify content appears in console output
+            var output = consoleOutput.ToString();
+            Assert.Contains("TestAgent", output);
+            Assert.Contains("Test console output", output);
+            Assert.Contains("Turn", output); // Turn tracking indicator
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: When WriteResponses is disabled, no console output should occur.
+    /// This is important for background processing or when output isn't desired.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WhenWriteResponsesDisabled_DoesNotWriteToConsole()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { WriteResponses = false };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+        var response = new ChatMessageContent
+        {
+            AuthorName = "TestAgent",
+            Content = "This should not appear"
+        };
+
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act
+            await factory.InvokeResponseCallback(response);
+
+            // Assert - Console should remain empty
+            var output = consoleOutput.ToString();
+            Assert.Empty(output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: Response metadata may contain token counts for usage tracking.
+    /// The callback should extract and handle this metadata correctly.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WithMetadataContainingTokenCount_HandlesGracefully()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { WriteResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+        var metadata = new Dictionary<string, object?>
+        {
+            { "OutputTokenCount", 150 }
+        };
+        var response = new ChatMessageContent
+        {
+            AuthorName = "TestAgent",
+            Content = "Response with tokens",
+            Metadata = metadata
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act
+            await factory.InvokeResponseCallback(response);
+
+            // Assert - Token count should appear in output
+            var output = consoleOutput.ToString();
+            Assert.Contains("150 tokens", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: When agent changes between responses, it represents a "handoff".
+    /// The callback should detect and handle agent transitions.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WhenAgentChanges_TracksAgentHandoff()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var response1 = new ChatMessageContent { AuthorName = "Agent1", Content = "First" };
+        var response2 = new ChatMessageContent { AuthorName = "Agent2", Content = "Second" };
+        var response3 = new ChatMessageContent { AuthorName = "Agent1", Content = "Third" };
+
+        // Act
+        await factory.InvokeResponseCallback(response1);
+        await factory.InvokeResponseCallback(response2);
+        await factory.InvokeResponseCallback(response3);
+
+        // Assert - All responses should be in history (handoff tracking is internal)
+        Assert.Equal(3, factory.ExposedHistory.Count);
+        // Verify GetAgentSelectionReason was called for handoffs
+        // First call doesn't count as handoff, so we expect 2 calls (Agent1->Agent2, Agent2->Agent1)
+        Assert.Equal(2, factory.GetAgentSelectionReasonCallCount);
+    }
+
+    /// <summary>
+    /// WHY: Whitespace-only content is a valid edge case.
+    /// Some responses may contain only spaces, tabs, or newlines.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WithWhitespaceOnlyContent_PreservesContent()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var whitespaceContent = "   \t\n\r\n   ";
+        var response = new ChatMessageContent
+        {
+            AuthorName = "TestAgent",
+            Content = whitespaceContent
+        };
+
+        // Act
+        await factory.InvokeResponseCallback(response);
+
+        // Assert
+        Assert.Single(factory.ExposedHistory);
+        Assert.Equal(whitespaceContent, factory.ExposedHistory.First().Content);
+    }
+
+    /// <summary>
+    /// WHY: Both null content AND null author is an extreme edge case.
+    /// The callback should handle completely empty responses gracefully.
+    /// </summary>
+    [Fact]
+    public async Task ResponseCallback_WithBothNullContentAndAuthor_HandlesGracefully()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var response = new ChatMessageContent
+        {
+            AuthorName = null,
+            Content = null
+        };
+
+        // Act - Should not throw
+        var exception = await Record.ExceptionAsync(() =>
+            factory.InvokeResponseCallback(response).AsTask());
+
+        // Assert
+        Assert.Null(exception);
+        Assert.Single(factory.ExposedHistory);
+    }
+
     #endregion
 
     #region StreamingResponseCallback Tests
@@ -581,6 +769,149 @@ public class BaseOrchestrationFactoryTests
 
             // Assert
             Assert.Null(exception);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: Multiple chunks from the same agent should accumulate in the buffer.
+    /// This tests the core streaming functionality where partial responses build up.
+    /// </summary>
+    [Fact]
+    public async Task StreamingResponseCallback_WithMultipleChunks_AccumulatesInBuffer()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { StreamResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act - Send multiple chunks from same agent
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("TestAgent", "Hello "), isFinal: false);
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("TestAgent", "World "), isFinal: false);
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("TestAgent", "!"), isFinal: true);
+
+            // Assert - All chunks should be in output
+            var output = consoleOutput.ToString();
+            Assert.Contains("Hello ", output);
+            Assert.Contains("World ", output);
+            Assert.Contains("!", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: Empty string content (not null) should be handled correctly.
+    /// Empty chunks may occur during streaming as placeholders.
+    /// </summary>
+    [Fact]
+    public async Task StreamingResponseCallback_WithEmptyStringContent_HandlesGracefully()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { StreamResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+        var response = CreateStreamingResponse("TestAgent", string.Empty);
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act - Should not throw
+            var exception = await Record.ExceptionAsync(() =>
+                factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+
+            // Assert
+            Assert.Null(exception);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: Both null content AND null author is an extreme edge case for streaming.
+    /// The callback should handle completely empty streaming responses gracefully.
+    /// </summary>
+    [Fact]
+    public async Task StreamingResponseCallback_WithBothNullContentAndAuthor_HandlesGracefully()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { StreamResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+        var response = CreateStreamingResponse(null, null);
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act - Should not throw
+            var exception = await Record.ExceptionAsync(() =>
+                factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+
+            // Assert
+            Assert.Null(exception);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    /// <summary>
+    /// WHY: Multiple agents streaming simultaneously should maintain separate buffers.
+    /// Each agent's chunks should be tracked independently.
+    /// </summary>
+    [Fact]
+    public async Task StreamingResponseCallback_WithMultipleAgents_MaintainsSeparateBuffers()
+    {
+        // Arrange
+        var settings = new OrchestrationSettings { StreamResponses = true };
+        var (factory, _, _, _, _) = CreateFactory(settings);
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
+
+            // Act - Interleave chunks from two agents
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("Agent1", "A1-Chunk1 "), isFinal: false);
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("Agent2", "A2-Chunk1 "), isFinal: false);
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("Agent1", "A1-Chunk2"), isFinal: true);
+            await factory.InvokeStreamingResponseCallback(
+                CreateStreamingResponse("Agent2", "A2-Chunk2"), isFinal: true);
+
+            // Assert - All chunks from both agents should be in output
+            var output = consoleOutput.ToString();
+            Assert.Contains("A1-Chunk1", output);
+            Assert.Contains("A1-Chunk2", output);
+            Assert.Contains("A2-Chunk1", output);
+            Assert.Contains("A2-Chunk2", output);
         }
         finally
         {
@@ -779,6 +1110,85 @@ public class BaseOrchestrationFactoryTests
         Assert.Null(exception);
     }
 
+    /// <summary>
+    /// WHY: UnwrapResult extracts the actual result from the wrapper type.
+    /// This is critical for converting structured output to usable data.
+    /// </summary>
+    [Fact]
+    public void UnwrapResult_WhenInvoked_ReturnsConfiguredResult()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var expectedEvidence = new List<Evidence>
+        {
+            new Evidence { Claim = "Test claim 1" },
+            new Evidence { Claim = "Test claim 2" }
+        };
+        factory.UnwrapResultToReturn = expectedEvidence;
+
+        // Act - Use reflection
+        var methodInfo = typeof(TestableOrchestrationFactory)
+            .GetMethod("UnwrapResult",
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+        var wrapper = new EvidenceResult { Evidence = expectedEvidence };
+        var result = methodInfo?.Invoke(factory, new object[] { wrapper }) as List<Evidence>;
+
+        // Assert
+        Assert.Same(expectedEvidence, result);
+        Assert.Equal(1, factory.UnwrapResultCallCount);
+    }
+
+    /// <summary>
+    /// WHY: GetItemCount provides the count of items in a result for logging.
+    /// This helps track orchestration output volume.
+    /// </summary>
+    [Fact]
+    public void GetItemCount_WithNonEmptyResult_ReturnsCorrectCount()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var evidenceList = new List<Evidence>
+        {
+            new Evidence { Claim = "Claim 1" },
+            new Evidence { Claim = "Claim 2" },
+            new Evidence { Claim = "Claim 3" }
+        };
+
+        // Act - Use reflection
+        var methodInfo = typeof(TestableOrchestrationFactory)
+            .GetMethod("GetItemCount",
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+        var result = methodInfo?.Invoke(factory, new object[] { evidenceList });
+
+        // Assert
+        Assert.Equal(3, result);
+        Assert.Equal(1, factory.GetItemCountCallCount);
+    }
+
+    /// <summary>
+    /// WHY: GetItemCount should handle empty results correctly.
+    /// An empty result should return zero items.
+    /// </summary>
+    [Fact]
+    public void GetItemCount_WithEmptyResult_ReturnsZero()
+    {
+        // Arrange
+        var (factory, _, _, _, _) = CreateFactory();
+        var emptyList = new List<Evidence>();
+
+        // Act - Use reflection
+        var methodInfo = typeof(TestableOrchestrationFactory)
+            .GetMethod("GetItemCount",
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance);
+        var result = methodInfo?.Invoke(factory, new object[] { emptyList });
+
+        // Assert
+        Assert.Equal(0, result);
+    }
+
     #endregion
 
     #region Settings Behavior Tests
@@ -934,6 +1344,93 @@ public class BaseOrchestrationFactoryTests
 
         // Assert
         Assert.Equal(50, factory.ExposedHistory.Count);
+    }
+
+    #endregion
+
+    #region Instance Isolation Tests
+
+    /// <summary>
+    /// WHY: Multiple factory instances should be completely independent.
+    /// Each factory should have its own history, counters, and state.
+    /// This is important when multiple orchestrations run simultaneously.
+    /// </summary>
+    [Fact]
+    public async Task MultipleFactories_HaveIndependentHistories()
+    {
+        // Arrange
+        var (factory1, _, _, _, _) = CreateFactory();
+        var (factory2, _, _, _, _) = CreateFactory();
+
+        var response1 = new ChatMessageContent { AuthorName = "Agent1", Content = "Factory1 Response" };
+        var response2 = new ChatMessageContent { AuthorName = "Agent2", Content = "Factory2 Response" };
+
+        // Act
+        await factory1.InvokeResponseCallback(response1);
+        await factory2.InvokeResponseCallback(response2);
+
+        // Assert - Each factory should only have its own response
+        Assert.Single(factory1.ExposedHistory);
+        Assert.Single(factory2.ExposedHistory);
+        Assert.Equal("Factory1 Response", factory1.ExposedHistory.First().Content);
+        Assert.Equal("Factory2 Response", factory2.ExposedHistory.First().Content);
+    }
+
+    /// <summary>
+    /// WHY: Each factory instance should track its own method call counts.
+    /// This ensures derived class method tracking is instance-specific.
+    /// </summary>
+    [Fact]
+    public async Task MultipleFactories_HaveIndependentMethodCallCounts()
+    {
+        // Arrange
+        var (factory1, _, _, _, _) = CreateFactory();
+        var (factory2, _, _, _, _) = CreateFactory();
+
+        // Act - Call callbacks different number of times
+        await factory1.InvokeResponseCallback(new ChatMessageContent { Content = "1" });
+        await factory1.InvokeResponseCallback(new ChatMessageContent { Content = "2" });
+        await factory1.InvokeResponseCallback(new ChatMessageContent { Content = "3" });
+
+        await factory2.InvokeResponseCallback(new ChatMessageContent { Content = "A" });
+
+        // Assert - Each factory has its own count
+        Assert.Equal(3, factory1.ExposedHistory.Count);
+        Assert.Equal(1, factory2.ExposedHistory.Count);
+    }
+
+    /// <summary>
+    /// WHY: Factory instances with different settings should behave differently.
+    /// This verifies settings isolation between instances.
+    /// </summary>
+    [Fact]
+    public void MultipleFactories_WithDifferentSettings_MaintainSeparateSettings()
+    {
+        // Arrange
+        var settings1 = new OrchestrationSettings
+        {
+            StreamResponses = true,
+            WriteResponses = false,
+            TimeoutInMinutes = 10
+        };
+        var settings2 = new OrchestrationSettings
+        {
+            StreamResponses = false,
+            WriteResponses = true,
+            TimeoutInMinutes = 30
+        };
+
+        // Act
+        var (factory1, _, _, _, _) = CreateFactory(settings1);
+        var (factory2, _, _, _, _) = CreateFactory(settings2);
+
+        // Assert
+        Assert.True(factory1.ExposedOrchestrationSettings.StreamResponses);
+        Assert.False(factory2.ExposedOrchestrationSettings.StreamResponses);
+        Assert.False(factory1.ExposedOrchestrationSettings.WriteResponses);
+        Assert.True(factory2.ExposedOrchestrationSettings.WriteResponses);
+        Assert.Equal(10, factory1.ExposedOrchestrationSettings.TimeoutInMinutes);
+        Assert.Equal(30, factory2.ExposedOrchestrationSettings.TimeoutInMinutes);
     }
 
     #endregion
