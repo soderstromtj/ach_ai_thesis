@@ -472,16 +472,24 @@ public class BaseOrchestrationFactoryTests
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse("TestAgent", "chunk content");
 
-        // Capture console output
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
         using var consoleOutput = new StringWriter();
-        Console.SetOut(consoleOutput);
+        try
+        {
+            Console.SetOut(consoleOutput);
 
-        // Act
-        await factory.InvokeStreamingResponseCallback(response, isFinal: false);
+            // Act
+            await factory.InvokeStreamingResponseCallback(response, isFinal: false);
 
-        // Assert - Content should be written to console
-        var output = consoleOutput.ToString();
-        Assert.Contains("chunk content", output);
+            // Assert - Content should be written to console
+            var output = consoleOutput.ToString();
+            Assert.Contains("chunk content", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     /// <summary>
@@ -496,16 +504,24 @@ public class BaseOrchestrationFactoryTests
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse("TestAgent", "final content");
 
-        // Capture console output
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
         using var consoleOutput = new StringWriter();
-        Console.SetOut(consoleOutput);
+        try
+        {
+            Console.SetOut(consoleOutput);
 
-        // Act
-        await factory.InvokeStreamingResponseCallback(response, isFinal: true);
+            // Act
+            await factory.InvokeStreamingResponseCallback(response, isFinal: true);
 
-        // Assert - Should complete without error
-        var output = consoleOutput.ToString();
-        Assert.Contains("final content", output);
+            // Assert - Should complete without error
+            var output = consoleOutput.ToString();
+            Assert.Contains("final content", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     /// <summary>
@@ -520,12 +536,24 @@ public class BaseOrchestrationFactoryTests
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse("TestAgent", null);
 
-        // Act - Should not throw
-        var exception = await Record.ExceptionAsync(() =>
-            factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
 
-        // Assert
-        Assert.Null(exception);
+            // Act - Should not throw
+            var exception = await Record.ExceptionAsync(() =>
+                factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+
+            // Assert
+            Assert.Null(exception);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     /// <summary>
@@ -540,12 +568,24 @@ public class BaseOrchestrationFactoryTests
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse(null, "content");
 
-        // Act - Should not throw
-        var exception = await Record.ExceptionAsync(() =>
-            factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        try
+        {
+            Console.SetOut(consoleOutput);
 
-        // Assert
-        Assert.Null(exception);
+            // Act - Should not throw
+            var exception = await Record.ExceptionAsync(() =>
+                factory.InvokeStreamingResponseCallback(response, isFinal: false).AsTask());
+
+            // Assert
+            Assert.Null(exception);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     /// <summary>
@@ -905,6 +945,8 @@ public class BaseOrchestrationFactoryTests
     /// The factory should handle concurrent access without race conditions.
     ///
     /// NOTE: This tests the thread-safety of the streaming buffer management.
+    /// We redirect Console.Out to prevent interference with other tests and to
+    /// ensure all Console.Write calls go to a controlled destination.
     /// </summary>
     [Fact]
     public async Task StreamingResponseCallback_WhenInvokedConcurrently_HandlesGracefully()
@@ -913,28 +955,43 @@ public class BaseOrchestrationFactoryTests
         var settings = new OrchestrationSettings { StreamResponses = true };
         var (factory, _, _, _, _) = CreateFactory(settings);
 
-        // Act - Simulate concurrent streaming from multiple agents
-        var tasks = new List<Task>();
-        for (int i = 0; i < 10; i++)
+        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
+        // Use TextWriter.Synchronized for thread-safe console output during concurrent test
+        var originalOut = Console.Out;
+        using var consoleOutput = new StringWriter();
+        var synchronizedWriter = TextWriter.Synchronized(consoleOutput);
+
+        try
         {
-            var agentIndex = i;
-            tasks.Add(Task.Run(async () =>
+            Console.SetOut(synchronizedWriter);
+
+            // Act - Simulate concurrent streaming from multiple agents
+            var tasks = new List<Task>();
+            for (int i = 0; i < 10; i++)
             {
-                for (int chunk = 0; chunk < 5; chunk++)
+                var agentIndex = i;
+                tasks.Add(Task.Run(async () =>
                 {
-                    var response = CreateStreamingResponse(
-                        $"Agent{agentIndex}",
-                        $"Chunk{chunk}");
-                    await factory.InvokeStreamingResponseCallback(response, isFinal: chunk == 4);
-                }
-            }));
+                    for (int chunk = 0; chunk < 5; chunk++)
+                    {
+                        var response = CreateStreamingResponse(
+                            $"Agent{agentIndex}",
+                            $"Chunk{chunk}");
+                        await factory.InvokeStreamingResponseCallback(response, isFinal: chunk == 4);
+                    }
+                }));
+            }
+
+            // Wait for all tasks
+            var exception = await Record.ExceptionAsync(() => Task.WhenAll(tasks));
+
+            // Assert
+            Assert.Null(exception);
         }
-
-        // Wait for all tasks
-        var exception = await Record.ExceptionAsync(() => Task.WhenAll(tasks));
-
-        // Assert
-        Assert.Null(exception);
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     #endregion
