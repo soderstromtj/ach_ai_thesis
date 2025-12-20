@@ -74,7 +74,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"Sequential selection after {previousAgentName}";
+            return "Concurrent execution - all agents run simultaneously";
         }
     }
 }
