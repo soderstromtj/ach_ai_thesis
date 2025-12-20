@@ -26,7 +26,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
-            return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
+            return loggerFactory.CreateLogger<EvidenceHypothesisEvaluationOrchestrationFactory>();
         }
 
         protected override AgentOrchestration<string, EvidenceHypothesisEvaluationResult> CreateOrchestration(
@@ -49,7 +49,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override string GetResultTypeName()
         {
-            return nameof(EvidenceResult);
+            return nameof(EvidenceHypothesisEvaluationResult);
         }
 
         protected override List<EvidenceHypothesisEvaluation> UnwrapResult(EvidenceHypothesisEvaluationResult wrapper)
@@ -74,7 +74,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return $"Sequential selection after {previousAgentName}";
+            return "Concurrent execution - all agents run simultaneously";
         }
 
     }
