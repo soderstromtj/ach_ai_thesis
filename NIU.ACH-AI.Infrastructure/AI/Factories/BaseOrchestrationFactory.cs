@@ -160,8 +160,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 var chunk = response.Content ?? string.Empty;
 
                 // Append chunk into per-agent buffer
+                // Note: ConcurrentDictionary is thread-safe, but StringBuilder is NOT.
+                // We must synchronize access to the StringBuilder to prevent corruption
+                // when multiple threads append concurrently.
                 var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
-                buffer.Append(chunk);
+                lock (buffer)
+                {
+                    buffer.Append(chunk);
+                }
 
                 // Show streaming output to console (simple live append)
                 // Use Write rather than WriteLine so output appears as it streams.
@@ -177,7 +183,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _streamBuffers.TryRemove(agentName, out _);
                 }
             }
-            
+
             await ValueTask.CompletedTask;
         }
 
