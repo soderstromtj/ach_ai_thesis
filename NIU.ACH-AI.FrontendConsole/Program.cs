@@ -125,7 +125,6 @@ namespace NIU.ACH_AI.FrontendConsole
                 {
                     RegisterExperimentConfigurations(services, context.Configuration);
                     RegisterKernelServices(services);
-                    RegisterOrchestrationServices(services);
                     RegisterLogging(services, context.Configuration);
                 });
         }
@@ -403,16 +402,6 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
-        }
-
-        /// <summary>
-        /// Registers orchestration factories for each ACH step in the container.
-        /// Note: Factories are currently created manually per ACH step with step-specific configurations.
-        /// See ExecuteHypothesisBrainstormingAsync for example usage.
-        /// </summary>
-        private static void RegisterOrchestrationServices(IServiceCollection services)
-        {
-            // No registrations needed - factories are created manually with step-specific configurations
         }
 
         /// <summary>

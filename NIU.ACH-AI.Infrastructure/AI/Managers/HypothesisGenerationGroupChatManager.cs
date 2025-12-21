@@ -102,7 +102,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         {
             int turnCount = GetTurnCount(history);
 
-            // If all of the DIME-FIL and deception agents must participate first, ensure they do so before considering others
+            // All of the DIME-FIL agents and deception agent must participate first before moving on to screening and summarization
             List<string> phaseOneAgents = new()
             {
                 "DiplomaticHypothesisAgent",
@@ -116,14 +116,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             };
 
             string prompt;
-            if (turnCount <= phaseOneAgents.Count)
+            if (turnCount < phaseOneAgents.Count)
             {
                 _logger.LogDebug("Selecting next Phase 1 (brainstorming) agent.");
                 prompt = _promptStrategy.GetSelectionPrompt(_input, phaseOneAgents);
                 return await GetResponseAsync<string>(history, prompt, cancellationToken);
             }
 
-            if (turnCount == phaseOneAgents.Count + 1)
+            if (turnCount == phaseOneAgents.Count)
             {
                 _logger.LogDebug("Selecting Hypothesis Screening Agent after Phase 1 completion");
                 prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "HypothesisScreeningAgent" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
@@ -133,6 +133,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             
             _logger.LogDebug("Selecting Summarizing Agent after Hypothesis Screening completion");
             prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "FinalHypothesisSummarizerFormatter" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
+
             return await GetResponseAsync<string>(history, prompt, cancellationToken);
             
         }
@@ -304,7 +305,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
                 _logger.LogError(ex, "JSON parsing failed while deserializing LLM response");
                 throw new ChatManagerException("Invalid JSON response from LLM", ex);
             }
-            catch (Exception ex) when (ex is not ChatManagerException)
+            catch (Exception ex) 
             {
                 _logger.LogError(ex, "Unexpected error while getting LLM response");
                 throw new ChatManagerException("Error communicating with LLM", ex);

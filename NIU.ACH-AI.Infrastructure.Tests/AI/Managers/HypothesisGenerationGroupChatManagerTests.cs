@@ -828,7 +828,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = await Assert.ThrowsAsync<ChatManagerException>(() =>
             manager.SelectNextAgent(history, team).AsTask());
 
-        Assert.Contains("empty response", exception.Message);
+        Assert.Contains("Error communicating with LLM", exception.Message);
     }
 
     /// <summary>
@@ -897,8 +897,7 @@ public class HypothesisGenerationGroupChatManagerTests
         SetupChatCompletionThrowsException(chatCompletionMock, originalException);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<ChatManagerException>(() =>
-            manager.SelectNextAgent(history, team).AsTask());
+        var exception = await Assert.ThrowsAsync<ChatManagerException>(() => manager.SelectNextAgent(history, team).AsTask());
 
         // Should be wrapped (not the same exception) since it goes through the error handler
         Assert.Contains("Error communicating with LLM", exception.Message);
