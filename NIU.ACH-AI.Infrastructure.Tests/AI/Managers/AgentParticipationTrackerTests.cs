@@ -299,7 +299,7 @@ public class AgentParticipationTrackerTests
     {
         // Arrange
         var tracker = CreateTracker();
-        var messages = new[]
+        var messages = new (AuthorRole, string?)[]
         {
             (AuthorRole.User, "User1"),
             (AuthorRole.Assistant, "Agent1"),

@@ -331,7 +331,7 @@ public class OrchestrationFactorySelectorTests
         var serviceProviderMock = CreateMockServiceProvider();
         serviceProviderMock
             .Setup(sp => sp.GetService(It.IsAny<Type>()))
-            .Returns(Mock.Of<IOrchestrationFactory<List<Hypothesis>>>());
+            .Returns(Mock.Of<IOrchestrationFactory<List<Evidence>>>());
 
         var selector = CreateSelector(serviceProviderMock.Object);
 

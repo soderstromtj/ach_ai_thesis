@@ -19,7 +19,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             ArgumentNullException.ThrowIfNull(expectedAgentNames);
 
             var participatingAgents = GetParticipatingAgents(history);
-            return participatingAgents.Count >= expectedAgentNames.Count;
+            return expectedAgentNames.All(expected => participatingAgents.Contains(expected));
         }
 
         /// <summary>

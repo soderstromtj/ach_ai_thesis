@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Moq;
@@ -112,7 +113,7 @@ public class HypothesisGenerationGroupChatManagerTests
         T value,
         string? reason = null)
     {
-        var result = new GroupChatManagerResult<T>(value) { Reason = reason };
+        var result = new GroupChatManagerResult<T>(value) { Reason = reason ?? string.Empty };
         var jsonResponse = JsonSerializer.Serialize(result);
 
         mock.Setup(c => c.GetChatMessageContentsAsync(

@@ -13,17 +13,13 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
+    public class EvidenceExtractionOrchestrationFactory(
+        IAgentService agentService,
+        IKernelBuilderService kernelBuilderService,
+        IOptions<OrchestrationSettings> orchestrationSettings,
+        ILoggerFactory loggerFactory)
+        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
     {
-        public EvidenceExtractionOrchestrationFactory(
-            IAgentService agentService,
-            IKernelBuilderService kernelBuilderService,
-            IOptions<OrchestrationSettings> orchestrationSettings,
-            ILoggerFactory loggerFactory)
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
-        {
-        }
-
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {
             return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
