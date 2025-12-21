@@ -1,3 +1,4 @@
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using NIU.ACH_AI.Infrastructure.AI.Managers;
 
