@@ -20,7 +20,11 @@ CREATE TABLE [dbo].[EVIDENCE_HYPOTHESIS_EVALUATIONS]
     CONSTRAINT [FK_EHE_EVIDENCE]
         FOREIGN KEY ([evidence_id]) REFERENCES [EVIDENCE]([evidence_id]),
     CONSTRAINT [FK_EHE_EVALUATION_SCORE]
-        FOREIGN KEY ([evaluation_score_id]) REFERENCES [EVALUATION_SCORES]([evaluation_score_id])
+        FOREIGN KEY ([evaluation_score_id]) REFERENCES [EVALUATION_SCORES]([evaluation_score_id]),
+
+    -- Check constraint to ensure confidence score is between 0 and 1
+    CONSTRAINT [CK_EHE_confidence_score]
+        CHECK ([confidence_score] IS NULL OR ([confidence_score] BETWEEN 0.0000 AND 1.0000))
 )
 GO
 

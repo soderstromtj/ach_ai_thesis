@@ -11,7 +11,11 @@ CREATE TABLE [dbo].[MODELS]
 
     -- Foreign key constraints
     CONSTRAINT [FK_MODELS_PROVIDERS]
-        FOREIGN KEY ([provider_id]) REFERENCES [PROVIDERS]([provider_id])
+        FOREIGN KEY ([provider_id]) REFERENCES [PROVIDERS]([provider_id]),
+
+    -- Unique constraint to prevent duplicate model names per provider
+    CONSTRAINT [UQ_MODELS_provider_model]
+        UNIQUE ([provider_id], [model_name])
 )
 GO
 

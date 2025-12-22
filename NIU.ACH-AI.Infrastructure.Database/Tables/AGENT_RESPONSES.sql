@@ -18,7 +18,19 @@ CREATE TABLE [dbo].[AGENT_RESPONSES]
     CONSTRAINT [FK_AGENT_RESPONSES_AGENT_CONFIGURATIONS]
         FOREIGN KEY ([agent_configuration_id]) REFERENCES [AGENT_CONFIGURATIONS]([agent_configuration_id]),
     CONSTRAINT [FK_AGENT_RESPONSES_STEP_EXECUTIONS]
-        FOREIGN KEY ([step_execution_id]) REFERENCES [STEP_EXECUTIONS]([step_execution_id])
+        FOREIGN KEY ([step_execution_id]) REFERENCES [STEP_EXECUTIONS]([step_execution_id]),
+
+    -- Check constraints to ensure non-negative values for counts and metrics
+    CONSTRAINT [CK_AGENT_RESPONSES_input_token_count]
+        CHECK ([input_token_count] IS NULL OR [input_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_output_token_count]
+        CHECK ([output_token_count] IS NULL OR [output_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_content_length]
+        CHECK ([content_length] IS NULL OR [content_length] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_turn_number]
+        CHECK ([turn_number] IS NULL OR [turn_number] > 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_response_duration]
+        CHECK ([response_duration] IS NULL OR [response_duration] >= 0)
 )
 GO
 
