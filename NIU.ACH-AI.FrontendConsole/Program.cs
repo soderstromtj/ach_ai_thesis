@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
+using NIU.ACH_AI.Infrastructure.Persistence.Models;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -126,6 +128,7 @@ namespace NIU.ACH_AI.FrontendConsole
                     RegisterExperimentConfigurations(services, context.Configuration);
                     RegisterKernelServices(services);
                     RegisterLogging(services, context.Configuration);
+                    RegisterDBServices(services, context.Configuration);
                 });
         }
 
@@ -386,6 +389,9 @@ namespace NIU.ACH_AI.FrontendConsole
             return 0;
         }
 
+        /// <summary>
+        /// Loads the experiment configurations and AI Service connection settings from appsettings.json into the service container.
+        /// </summary>
         private static void RegisterExperimentConfigurations(IServiceCollection services, IConfiguration configuration)
         {
             // Map the root configuration to ExperimentsSettings (which has Experiments[] property)
@@ -415,6 +421,17 @@ namespace NIU.ACH_AI.FrontendConsole
                 builder.AddConsole();
                 builder.AddDebug();
                 builder.AddConfiguration(configuration.GetSection("Logging"));
+            });
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private static void RegisterDBServices(IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddDbContext<AchAIDbContext>(options => {
+                var connectionString = configuration.GetConnectionString("AchAiDBConnection");
+                options.UseSqlServer(connectionString);
             });
         }
 

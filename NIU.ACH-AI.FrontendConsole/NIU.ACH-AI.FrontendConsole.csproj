@@ -7,10 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+	
   <ItemGroup>
     <ProjectReference Include="..\NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Infrastructure.Persistence\NIU.ACH-AI.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Infrastructure\NIU.ACH-AI.Infrastructure.csproj" />
   </ItemGroup>
 
@@ -25,6 +26,10 @@
 
   <ItemGroup>
     <Folder Include="Presentation\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
   </ItemGroup>
 
 </Project>
