@@ -3,10 +3,10 @@
 CREATE TABLE [dbo].[EXPERIMENTS]
 (
 	[experiment_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [experiment_name] NVARCHAR(50) NOT NULL,  -- Human-readable experiment name
-    [description] NVARCHAR(500) NULL,  -- Detailed description of experiment purpose
-    [kiq] NVARCHAR(255) NOT NULL,  -- Key Intelligence Question being analyzed
-    [scenario_id] UNIQUEIDENTIFIER NOT NULL,  -- Scenario/context for this experiment
+    [experiment_name] NVARCHAR(50) NOT NULL,        -- Human-readable experiment name
+    [description] NVARCHAR(500) NULL,               -- Detailed description of experiment purpose
+    [kiq] NVARCHAR(255) NOT NULL,                   -- Key Intelligence Question being analyzed
+    [scenario_id] UNIQUEIDENTIFIER NOT NULL,        -- Scenario/context for this experiment
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
     -- Foreign key constraints

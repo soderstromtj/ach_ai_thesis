@@ -3,10 +3,10 @@
 CREATE TABLE [dbo].[ACH_STEPS]
 (
 	[ach_step_id] INT NOT NULL PRIMARY KEY,
-    [step_name] NVARCHAR(100) NOT NULL,  -- Name of the ACH step
-    [step_order] INT NOT NULL,  -- Execution order within the methodology
-    [description] NVARCHAR(500) NOT NULL,  -- Description of what this step does
-    [primary_ach_step] INT NOT NULL,  -- Groups substeps under main step. NOT a foreign key.
+    [step_name] NVARCHAR(100) NOT NULL,         -- Name of the ACH step
+    [step_order] INT NOT NULL,                  -- Execution order within the methodology
+    [description] NVARCHAR(500) NOT NULL,       -- Description of what this step does
+    [primary_ach_step] INT NOT NULL,            -- Groups substeps under main step. NOT a foreign key.
     CONSTRAINT [UQ_ACH_STEPS_step_name] UNIQUE ([step_name])
 )
 GO

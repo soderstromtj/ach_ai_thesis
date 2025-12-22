@@ -3,18 +3,18 @@
 CREATE TABLE [dbo].[STEP_EXECUTIONS]
 (
 	[step_execution_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [experiment_id] UNIQUEIDENTIFIER NOT NULL,  -- Parent experiment
-    [ach_step_id] INT NOT NULL,  -- Reference to ACH methodology step
-    [ach_step_name] NVARCHAR(100) NOT NULL,  -- Snapshot of step name at execution time
-    [description] NVARCHAR(500) NULL,  -- Description of this specific execution
-    [task_instructions] NVARCHAR(MAX) NULL,  -- Instructions/prompt for agents in this step
-    [orchestration_type_id] UNIQUEIDENTIFIER NULL,  -- How agents are orchestrated (sequential, parallel, etc.)
-    [datetime_start] DATETIME2 NULL,  -- When execution started
-    [datetime_end] DATETIME2 NULL,  -- When execution completed
-    [execution_status] NVARCHAR(50) NULL,  -- NotStarted, Running, Completed, Failed, Cancelled
-    [error_message] NVARCHAR(MAX) NULL,  -- Full error message if execution failed
-    [error_type] NVARCHAR(100) NULL,  -- Categorized error type (RateLimitError, TimeoutError, etc.)
-    [retry_count] INT NULL DEFAULT 0,  -- Number of retry attempts
+    [experiment_id] UNIQUEIDENTIFIER NOT NULL,                      -- Parent experiment
+    [ach_step_id] INT NOT NULL,                                     -- Reference to ACH methodology step
+    [ach_step_name] NVARCHAR(100) NOT NULL,                         -- Snapshot of step name at execution time
+    [description] NVARCHAR(500) NULL,                               -- Description of this specific execution
+    [task_instructions] NVARCHAR(MAX) NULL,                         -- Instructions/prompt for agents in this step
+    [orchestration_type_id] UNIQUEIDENTIFIER NULL,                  -- How agents are orchestrated (sequential, parallel, etc.)
+    [datetime_start] DATETIME2 NULL,                                -- When execution started
+    [datetime_end] DATETIME2 NULL,                                  -- When execution completed
+    [execution_status] NVARCHAR(50) NULL,                           -- NotStarted, Running, Completed, Failed, Cancelled
+    [error_message] NVARCHAR(MAX) NULL,                             -- Full error message if execution failed
+    [error_type] NVARCHAR(100) NULL,                                -- Categorized error type (RateLimitError, TimeoutError, etc.)
+    [retry_count] INT NULL DEFAULT 0,                               -- Number of retry attempts
 
     -- Foreign key constraints
     CONSTRAINT [FK_STEP_EXECUTIONS_EXPERIMENTS]

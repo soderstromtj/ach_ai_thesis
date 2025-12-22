@@ -6,6 +6,7 @@ namespace NIU.ACH_AI.Domain.ValueObjects
     public enum EvidenceType
     {
         Fact,
-        Assumption
+        Assumption,
+        ExpertOpinion
     }
 }

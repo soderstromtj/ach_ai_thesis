@@ -3,13 +3,13 @@
 CREATE TABLE [dbo].[EVIDENCE_HYPOTHESIS_EVALUATIONS]
 (
 	[evidence_hypothesis_evaluation_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,  -- Step execution that created this evaluation
-    [hypothesis_id] UNIQUEIDENTIFIER NOT NULL,  -- Hypothesis being evaluated
-    [evidence_id] UNIQUEIDENTIFIER NOT NULL,  -- Evidence being evaluated
-    [evaluation_score_id] INT NOT NULL,  -- Score (Consistent, Inconsistent, Neutral, etc.)
-    [rationale] NVARCHAR(MAX) NULL,  -- Explanation of the evaluation
-    [confidence_score] DECIMAL(5, 4) NULL,  -- Numeric confidence (0.0000 to 1.0000)
-    [confidence_rationale] NVARCHAR(MAX) NULL,  -- Explanation of confidence level
+    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,          -- Step execution that created this evaluation
+    [hypothesis_id] UNIQUEIDENTIFIER NOT NULL,              -- Hypothesis being evaluated
+    [evidence_id] UNIQUEIDENTIFIER NOT NULL,                -- Evidence being evaluated
+    [evaluation_score_id] INT NOT NULL,                     -- Score (Consistent, Inconsistent, Neutral, etc.)
+    [rationale] NVARCHAR(MAX) NULL,                         -- Explanation of the evaluation
+    [confidence_score] DECIMAL(5, 4) NULL,                  -- Numeric confidence (0.0000 to 1.0000)
+    [confidence_rationale] NVARCHAR(MAX) NULL,              -- Explanation of confidence level
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
     -- Foreign key constraints

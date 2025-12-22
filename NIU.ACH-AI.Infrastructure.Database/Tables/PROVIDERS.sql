@@ -2,9 +2,9 @@
 CREATE TABLE [dbo].[PROVIDERS]
 (
 	[provider_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [provider_name] NVARCHAR(50) NOT NULL,  -- e.g., "OpenAI", "Anthropic"
-    [description] NVARCHAR(255) NULL,  -- Additional provider information
-    [is_active] BIT NOT NULL DEFAULT 1,  -- Whether this provider is currently enabled
+    [provider_name] NVARCHAR(50) NOT NULL,      -- e.g., "OpenAI", "Anthropic"
+    [description] NVARCHAR(255) NULL,           -- Additional provider information
+    [is_active] BIT NOT NULL DEFAULT 1,         -- Whether this provider is currently enabled
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 )
 GO

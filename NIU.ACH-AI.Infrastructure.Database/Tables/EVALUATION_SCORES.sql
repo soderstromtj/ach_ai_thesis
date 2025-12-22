@@ -3,9 +3,9 @@
 CREATE TABLE [dbo].[EVALUATION_SCORES]
 (
 	[evaluation_score_id] INT NOT NULL PRIMARY KEY IDENTITY(1,1),
-    [score_name] NVARCHAR(50) NOT NULL,  -- e.g., "Consistent", "Inconsistent", "Neutral"
-    [score_value] INT NOT NULL,  -- Numeric value for scoring calculations
-    [description] NVARCHAR(255) NULL  -- Explanation of what this score means
+    [score_name] NVARCHAR(50) NOT NULL,         -- e.g., "Consistent", "Inconsistent", "Neutral"
+    [score_value] INT NOT NULL,                 -- Numeric value for scoring calculations
+    [description] NVARCHAR(255) NULL            -- Explanation of what this score means
 )
 GO
 

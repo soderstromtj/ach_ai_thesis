@@ -3,10 +3,10 @@
 CREATE TABLE [dbo].[HYPOTHESES]
 (
 	[hypothesis_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-	[step_execution_id] UNIQUEIDENTIFIER NOT NULL,  -- Step execution that generated this hypothesis
-	[short_title] NVARCHAR(200) NOT NULL,  -- Brief summary title
-	[hypothesis_text] NVARCHAR(MAX) NOT NULL,  -- Full hypothesis statement
-	[is_refined] BIT NOT NULL DEFAULT 0,  -- Whether this hypothesis passed refinement step
+	[step_execution_id] UNIQUEIDENTIFIER NOT NULL,		-- Step execution that generated this hypothesis
+	[short_title] NVARCHAR(200) NOT NULL,				-- Brief summary title
+	[hypothesis_text] NVARCHAR(MAX) NOT NULL,			-- Full hypothesis statement
+	[is_refined] BIT NOT NULL DEFAULT 0,				-- Whether this hypothesis passed refinement step
 	[created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
 	-- Foreign key constraints

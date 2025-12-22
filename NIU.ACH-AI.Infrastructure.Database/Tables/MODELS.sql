@@ -3,11 +3,11 @@
 CREATE TABLE [dbo].[MODELS]
 (
 	[model_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [provider_id] UNIQUEIDENTIFIER NOT NULL,  -- AI service provider (OpenAI, Anthropic, etc.)
-    [model_name] NVARCHAR(50) NOT NULL,  -- Model identifier (gpt-4, claude-3-opus, etc.)
-    [input_token_cost] DECIMAL(10, 8) NULL,  -- Cost per input token in USD
-    [cached_input_token_cost] DECIMAL(10, 8) NULL,  -- Cost per cached input token in USD
-    [output_token_cost] DECIMAL(10, 8) NULL,  -- Cost per output token in USD
+    [provider_id] UNIQUEIDENTIFIER NOT NULL,        -- AI service provider (OpenAI, Anthropic, etc.)
+    [model_name] NVARCHAR(50) NOT NULL,             -- Model identifier (gpt-4, claude-3-opus, etc.)
+    [input_token_cost] DECIMAL(10, 8) NULL,         -- Cost per 1M input token in USD
+    [cached_input_token_cost] DECIMAL(10, 8) NULL,  -- Cost per 1M cached input token in USD
+    [output_token_cost] DECIMAL(10, 8) NULL,        -- Cost per 1M output token in USD
 
     -- Foreign key constraints
     CONSTRAINT [FK_MODELS_PROVIDERS]

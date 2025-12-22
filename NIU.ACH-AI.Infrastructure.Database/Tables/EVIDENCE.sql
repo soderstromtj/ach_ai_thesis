@@ -3,11 +3,11 @@
 CREATE TABLE [dbo].[EVIDENCE]
 (
 	[evidence_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,  -- Step execution that extracted this evidence
-    [claim] NVARCHAR(MAX) NOT NULL,  -- The evidence claim or statement
-    [reference_snippet] NVARCHAR(MAX) NULL,  -- Verbatim quote from source material
-    [evidence_type_id] INT NOT NULL,  -- Type of evidence (Fact, Assumption, etc.)
-    [notes] NVARCHAR(MAX) NULL,  -- Additional context, credibility notes, or analyst comments
+    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,          -- Step execution that extracted this evidence
+    [claim] NVARCHAR(MAX) NOT NULL,                         -- The evidence claim or statement
+    [reference_snippet] NVARCHAR(MAX) NULL,                 -- Verbatim quote from source material
+    [evidence_type_id] INT NOT NULL,                        -- Type of evidence (Fact, Assumption, etc.)
+    [notes] NVARCHAR(MAX) NULL,                             -- Additional context, credibility notes, or analyst comments
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
     -- Foreign key constraints

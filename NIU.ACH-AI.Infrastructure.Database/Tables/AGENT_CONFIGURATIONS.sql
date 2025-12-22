@@ -3,12 +3,12 @@
 CREATE TABLE [dbo].[AGENT_CONFIGURATIONS]
 (
 	[agent_configuration_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,  -- References STEP_EXECUTIONS (was ach_step_workflow_id)
-    [agent_name] NVARCHAR(50) NOT NULL,  -- Snapshot of agent name at configuration time
+    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,                  -- References STEP_EXECUTIONS (was ach_step_workflow_id)
+    [agent_name] NVARCHAR(50) NOT NULL,                             -- Snapshot of agent name at configuration time
     [description] NVARCHAR(500) NOT NULL,
-    [instructions] NVARCHAR(MAX) NOT NULL,  -- System prompt/instructions for the agent
-    [provider_id] UNIQUEIDENTIFIER NOT NULL,  -- AI service provider (OpenAI, Anthropic, etc.)
-    [model_id] UNIQUEIDENTIFIER NOT NULL,  -- Specific model (GPT-4, Claude, etc.)
+    [instructions] NVARCHAR(MAX) NOT NULL,                          -- System prompt/instructions for the agent
+    [provider_id] UNIQUEIDENTIFIER NOT NULL,                        -- AI service provider (OpenAI, Azure, etc.)
+    [model_id] UNIQUEIDENTIFIER NOT NULL,                           -- Specific model (gpt-4o-mini, gpt-5-mini, etc.)
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     [updated_at] DATETIME2 NULL,
 
