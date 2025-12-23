@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.Persistence.Mappers;
 using NIU.ACH_AI.Infrastructure.Persistence.Models;
+using EvidenceHypothesisEvaluation = NIU.ACH_AI.Domain.Entities.EvidenceHypothesisEvaluation;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Repositories;
 
