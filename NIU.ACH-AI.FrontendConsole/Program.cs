@@ -12,6 +12,7 @@ using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
 using NIU.ACH_AI.Infrastructure.Persistence;
+using NIU.ACH_AI.Infrastructure.Persistence.Repositories;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -141,6 +142,11 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             services.AddDbContext<Infrastructure.Persistence.Models.AchAIDbContext>(options =>
                                     options.UseSqlServer(context.Configuration.GetConnectionString("AchAiDBConnection")));
+
+            // Register repositories
+            services.AddScoped<IHypothesisRepository, HypothesisRepository>();
+            services.AddScoped<IEvidenceRepository, EvidenceRepository>();
+            services.AddScoped<IEvidenceHypothesisEvaluationRepository, EvidenceHypothesisEvaluationRepository>();
         }
 
         #region Private Methods
