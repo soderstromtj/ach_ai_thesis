@@ -23,6 +23,8 @@
   <!-- Reference the projects we are testing -->
   <ItemGroup>
     <ProjectReference Include="..\NIU.ACH-AI.Infrastructure\NIU.ACH-AI.Infrastructure.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Infrastructure.Persistence\NIU.ACH-AI.Infrastructure.Persistence.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
   </ItemGroup>
 
 </Project>
