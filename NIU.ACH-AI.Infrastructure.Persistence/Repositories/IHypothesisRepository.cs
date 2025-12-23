@@ -14,7 +14,9 @@ public interface IHypothesisRepository
     Task SaveBatchAsync(
         IEnumerable<Hypothesis> hypotheses,
         Guid stepExecutionId,
-        CancellationToken cancellationToken = default);
+        bool isRefined,
+        CancellationToken cancellationToken = default
+        );
 
     /// <summary>
     /// Retrieves all hypotheses for a specific step execution.

@@ -22,6 +22,7 @@ public class HypothesisRepository : IHypothesisRepository
     public async Task SaveBatchAsync(
         IEnumerable<Hypothesis> hypotheses,
         Guid stepExecutionId,
+        bool isRefined = false,
         CancellationToken cancellationToken = default)
     {
         if (hypotheses == null || !hypotheses.Any())
@@ -29,7 +30,7 @@ public class HypothesisRepository : IHypothesisRepository
 
         // Map domain entities to database entities
         var dbEntities = hypotheses
-            .Select(h => HypothesisMapper.ToDatabase(h, stepExecutionId))
+            .Select(h => HypothesisMapper.ToDatabase(h, stepExecutionId, isRefined))
             .ToList();
 
         // Save to database

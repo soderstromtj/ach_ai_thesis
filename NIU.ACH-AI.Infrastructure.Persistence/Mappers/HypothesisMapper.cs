@@ -13,7 +13,8 @@ public static class HypothesisMapper
     /// </summary>
     public static DbModel.Hypothesis ToDatabase(
         DomainEntity.Hypothesis domain,
-        Guid stepExecutionId)
+        Guid stepExecutionId,
+        bool isRefined = false)
     {
         return new DbModel.Hypothesis
         {
@@ -21,7 +22,7 @@ public static class HypothesisMapper
             StepExecutionId = stepExecutionId,
             ShortTitle = domain.ShortTitle,
             HypothesisText = domain.HypothesisText,
-            IsRefined = false,
+            IsRefined = isRefined,
             CreatedAt = DateTime.UtcNow
         };
     }
