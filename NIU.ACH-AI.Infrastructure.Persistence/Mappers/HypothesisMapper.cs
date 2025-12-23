@@ -1,63 +1,49 @@
-using NIU.ACH_AI.Domain.Entities;
-using NIU.ACH_AI.Infrastructure.Persistence.Entities;
+using DomainEntity = NIU.ACH_AI.Domain.Entities;
+using DbModel = NIU.ACH_AI.Infrastructure.Persistence.Models;
 
-namespace NIU.ACH_AI.Infrastructure.Persistence.Mappers
+namespace NIU.ACH_AI.Infrastructure.Persistence.Mappers;
+
+/// <summary>
+/// Maps between Domain Hypothesis entities and Database Hypothesis models.
+/// </summary>
+public static class HypothesisMapper
 {
     /// <summary>
-    /// Maps between domain Hypothesis and database HypothesisEntity
+    /// Converts a domain hypothesis (from AI) to a database entity for persistence.
     /// </summary>
-    public static class HypothesisMapper
+    public static DbModel.Hypothesis ToDatabase(
+        DomainEntity.Hypothesis domain,
+        Guid stepExecutionId,
+        bool isRefined = false)
     {
-        /// <summary>
-        /// Converts a domain Hypothesis to a database HypothesisEntity
-        /// </summary>
-        /// <param name="hypothesis">The domain hypothesis to convert</param>
-        /// <param name="stepExecutionId">The step execution ID that generated this hypothesis</param>
-        /// <param name="isRefined">Whether the hypothesis has been refined</param>
-        /// <returns>A database entity ready to be persisted</returns>
-        public static HypothesisEntity ToDatabase(
-            Hypothesis hypothesis,
-            Guid stepExecutionId,
-            bool isRefined)
+        return new DbModel.Hypothesis
         {
-            if (hypothesis == null)
-            {
-                throw new ArgumentNullException(nameof(hypothesis));
-            }
+            HypothesisId = Guid.NewGuid(),
+            StepExecutionId = stepExecutionId,
+            ShortTitle = domain.ShortTitle,
+            HypothesisText = domain.HypothesisText,
+            IsRefined = isRefined,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
 
-            if (stepExecutionId == Guid.Empty)
-            {
-                throw new ArgumentException("StepExecutionId cannot be empty", nameof(stepExecutionId));
-            }
-
-            return new HypothesisEntity
-            {
-                HypothesisId = Guid.NewGuid(),
-                StepExecutionId = stepExecutionId,
-                ShortTitle = hypothesis.ShortTitle ?? string.Empty,
-                HypothesisText = hypothesis.HypothesisText ?? string.Empty,
-                IsRefined = isRefined,
-                CreatedAt = DateTime.UtcNow
-            };
-        }
-
-        /// <summary>
-        /// Converts a database HypothesisEntity to a domain Hypothesis
-        /// </summary>
-        /// <param name="entity">The database entity to convert</param>
-        /// <returns>A domain hypothesis</returns>
-        public static Hypothesis ToDomain(HypothesisEntity entity)
+    /// <summary>
+    /// Converts a database hypothesis entity back to a domain entity.
+    /// </summary>
+    public static DomainEntity.Hypothesis ToDomain(DbModel.Hypothesis database)
+    {
+        return new DomainEntity.Hypothesis
         {
-            if (entity == null)
-            {
-                throw new ArgumentNullException(nameof(entity));
-            }
+            ShortTitle = database.ShortTitle,
+            HypothesisText = database.HypothesisText
+        };
+    }
 
-            return new Hypothesis
-            {
-                ShortTitle = entity.ShortTitle,
-                HypothesisText = entity.HypothesisText
-            };
-        }
+    /// <summary>
+    /// Converts multiple database entities to domain entities.
+    /// </summary>
+    public static List<DomainEntity.Hypothesis> ToDomain(IEnumerable<DbModel.Hypothesis> databaseEntities)
+    {
+        return databaseEntities.Select(ToDomain).ToList();
     }
 }

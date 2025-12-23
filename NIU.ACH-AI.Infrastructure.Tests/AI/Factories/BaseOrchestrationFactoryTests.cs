@@ -1445,6 +1445,12 @@ public class BaseOrchestrationFactoryTests
     /// We redirect Console.Out to prevent interference with other tests and to
     /// ensure all Console.Write calls go to a controlled destination.
     /// </summary>
+    /// <summary>
+
+    /// Verifies that streaming response callback when invoked concurrently handles gracefully.
+
+    /// </summary>
+
     [Fact]
     public async Task StreamingResponseCallback_WhenInvokedConcurrently_HandlesGracefully()
     {
