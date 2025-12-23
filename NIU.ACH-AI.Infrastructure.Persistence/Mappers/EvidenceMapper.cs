@@ -18,9 +18,7 @@ public static class EvidenceMapper
     {
         return new DbModel.Evidence
         {
-            EvidenceId = domain.EvidenceId == Guid.Empty
-                ? Guid.NewGuid()
-                : domain.EvidenceId,
+            EvidenceId = Guid.NewGuid(), // Always a new ID because the AI-generated Id may not be suitable for DB
             StepExecutionId = stepExecutionId,
             Claim = domain.Claim,
             ReferenceSnippet = domain.ReferenceSnippet,
