@@ -373,6 +373,7 @@ public class HypothesisRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByStepExecutionIdAsync(stepExecutionId);
@@ -459,6 +460,7 @@ public class HypothesisRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByIdAsync(hypothesisId);
@@ -617,6 +619,7 @@ public class HypothesisRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetRefinedByStepExecutionIdAsync(stepExecutionId);

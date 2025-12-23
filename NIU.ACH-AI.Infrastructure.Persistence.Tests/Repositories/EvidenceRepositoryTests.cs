@@ -314,6 +314,7 @@ public class EvidenceRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByStepExecutionIdAsync(stepExecutionId);
@@ -400,6 +401,7 @@ public class EvidenceRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByIdAsync(evidenceId);
@@ -604,6 +606,7 @@ public class EvidenceRepositoryTests : IDisposable
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByTypeAsync(stepExecutionId, Domain.ValueObjects.EvidenceType.Fact);
