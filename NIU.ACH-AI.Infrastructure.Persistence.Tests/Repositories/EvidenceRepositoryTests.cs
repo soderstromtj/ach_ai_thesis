@@ -34,6 +34,12 @@ public class EvidenceRepositoryTests : IDisposable
 
     #region Constructor Tests
 
+    /// <summary>
+
+    /// Verifies that the constructor throws ArgumentNullException when passed a null null context throws argument null exception.
+
+    /// </summary>
+
     [Fact]
     public void Constructor_WithNullContext_ThrowsArgumentNullException()
     {
@@ -41,6 +47,12 @@ public class EvidenceRepositoryTests : IDisposable
         var exception = Assert.Throws<ArgumentNullException>(() => new EvidenceRepository(null!));
         exception.ParamName.Should().Be("context");
     }
+
+    /// <summary>
+
+    /// Verifies that the constructor successfully creates an instance with valid valid context creates instance.
+
+    /// </summary>
 
     [Fact]
     public void Constructor_WithValidContext_CreatesInstance()
@@ -64,6 +76,12 @@ public class EvidenceRepositoryTests : IDisposable
     #endregion
 
     #region SaveBatchAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Save successfully saves batch async with valid data.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithValidEvidenceList_SavesAllEntities()
@@ -101,6 +119,12 @@ public class EvidenceRepositoryTests : IDisposable
         savedEvidence.All(e => e.StepExecutionId == stepExecutionId).Should().BeTrue();
     }
 
+    /// <summary>
+
+    /// Verifies that Save handles null input gracefully without throwing exceptions.
+
+    /// </summary>
+
     [Fact]
     public async Task SaveBatchAsync_WithNullEvidenceList_DoesNothing()
     {
@@ -114,6 +138,12 @@ public class EvidenceRepositoryTests : IDisposable
         var savedEvidence = await _context.Evidences.ToListAsync();
         savedEvidence.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Save handles empty collections gracefully without saving anything.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithEmptyEvidenceList_DoesNothing()
@@ -129,6 +159,12 @@ public class EvidenceRepositoryTests : IDisposable
         var savedEvidence = await _context.Evidences.ToListAsync();
         savedEvidence.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that save batch async with single evidence saves successfully.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithSingleEvidence_SavesSuccessfully()
@@ -155,6 +191,12 @@ public class EvidenceRepositoryTests : IDisposable
         savedEvidence.Should().HaveCount(1);
         savedEvidence[0].Claim.Should().Be("Single Evidence");
     }
+
+    /// <summary>
+
+    /// Verifies that save batch async with cancellation token respects token.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithCancellationToken_RespectsToken()
@@ -183,6 +225,12 @@ public class EvidenceRepositoryTests : IDisposable
     #endregion
 
     #region GetByStepExecutionIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by step when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithExistingEvidence_ReturnsAllMatchingEvidence()
@@ -227,6 +275,12 @@ public class EvidenceRepositoryTests : IDisposable
         result.Should().AllSatisfy(e => e.Claim.Should().Match(c => c.StartsWith("Evidence")));
     }
 
+    /// <summary>
+
+    /// Verifies that get by step execution id async with no matching evidence returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithNoMatchingEvidence_ReturnsEmptyList()
     {
@@ -239,6 +293,12 @@ public class EvidenceRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_DoesNotTrackEntities()
@@ -266,6 +326,12 @@ public class EvidenceRepositoryTests : IDisposable
     #endregion
 
     #region GetByIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by id when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByIdAsync_WithExistingId_ReturnsEvidence()
@@ -295,6 +361,12 @@ public class EvidenceRepositoryTests : IDisposable
         result.Claim.Should().Be("Test Evidence");
     }
 
+    /// <summary>
+
+    /// Verifies that Get returns null when the by id does not exist.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByIdAsync_WithNonExistingId_ReturnsNull()
     {
@@ -307,6 +379,12 @@ public class EvidenceRepositoryTests : IDisposable
         // Assert
         result.Should().BeNull();
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByIdAsync_DoesNotTrackEntity()
@@ -334,6 +412,12 @@ public class EvidenceRepositoryTests : IDisposable
     #endregion
 
     #region GetByTypeAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by type when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByTypeAsync_WithExistingType_ReturnsMatchingEvidence()
@@ -377,6 +461,12 @@ public class EvidenceRepositoryTests : IDisposable
         result.Should().AllSatisfy(e => e.Type.Should().Be(Domain.ValueObjects.EvidenceType.Fact));
     }
 
+    /// <summary>
+
+    /// Verifies that get by type async with no matching type returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByTypeAsync_WithNoMatchingType_ReturnsEmptyList()
     {
@@ -399,6 +489,12 @@ public class EvidenceRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get correctly filters results based on type async filtersby step execution id and type.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByTypeAsync_FiltersbyStepExecutionIdAndType()
@@ -488,6 +584,12 @@ public class EvidenceRepositoryTests : IDisposable
         result[0].Type.Should().Be(type);
     }
 
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByTypeAsync_DoesNotTrackEntities()
     {
@@ -514,6 +616,12 @@ public class EvidenceRepositoryTests : IDisposable
     #endregion
 
     #region Integration Tests
+
+    /// <summary>
+
+    /// Verifies the complete workflow of to end save and retrieve works correctly works correctly.
+
+    /// </summary>
 
     [Fact]
     public async Task EndToEnd_SaveAndRetrieve_WorksCorrectly()
@@ -545,6 +653,12 @@ public class EvidenceRepositoryTests : IDisposable
         retrieved[0].Type.Should().Be(Domain.ValueObjects.EvidenceType.Fact);
         retrieved[0].Notes.Should().Be("Integration Notes");
     }
+
+    /// <summary>
+
+    /// Verifies that multiple operations on same context work independently.
+
+    /// </summary>
 
     [Fact]
     public async Task MultipleOperations_OnSameContext_WorkIndependently()

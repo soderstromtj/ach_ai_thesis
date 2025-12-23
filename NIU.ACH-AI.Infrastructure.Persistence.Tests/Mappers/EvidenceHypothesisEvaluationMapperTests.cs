@@ -90,6 +90,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.EvaluationScoreId.Should().Be(expectedId);
     }
 
+    /// <summary>
+
+    /// Verifies that with zero confidence level preserves zero is preserved when mapping to database.
+
+    /// </summary>
+
     [Fact]
     public void ToDatabase_WithZeroConfidenceLevel_PreservesZero()
     {
@@ -117,6 +123,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         // Assert
         result.ConfidenceScore.Should().Be(0m);
     }
+
+    /// <summary>
+
+    /// Verifies that with max confidence level preserves max value is preserved when mapping to database.
+
+    /// </summary>
 
     [Fact]
     public void ToDatabase_WithMaxConfidenceLevel_PreservesMaxValue()
@@ -146,6 +158,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.ConfidenceScore.Should().Be(1.0m);
     }
 
+    /// <summary>
+
+    /// Verifies that with precise decimal value preserves precision is preserved when mapping to database.
+
+    /// </summary>
+
     [Fact]
     public void ToDatabase_WithPreciseDecimalValue_PreservesPrecision()
     {
@@ -173,6 +191,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         // Assert
         result.ConfidenceScore.Should().Be(0.123456789m);
     }
+
+    /// <summary>
+
+    /// Verifies that with empty strings preserves empty strings is preserved when mapping to database.
+
+    /// </summary>
 
     [Fact]
     public void ToDatabase_WithEmptyStrings_PreservesEmptyStrings()
@@ -202,6 +226,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.Rationale.Should().Be("");
         result.ConfidenceRationale.Should().Be("");
     }
+
+    /// <summary>
+
+    /// Verifies that with long rationales preserves full content is preserved when mapping to database.
+
+    /// </summary>
 
     [Fact]
     public void ToDatabase_WithLongRationales_PreservesFullContent()
@@ -238,6 +268,12 @@ public class EvidenceHypothesisEvaluationMapperTests
     #endregion
 
     #region ToDomain Tests
+
+    /// <summary>
+
+    /// Verifies that mapping domain with to domain correctly sets all properties.
+
+    /// </summary>
 
     [Fact]
     public void ToDomain_WithValidDatabaseEntity_MapsAllProperties()
@@ -333,6 +369,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.Score.Should().Be(expectedScore);
     }
 
+    /// <summary>
+
+    /// Verifies that with null rationale converts to empty string is correctly converted when mapping to domain.
+
+    /// </summary>
+
     [Fact]
     public void ToDomain_WithNullRationale_ConvertsToEmptyString()
     {
@@ -373,6 +415,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         // Assert
         result.ScoreRationale.Should().Be(string.Empty);
     }
+
+    /// <summary>
+
+    /// Verifies that with null confidence score converts to zero is correctly converted when mapping to domain.
+
+    /// </summary>
 
     [Fact]
     public void ToDomain_WithNullConfidenceScore_ConvertsToZero()
@@ -415,6 +463,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.ConfidenceLevel.Should().Be(0);
     }
 
+    /// <summary>
+
+    /// Verifies that with null confidence rationale converts to empty string is correctly converted when mapping to domain.
+
+    /// </summary>
+
     [Fact]
     public void ToDomain_WithNullConfidenceRationale_ConvertsToEmptyString()
     {
@@ -455,6 +509,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         // Assert
         result.ConfidenceRationale.Should().Be(string.Empty);
     }
+
+    /// <summary>
+
+    /// Verifies that to domain with all nullable fields null handles gracefully.
+
+    /// </summary>
 
     [Fact]
     public void ToDomain_WithAllNullableFieldsNull_HandlesGracefully()
@@ -503,6 +563,12 @@ public class EvidenceHypothesisEvaluationMapperTests
 
     #region ToDomain Collection Tests
 
+    /// <summary>
+
+    /// Verifies that mapping an empty collection returns an empty list, not null.
+
+    /// </summary>
+
     [Fact]
     public void ToDomain_WithEmptyCollection_ReturnsEmptyList()
     {
@@ -516,6 +582,12 @@ public class EvidenceHypothesisEvaluationMapperTests
         result.Should().NotBeNull();
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that mapping domain with to domain correctly sets all properties.
+
+    /// </summary>
 
     [Fact]
     public void ToDomain_WithMultipleEntities_MapsAllCorrectly()

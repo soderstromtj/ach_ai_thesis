@@ -14,6 +14,9 @@ public class EvidenceMapperTests
 {
     #region ToDatabase Tests
 
+    /// <summary>
+    /// Verifies that mapping a domain evidence with an empty GUID to database generates a new unique GUID.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithEmptyEvidenceId_GeneratesNewGuid()
     {
@@ -41,6 +44,9 @@ public class EvidenceMapperTests
         result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
+    /// <summary>
+    /// Verifies that mapping a domain evidence with an existing GUID preserves that GUID in the database entity.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithExistingEvidenceId_PreservesGuid()
     {
@@ -63,6 +69,9 @@ public class EvidenceMapperTests
         result.EvidenceId.Should().Be(existingGuid);
     }
 
+    /// <summary>
+    /// Verifies that null notes in a domain evidence are converted to an empty string when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithNullNotes_ConvertsToEmptyString()
     {
@@ -84,6 +93,9 @@ public class EvidenceMapperTests
         result.Notes.Should().Be(string.Empty);
     }
 
+    /// <summary>
+    /// Verifies that a null reference snippet in domain evidence remains null when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithNullReferenceSnippet_PreservesNull()
     {
@@ -105,6 +117,9 @@ public class EvidenceMapperTests
         result.ReferenceSnippet.Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies that all evidence type enums (Fact, Assumption, ExpertOpinion) map correctly to their database integer IDs.
+    /// </summary>
     [Theory]
     [InlineData(EvidenceType.Fact, 0)]
     [InlineData(EvidenceType.Assumption, 1)]
@@ -129,6 +144,9 @@ public class EvidenceMapperTests
         result.EvidenceTypeId.Should().Be(expectedId);
     }
 
+    /// <summary>
+    /// Verifies that empty strings in domain evidence properties are preserved as empty strings in the database entity.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithEmptyStrings_PreservesEmptyStrings()
     {
@@ -152,6 +170,9 @@ public class EvidenceMapperTests
         result.Notes.Should().Be("");
     }
 
+    /// <summary>
+    /// Verifies that very long strings (5000+ characters) are fully preserved without truncation when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithLongStrings_PreservesFullContent()
     {
@@ -183,6 +204,9 @@ public class EvidenceMapperTests
 
     #region ToDomain Tests
 
+    /// <summary>
+    /// Verifies that all properties of a database evidence entity are correctly mapped to a domain evidence object.
+    /// </summary>
     [Fact]
     public void ToDomain_WithValidDatabaseEntity_MapsAllProperties()
     {
@@ -210,6 +234,9 @@ public class EvidenceMapperTests
         result.Notes.Should().Be("Test notes");
     }
 
+    /// <summary>
+    /// Verifies that null notes in a database evidence are converted to an empty string when mapping to domain.
+    /// </summary>
     [Fact]
     public void ToDomain_WithNullNotes_ConvertsToEmptyString()
     {
@@ -232,6 +259,9 @@ public class EvidenceMapperTests
         result.Notes.Should().Be(string.Empty);
     }
 
+    /// <summary>
+    /// Verifies that a null reference snippet in database evidence remains null when mapping to domain.
+    /// </summary>
     [Fact]
     public void ToDomain_WithNullReferenceSnippet_PreservesNull()
     {
@@ -254,6 +284,9 @@ public class EvidenceMapperTests
         result.ReferenceSnippet.Should().BeNull();
     }
 
+    /// <summary>
+    /// Verifies that database integer IDs correctly map back to their corresponding evidence type enums.
+    /// </summary>
     [Theory]
     [InlineData(0, EvidenceType.Fact)]
     [InlineData(1, EvidenceType.Assumption)]
@@ -283,6 +316,9 @@ public class EvidenceMapperTests
 
     #region ToDomain Collection Tests
 
+    /// <summary>
+    /// Verifies that mapping an empty collection of database evidence entities returns an empty list, not null.
+    /// </summary>
     [Fact]
     public void ToDomain_WithEmptyCollection_ReturnsEmptyList()
     {
@@ -297,6 +333,9 @@ public class EvidenceMapperTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that mapping multiple database evidence entities correctly converts all items to domain objects with proper property values.
+    /// </summary>
     [Fact]
     public void ToDomain_WithMultipleEntities_MapsAllCorrectly()
     {
@@ -348,6 +387,9 @@ public class EvidenceMapperTests
         result[2].Type.Should().Be(EvidenceType.ExpertOpinion);
     }
 
+    /// <summary>
+    /// Verifies that mapping a collection with one database evidence entity correctly returns a single domain object.
+    /// </summary>
     [Fact]
     public void ToDomain_WithSingleItemCollection_MapsSingleItem()
     {
@@ -380,6 +422,9 @@ public class EvidenceMapperTests
 
     #region Round-Trip Tests
 
+    /// <summary>
+    /// Verifies that converting domain to database and back to domain preserves all properties correctly (round-trip mapping).
+    /// </summary>
     [Fact]
     public void RoundTrip_ToDatabaseThenToDomain_PreservesNonGuidProperties()
     {
@@ -406,6 +451,9 @@ public class EvidenceMapperTests
         resultDomain.Notes.Should().Be(originalDomain.Notes);
     }
 
+    /// <summary>
+    /// Verifies that a round-trip mapping with an empty evidence ID generates a new GUID that differs from the original empty GUID.
+    /// </summary>
     [Fact]
     public void RoundTrip_WithEmptyEvidenceId_GeneratesNewGuid()
     {

@@ -34,6 +34,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
 
     #region Constructor Tests
 
+    /// <summary>
+
+    /// Verifies that the constructor throws ArgumentNullException when passed a null null context throws argument null exception.
+
+    /// </summary>
+
     [Fact]
     public void Constructor_WithNullContext_ThrowsArgumentNullException()
     {
@@ -42,6 +48,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new EvidenceHypothesisEvaluationRepository(null!));
         exception.ParamName.Should().Be("context");
     }
+
+    /// <summary>
+
+    /// Verifies that the constructor successfully creates an instance with valid valid context creates instance.
+
+    /// </summary>
 
     [Fact]
     public void Constructor_WithValidContext_CreatesInstance()
@@ -65,6 +77,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
     #endregion
 
     #region SaveBatchAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Save successfully saves batch async with valid data.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithValidEvaluations_SavesAllEntities()
@@ -114,6 +132,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         savedEvaluations.All(e => e.StepExecutionId == stepExecutionId).Should().BeTrue();
     }
 
+    /// <summary>
+
+    /// Verifies that Save handles null input gracefully without throwing exceptions.
+
+    /// </summary>
+
     [Fact]
     public async Task SaveBatchAsync_WithNullEvaluationList_DoesNothing()
     {
@@ -129,6 +153,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         var savedEvaluations = await _context.EvidenceHypothesisEvaluations.ToListAsync();
         savedEvaluations.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Save handles empty collections gracefully without saving anything.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithEmptyEvaluationList_DoesNothing()
@@ -146,6 +176,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         var savedEvaluations = await _context.EvidenceHypothesisEvaluations.ToListAsync();
         savedEvaluations.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Save throws an exception when with missing hypothesis in map throws invalid operation exception is missing from the ID map.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithMissingHypothesisInMap_ThrowsInvalidOperationException()
@@ -174,6 +210,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             .WithMessage("*Hypothesis 'H1' not found*");
     }
 
+    /// <summary>
+
+    /// Verifies that Save throws an exception when with missing evidence in map throws invalid operation exception is missing from the ID map.
+
+    /// </summary>
+
     [Fact]
     public async Task SaveBatchAsync_WithMissingEvidenceInMap_ThrowsInvalidOperationException()
     {
@@ -200,6 +242,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             .Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Evidence 'E1' not found*");
     }
+
+    /// <summary>
+
+    /// Verifies that save batch async with single evaluation saves successfully.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithSingleEvaluation_SavesSuccessfully()
@@ -233,6 +281,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
     #endregion
 
     #region GetByStepExecutionIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by step when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithExistingEvaluations_ReturnsAllMatching()
@@ -330,6 +384,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         result.Should().AllSatisfy(e => e.Evidence.Should().NotBeNull());
     }
 
+    /// <summary>
+
+    /// Verifies that get by step execution id async with no matching evaluations returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithNoMatchingEvaluations_ReturnsEmptyList()
     {
@@ -342,6 +402,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get eagerly loads related navigation properties.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_IncludesNavigationProperties()
@@ -393,6 +459,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         result[0].Hypothesis.ShortTitle.Should().Be("Test Hypothesis");
         result[0].Evidence.Claim.Should().Be("Test Evidence");
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_DoesNotTrackEntities()
@@ -447,6 +519,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
     #endregion
 
     #region GetByHypothesisIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by hypothesis when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByHypothesisIdAsync_WithExistingHypothesis_ReturnsAllMatchingEvaluations()
@@ -533,6 +611,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         result.Should().AllSatisfy(e => e.Hypothesis.ShortTitle.Should().Be("H1"));
     }
 
+    /// <summary>
+
+    /// Verifies that get by hypothesis id async with no matching evaluations returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByHypothesisIdAsync_WithNoMatchingEvaluations_ReturnsEmptyList()
     {
@@ -545,6 +629,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByHypothesisIdAsync_DoesNotTrackEntities()
@@ -597,6 +687,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
     #endregion
 
     #region GetByEvidenceIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by evidence when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByEvidenceIdAsync_WithExistingEvidence_ReturnsAllMatchingEvaluations()
@@ -683,6 +779,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         result.Should().AllSatisfy(e => e.Evidence.Claim.Should().Be("E1"));
     }
 
+    /// <summary>
+
+    /// Verifies that get by evidence id async with no matching evaluations returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByEvidenceIdAsync_WithNoMatchingEvaluations_ReturnsEmptyList()
     {
@@ -695,6 +797,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByEvidenceIdAsync_DoesNotTrackEntities()
@@ -747,6 +855,12 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
     #endregion
 
     #region Integration Tests
+
+    /// <summary>
+
+    /// Verifies the complete workflow of to end save and retrieve works correctly works correctly.
+
+    /// </summary>
 
     [Fact]
     public async Task EndToEnd_SaveAndRetrieve_WorksCorrectly()

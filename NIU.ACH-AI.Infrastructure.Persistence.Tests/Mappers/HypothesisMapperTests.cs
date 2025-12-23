@@ -13,6 +13,9 @@ public class HypothesisMapperTests
 {
     #region ToDatabase Tests
 
+    /// <summary>
+    /// Verifies that mapping a domain hypothesis to database generates a new unique GUID and sets all properties correctly.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithValidDomainEntity_GeneratesNewGuid()
     {
@@ -36,6 +39,9 @@ public class HypothesisMapperTests
         result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
+    /// <summary>
+    /// Verifies that each mapping operation generates a unique GUID, even for the same domain hypothesis.
+    /// </summary>
     [Fact]
     public void ToDatabase_AlwaysGeneratesNewGuid()
     {
@@ -57,6 +63,9 @@ public class HypothesisMapperTests
         result1.HypothesisId.Should().NotBe(result2.HypothesisId);
     }
 
+    /// <summary>
+    /// Verifies that empty strings in hypothesis properties are preserved when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithEmptyStrings_PreservesEmptyStrings()
     {
@@ -76,6 +85,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be("");
     }
 
+    /// <summary>
+    /// Verifies that very long strings are fully preserved without truncation when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithLongStrings_PreservesFullContent()
     {
@@ -98,6 +110,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be(longText);
     }
 
+    /// <summary>
+    /// Verifies that the IsRefined flag is always set to false for new hypotheses when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_AlwaysSetsIsRefinedToFalse()
     {
@@ -116,6 +131,9 @@ public class HypothesisMapperTests
         result.IsRefined.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Verifies that special characters like &lt;, &gt;, &amp;, and quotes are preserved when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithSpecialCharacters_PreservesCharacters()
     {
@@ -135,6 +153,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be("Hypothesis with special chars: @#$%^&*()");
     }
 
+    /// <summary>
+    /// Verifies that Unicode characters including Chinese, Cyrillic, and emojis are preserved when mapping to database.
+    /// </summary>
     [Fact]
     public void ToDatabase_WithUnicodeCharacters_PreservesUnicode()
     {
@@ -158,6 +179,9 @@ public class HypothesisMapperTests
 
     #region ToDomain Tests
 
+    /// <summary>
+    /// Verifies that all text properties of a database hypothesis are correctly mapped to a domain hypothesis.
+    /// </summary>
     [Fact]
     public void ToDomain_WithValidDatabaseEntity_MapsAllProperties()
     {
@@ -180,6 +204,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be("This is a test hypothesis");
     }
 
+    /// <summary>
+    /// Verifies that the hypothesis ID is not mapped to the domain entity (as it doesn't exist in the domain model).
+    /// </summary>
     [Fact]
     public void ToDomain_DoesNotMapHypothesisId()
     {
@@ -203,6 +230,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be("This is a test hypothesis");
     }
 
+    /// <summary>
+    /// Verifies that empty strings are preserved when mapping from database to domain.
+    /// </summary>
     [Fact]
     public void ToDomain_WithEmptyStrings_PreservesEmptyStrings()
     {
@@ -225,6 +255,9 @@ public class HypothesisMapperTests
         result.HypothesisText.Should().Be("");
     }
 
+    /// <summary>
+    /// Verifies that special characters are preserved when mapping from database to domain.
+    /// </summary>
     [Fact]
     public void ToDomain_WithSpecialCharacters_PreservesCharacters()
     {
@@ -251,6 +284,9 @@ public class HypothesisMapperTests
 
     #region ToDomain Collection Tests
 
+    /// <summary>
+    /// Verifies that mapping an empty collection returns an empty list, not null.
+    /// </summary>
     [Fact]
     public void ToDomain_WithEmptyCollection_ReturnsEmptyList()
     {
@@ -265,6 +301,9 @@ public class HypothesisMapperTests
         result.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Verifies that mapping multiple database hypotheses correctly converts all items to domain objects.
+    /// </summary>
     [Fact]
     public void ToDomain_WithMultipleEntities_MapsAllCorrectly()
     {
@@ -313,6 +352,9 @@ public class HypothesisMapperTests
         result[2].HypothesisText.Should().Be("Text 3");
     }
 
+    /// <summary>
+    /// Verifies that mapping a single-item collection correctly returns one domain hypothesis.
+    /// </summary>
     [Fact]
     public void ToDomain_WithSingleItemCollection_MapsSingleItem()
     {
@@ -343,6 +385,9 @@ public class HypothesisMapperTests
 
     #region Round-Trip Tests
 
+    /// <summary>
+    /// Verifies that converting domain to database and back preserves text properties (round-trip mapping).
+    /// </summary>
     [Fact]
     public void RoundTrip_ToDatabaseThenToDomain_PreservesTextProperties()
     {
@@ -363,6 +408,9 @@ public class HypothesisMapperTests
         resultDomain.HypothesisText.Should().Be(originalDomain.HypothesisText);
     }
 
+    /// <summary>
+    /// Verifies that multiple round-trip conversions produce consistent results without data loss.
+    /// </summary>
     [Fact]
     public void RoundTrip_MultipleTimes_ProducesConsistentResults()
     {

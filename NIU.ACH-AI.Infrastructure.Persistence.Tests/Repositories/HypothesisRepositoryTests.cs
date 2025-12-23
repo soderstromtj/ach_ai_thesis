@@ -33,6 +33,12 @@ public class HypothesisRepositoryTests : IDisposable
 
     #region Constructor Tests
 
+    /// <summary>
+
+    /// Verifies that the constructor throws ArgumentNullException when passed a null null context throws argument null exception.
+
+    /// </summary>
+
     [Fact]
     public void Constructor_WithNullContext_ThrowsArgumentNullException()
     {
@@ -40,6 +46,12 @@ public class HypothesisRepositoryTests : IDisposable
         var exception = Assert.Throws<ArgumentNullException>(() => new HypothesisRepository(null!));
         exception.ParamName.Should().Be("context");
     }
+
+    /// <summary>
+
+    /// Verifies that the constructor successfully creates an instance with valid valid context creates instance.
+
+    /// </summary>
 
     [Fact]
     public void Constructor_WithValidContext_CreatesInstance()
@@ -63,6 +75,12 @@ public class HypothesisRepositoryTests : IDisposable
     #endregion
 
     #region SaveBatchAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Save successfully saves batch async with valid data.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithValidHypothesisList_SavesAllEntities()
@@ -95,6 +113,12 @@ public class HypothesisRepositoryTests : IDisposable
         savedHypotheses.All(h => h.IsRefined == false).Should().BeTrue();
     }
 
+    /// <summary>
+
+    /// Verifies that Save handles null input gracefully without throwing exceptions.
+
+    /// </summary>
+
     [Fact]
     public async Task SaveBatchAsync_WithNullHypothesisList_DoesNothing()
     {
@@ -108,6 +132,12 @@ public class HypothesisRepositoryTests : IDisposable
         var savedHypotheses = await _context.Hypotheses.ToListAsync();
         savedHypotheses.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Save handles empty collections gracefully without saving anything.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithEmptyHypothesisList_DoesNothing()
@@ -123,6 +153,12 @@ public class HypothesisRepositoryTests : IDisposable
         var savedHypotheses = await _context.Hypotheses.ToListAsync();
         savedHypotheses.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that save batch async with single hypothesis saves successfully.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithSingleHypothesis_SavesSuccessfully()
@@ -147,6 +183,12 @@ public class HypothesisRepositoryTests : IDisposable
         savedHypotheses[0].ShortTitle.Should().Be("Single Hypothesis");
     }
 
+    /// <summary>
+
+    /// Verifies that save batch async generates unique guids for each hypothesis.
+
+    /// </summary>
+
     [Fact]
     public async Task SaveBatchAsync_GeneratesUniqueGuidsForEachHypothesis()
     {
@@ -168,6 +210,12 @@ public class HypothesisRepositoryTests : IDisposable
         ids.Should().OnlyHaveUniqueItems();
         ids.Should().AllSatisfy(id => id.Should().NotBe(Guid.Empty));
     }
+
+    /// <summary>
+
+    /// Verifies that save batch async with cancellation token respects token.
+
+    /// </summary>
 
     [Fact]
     public async Task SaveBatchAsync_WithCancellationToken_RespectsToken()
@@ -191,6 +239,12 @@ public class HypothesisRepositoryTests : IDisposable
     #endregion
 
     #region GetByStepExecutionIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that Get returns the correct by step when it exists in the database.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithExistingHypotheses_ReturnsAllMatching()
@@ -238,6 +292,12 @@ public class HypothesisRepositoryTests : IDisposable
         result.Should().AllSatisfy(h => h.ShortTitle.Should().Match(t => t.StartsWith("Hypothesis")));
     }
 
+    /// <summary>
+
+    /// Verifies that get by step execution id async with no matching hypotheses returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByStepExecutionIdAsync_WithNoMatchingHypotheses_ReturnsEmptyList()
     {
@@ -250,6 +310,12 @@ public class HypothesisRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that get by step execution id async returns refined and unrefined hypotheses.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByStepExecutionIdAsync_ReturnsRefinedAndUnrefinedHypotheses()
@@ -286,6 +352,12 @@ public class HypothesisRepositoryTests : IDisposable
         result.Should().HaveCount(2);
     }
 
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByStepExecutionIdAsync_DoesNotTrackEntities()
     {
@@ -314,6 +386,12 @@ public class HypothesisRepositoryTests : IDisposable
 
     #region GetByIdAsync Tests
 
+    /// <summary>
+
+    /// Verifies that Get returns the correct by id when it exists in the database.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByIdAsync_WithExistingId_ReturnsHypothesis()
     {
@@ -341,6 +419,12 @@ public class HypothesisRepositoryTests : IDisposable
         result.HypothesisText.Should().Be("Test Text");
     }
 
+    /// <summary>
+
+    /// Verifies that Get returns null when the by id does not exist.
+
+    /// </summary>
+
     [Fact]
     public async Task GetByIdAsync_WithNonExistingId_ReturnsNull()
     {
@@ -353,6 +437,12 @@ public class HypothesisRepositoryTests : IDisposable
         // Assert
         result.Should().BeNull();
     }
+
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
 
     [Fact]
     public async Task GetByIdAsync_DoesNotTrackEntity()
@@ -381,6 +471,12 @@ public class HypothesisRepositoryTests : IDisposable
     #endregion
 
     #region GetRefinedByStepExecutionIdAsync Tests
+
+    /// <summary>
+
+    /// Verifies that get refined by step execution id async with refined hypotheses returns only refined.
+
+    /// </summary>
 
     [Fact]
     public async Task GetRefinedByStepExecutionIdAsync_WithRefinedHypotheses_ReturnsOnlyRefined()
@@ -427,6 +523,12 @@ public class HypothesisRepositoryTests : IDisposable
         result.Should().AllSatisfy(h => h.ShortTitle.Should().StartWith("Refined"));
     }
 
+    /// <summary>
+
+    /// Verifies that get refined by step execution id async with no refined hypotheses returns empty list.
+
+    /// </summary>
+
     [Fact]
     public async Task GetRefinedByStepExecutionIdAsync_WithNoRefinedHypotheses_ReturnsEmptyList()
     {
@@ -450,6 +552,12 @@ public class HypothesisRepositoryTests : IDisposable
         // Assert
         result.Should().BeEmpty();
     }
+
+    /// <summary>
+
+    /// Verifies that Get correctly filters results based on by step execution id async filtersby step execution id.
+
+    /// </summary>
 
     [Fact]
     public async Task GetRefinedByStepExecutionIdAsync_FiltersbyStepExecutionId()
@@ -488,6 +596,12 @@ public class HypothesisRepositoryTests : IDisposable
         result[0].ShortTitle.Should().Be("Refined Step 1");
     }
 
+    /// <summary>
+
+    /// Verifies that Get uses AsNoTracking to prevent EF Core from tracking the entities.
+
+    /// </summary>
+
     [Fact]
     public async Task GetRefinedByStepExecutionIdAsync_DoesNotTrackEntities()
     {
@@ -516,6 +630,12 @@ public class HypothesisRepositoryTests : IDisposable
 
     #region MarkAsRefinedAsync Tests
 
+    /// <summary>
+
+    /// Verifies that Mark successfully updates the as refined when it exists.
+
+    /// </summary>
+
     [Fact]
     public async Task MarkAsRefinedAsync_WithExistingHypothesis_SetsIsRefinedToTrue()
     {
@@ -541,6 +661,12 @@ public class HypothesisRepositoryTests : IDisposable
         hypothesis!.IsRefined.Should().BeTrue();
     }
 
+    /// <summary>
+
+    /// Verifies that Mark handles non-existing entities gracefully.
+
+    /// </summary>
+
     [Fact]
     public async Task MarkAsRefinedAsync_WithNonExistingHypothesis_DoesNotThrow()
     {
@@ -551,6 +677,12 @@ public class HypothesisRepositoryTests : IDisposable
         await _repository.Invoking(r => r.MarkAsRefinedAsync(hypothesisId))
             .Should().NotThrowAsync();
     }
+
+    /// <summary>
+
+    /// Verifies that mark as refined async with already refined hypothesis remains refined.
+
+    /// </summary>
 
     [Fact]
     public async Task MarkAsRefinedAsync_WithAlreadyRefinedHypothesis_RemainsRefined()
@@ -576,6 +708,12 @@ public class HypothesisRepositoryTests : IDisposable
         var hypothesis = await _context.Hypotheses.FindAsync(hypothesisId);
         hypothesis!.IsRefined.Should().BeTrue();
     }
+
+    /// <summary>
+
+    /// Verifies that mark as refined async with cancellation token respects token.
+
+    /// </summary>
 
     [Fact]
     public async Task MarkAsRefinedAsync_WithCancellationToken_RespectsToken()
@@ -607,6 +745,12 @@ public class HypothesisRepositoryTests : IDisposable
 
     #region Integration Tests
 
+    /// <summary>
+
+    /// Verifies the complete workflow of to end save and retrieve works correctly works correctly.
+
+    /// </summary>
+
     [Fact]
     public async Task EndToEnd_SaveAndRetrieve_WorksCorrectly()
     {
@@ -632,6 +776,12 @@ public class HypothesisRepositoryTests : IDisposable
         retrieved[0].ShortTitle.Should().Be("Integration Test");
         retrieved[0].HypothesisText.Should().Be("Integration test hypothesis");
     }
+
+    /// <summary>
+
+    /// Verifies the complete workflow of to end save retrieve and mark refined works correctly works correctly.
+
+    /// </summary>
 
     [Fact]
     public async Task EndToEnd_SaveRetrieveAndMarkRefined_WorksCorrectly()
@@ -666,6 +816,12 @@ public class HypothesisRepositoryTests : IDisposable
         refined.Should().HaveCount(1);
         refined[0].ShortTitle.Should().Be("Test");
     }
+
+    /// <summary>
+
+    /// Verifies that multiple operations on same context work independently.
+
+    /// </summary>
 
     [Fact]
     public async Task MultipleOperations_OnSameContext_WorkIndependently()

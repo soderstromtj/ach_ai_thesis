@@ -917,6 +917,12 @@ public class HypothesisRefinementOrchestrationFactoryTests
     /// and HypothesisBrainstormingOrchestrationFactory. Refinement uses Sequential,
     /// Brainstorming uses Concurrent. Their GetAgentSelectionReason messages should differ.
     /// </summary>
+    /// <summary>
+
+    /// Verifies that get agent selection reason differs from concurrent factories.
+
+    /// </summary>
+
     [Fact]
     public void GetAgentSelectionReason_DiffersFromConcurrentFactories()
     {
