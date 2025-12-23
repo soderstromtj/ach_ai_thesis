@@ -76,8 +76,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H1", HypothesisText = "Text1" },
-                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = EvidenceType.Fact },
-                Score = EvaluationScore.Consistent,
+                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = Domain.ValueObjects.EvidenceType.Fact },
+                Score = Domain.ValueObjects.EvaluationScore.Consistent,
                 ScoreRationale = "Rationale 1",
                 ConfidenceLevel = 0.8m,
                 ConfidenceRationale = "Confidence 1"
@@ -85,8 +85,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H2", HypothesisText = "Text2" },
-                Evidence = new DomainEntity.Evidence { Claim = "E2", Type = EvidenceType.Assumption },
-                Score = EvaluationScore.Inconsistent,
+                Evidence = new DomainEntity.Evidence { Claim = "E2", Type = Domain.ValueObjects.EvidenceType.Assumption },
+                Score = Domain.ValueObjects.EvaluationScore.Inconsistent,
                 ScoreRationale = "Rationale 2",
                 ConfidenceLevel = 0.6m,
                 ConfidenceRationale = "Confidence 2"
@@ -157,8 +157,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H1", HypothesisText = "Text1" },
-                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = EvidenceType.Fact },
-                Score = EvaluationScore.Consistent,
+                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = Domain.ValueObjects.EvidenceType.Fact },
+                Score = Domain.ValueObjects.EvaluationScore.Consistent,
                 ScoreRationale = "Test",
                 ConfidenceLevel = 0.5m,
                 ConfidenceRationale = "Test"
@@ -184,8 +184,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H1", HypothesisText = "Text1" },
-                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = EvidenceType.Fact },
-                Score = EvaluationScore.Consistent,
+                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = Domain.ValueObjects.EvidenceType.Fact },
+                Score = Domain.ValueObjects.EvaluationScore.Consistent,
                 ScoreRationale = "Test",
                 ConfidenceLevel = 0.5m,
                 ConfidenceRationale = "Test"
@@ -211,8 +211,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H1", HypothesisText = "Text1" },
-                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = EvidenceType.Fact },
-                Score = EvaluationScore.Neutral,
+                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = Domain.ValueObjects.EvidenceType.Fact },
+                Score = Domain.ValueObjects.EvaluationScore.Neutral,
                 ScoreRationale = "Test rationale",
                 ConfidenceLevel = 0.5m,
                 ConfidenceRationale = "Test confidence"
@@ -266,7 +266,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "E1",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -275,7 +275,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "E2",
-            EvidenceTypeId = (int)EvidenceType.Assumption,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -290,7 +290,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = stepExecutionId,
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 Rationale = "Rationale 1",
                 ConfidenceScore = 0.8m,
                 ConfidenceRationale = "Confidence 1",
@@ -302,7 +302,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = stepExecutionId,
                 HypothesisId = hypothesis2.HypothesisId,
                 EvidenceId = evidence2.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Inconsistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Inconsistent,
                 Rationale = "Rationale 2",
                 ConfidenceScore = 0.6m,
                 ConfidenceRationale = "Confidence 2",
@@ -314,7 +314,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = otherStepExecutionId,
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Neutral,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Neutral,
                 Rationale = "Other rationale",
                 CreatedAt = DateTime.UtcNow
             }
@@ -364,7 +364,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "Test Evidence",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -379,7 +379,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = stepExecutionId,
                 HypothesisId = hypothesis.HypothesisId,
                 EvidenceId = evidence.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -415,7 +415,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "Test",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -430,7 +430,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = stepExecutionId,
                 HypothesisId = hypothesis.HypothesisId,
                 EvidenceId = evidence.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -477,7 +477,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "E1",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -486,7 +486,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "E2",
-            EvidenceTypeId = (int)EvidenceType.Assumption,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -501,7 +501,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             },
             new EvidenceHypothesisEvaluation
@@ -510,7 +510,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence2.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Inconsistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Inconsistent,
                 CreatedAt = DateTime.UtcNow
             },
             new EvidenceHypothesisEvaluation
@@ -519,7 +519,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis2.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Neutral,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Neutral,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -565,7 +565,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -580,7 +580,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis.HypothesisId,
                 EvidenceId = evidence.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -627,7 +627,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "E1",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -636,7 +636,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "E2",
-            EvidenceTypeId = (int)EvidenceType.Assumption,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -651,7 +651,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             },
             new EvidenceHypothesisEvaluation
@@ -660,7 +660,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis2.HypothesisId,
                 EvidenceId = evidence1.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Inconsistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Inconsistent,
                 CreatedAt = DateTime.UtcNow
             },
             new EvidenceHypothesisEvaluation
@@ -669,7 +669,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis1.HypothesisId,
                 EvidenceId = evidence2.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Neutral,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Neutral,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -715,7 +715,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -730,7 +730,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
                 StepExecutionId = Guid.NewGuid(),
                 HypothesisId = hypothesis.HypothesisId,
                 EvidenceId = evidence.EvidenceId,
-                EvaluationScoreId = (int)EvaluationScore.Consistent,
+                EvaluationScoreId = (int)Domain.ValueObjects.EvaluationScore.Consistent,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -761,8 +761,8 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             new DomainEntity.EvidenceHypothesisEvaluation
             {
                 Hypothesis = new DomainEntity.Hypothesis { ShortTitle = "H1", HypothesisText = "Text1" },
-                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = EvidenceType.Fact },
-                Score = EvaluationScore.Consistent,
+                Evidence = new DomainEntity.Evidence { Claim = "E1", Type = Domain.ValueObjects.EvidenceType.Fact },
+                Score = Domain.ValueObjects.EvaluationScore.Consistent,
                 ScoreRationale = "Test rationale",
                 ConfidenceLevel = 0.8m,
                 ConfidenceRationale = "Test confidence"
@@ -788,7 +788,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
             EvidenceId = evidenceId,
             StepExecutionId = stepExecutionId,
             Claim = "E1",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
@@ -801,7 +801,7 @@ public class EvidenceHypothesisEvaluationRepositoryTests : IDisposable
 
         // Assert
         retrieved.Should().HaveCount(1);
-        retrieved[0].Score.Should().Be(EvaluationScore.Consistent);
+        retrieved[0].Score.Should().Be(Domain.ValueObjects.EvaluationScore.Consistent);
         retrieved[0].ScoreRationale.Should().Be("Test rationale");
         retrieved[0].ConfidenceLevel.Should().Be(0.8m);
         retrieved[0].Hypothesis.ShortTitle.Should().Be("H1");

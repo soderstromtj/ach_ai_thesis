@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
+using NIU.ACH_AI.Infrastructure.Persistence;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -126,13 +128,27 @@ namespace NIU.ACH_AI.FrontendConsole
                     RegisterExperimentConfigurations(services, context.Configuration);
                     RegisterKernelServices(services);
                     RegisterLogging(services, context.Configuration);
+                    RegisterDBContext(context, services);
                 });
+        }
+
+        /// <summary>
+        /// Registers the Entity Framework database context in the service container.
+        /// </summary>
+        /// <param name="context">The HostBuilder context.</param>
+        /// <param name="services">The service collection to register the context.</param>
+        private static void RegisterDBContext(HostBuilderContext context, IServiceCollection services)
+        {
+            services.AddDbContext<Infrastructure.Persistence.Models.AchAIDbContext>(options =>
+                                    options.UseSqlServer(context.Configuration.GetConnectionString("AchAiDBConnection")));
         }
 
         #region Private Methods
         /// <summary>
         /// Runs the orchestration workflow for the specified experiment
         /// </summary>
+        /// <param name="host">The application host.</param>
+        /// <param name="experimentConfig">The configuration for the experiment.</param>
         private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig)
         {
             // Validate the experiment configuration

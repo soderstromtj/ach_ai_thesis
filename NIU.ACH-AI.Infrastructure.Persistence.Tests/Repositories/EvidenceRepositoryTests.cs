@@ -77,7 +77,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Evidence 1",
                 ReferenceSnippet = "Snippet 1",
-                Type = EvidenceType.Fact,
+                Type = Domain.ValueObjects.EvidenceType.Fact,
                 Notes = "Notes 1"
             },
             new DomainEntity.Evidence
@@ -85,7 +85,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Evidence 2",
                 ReferenceSnippet = "Snippet 2",
-                Type = EvidenceType.Assumption,
+                Type = Domain.ValueObjects.EvidenceType.Assumption,
                 Notes = "Notes 2"
             }
         };
@@ -142,7 +142,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Single Evidence",
                 ReferenceSnippet = "Single Snippet",
-                Type = EvidenceType.ExpertOpinion,
+                Type = Domain.ValueObjects.EvidenceType.ExpertOpinion,
                 Notes = "Single Notes"
             }
         };
@@ -167,7 +167,7 @@ public class EvidenceRepositoryTests : IDisposable
             {
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Test Evidence",
-                Type = EvidenceType.Fact
+                Type = Domain.ValueObjects.EvidenceType.Fact
             }
         };
         var cancellationToken = new CancellationToken();
@@ -197,7 +197,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Evidence 1",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -205,7 +205,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Evidence 2",
-                EvidenceTypeId = (int)EvidenceType.Assumption,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -213,7 +213,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = otherStepExecutionId,
                 Claim = "Other Evidence",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -250,7 +250,7 @@ public class EvidenceRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "Test Evidence",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
@@ -280,7 +280,7 @@ public class EvidenceRepositoryTests : IDisposable
             StepExecutionId = stepExecutionId,
             Claim = "Test Evidence",
             ReferenceSnippet = "Test Snippet",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             Notes = "Test Notes",
             CreatedAt = DateTime.UtcNow
         });
@@ -318,7 +318,7 @@ public class EvidenceRepositoryTests : IDisposable
             EvidenceId = evidenceId,
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test Evidence",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
@@ -347,7 +347,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Fact Evidence 1",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -355,7 +355,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Fact Evidence 2",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -363,18 +363,18 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Assumption Evidence",
-                EvidenceTypeId = (int)EvidenceType.Assumption,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
                 CreatedAt = DateTime.UtcNow
             }
         );
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByTypeAsync(stepExecutionId, EvidenceType.Fact);
+        var result = await _repository.GetByTypeAsync(stepExecutionId, Domain.ValueObjects.EvidenceType.Fact);
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().AllSatisfy(e => e.Type.Should().Be(EvidenceType.Fact));
+        result.Should().AllSatisfy(e => e.Type.Should().Be(Domain.ValueObjects.EvidenceType.Fact));
     }
 
     [Fact]
@@ -388,13 +388,13 @@ public class EvidenceRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "Fact Evidence",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByTypeAsync(stepExecutionId, EvidenceType.ExpertOpinion);
+        var result = await _repository.GetByTypeAsync(stepExecutionId, Domain.ValueObjects.EvidenceType.ExpertOpinion);
 
         // Assert
         result.Should().BeEmpty();
@@ -413,7 +413,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId1,
                 Claim = "Step1 Fact",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -421,7 +421,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId2,
                 Claim = "Step2 Fact",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -429,14 +429,14 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId1,
                 Claim = "Step1 Assumption",
-                EvidenceTypeId = (int)EvidenceType.Assumption,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
                 CreatedAt = DateTime.UtcNow
             }
         );
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByTypeAsync(stepExecutionId1, EvidenceType.Fact);
+        var result = await _repository.GetByTypeAsync(stepExecutionId1, Domain.ValueObjects.EvidenceType.Fact);
 
         // Assert
         result.Should().HaveCount(1);
@@ -444,10 +444,10 @@ public class EvidenceRepositoryTests : IDisposable
     }
 
     [Theory]
-    [InlineData(EvidenceType.Fact)]
-    [InlineData(EvidenceType.Assumption)]
-    [InlineData(EvidenceType.ExpertOpinion)]
-    public async Task GetByTypeAsync_WithDifferentTypes_FiltersCorrectly(EvidenceType type)
+    [InlineData(Domain.ValueObjects.EvidenceType.Fact)]
+    [InlineData(Domain.ValueObjects.EvidenceType.Assumption)]
+    [InlineData(Domain.ValueObjects.EvidenceType.ExpertOpinion)]
+    public async Task GetByTypeAsync_WithDifferentTypes_FiltersCorrectly(Domain.ValueObjects.EvidenceType type)
     {
         // Arrange
         var stepExecutionId = Guid.NewGuid();
@@ -458,7 +458,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Fact",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -466,7 +466,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "Assumption",
-                EvidenceTypeId = (int)EvidenceType.Assumption,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Assumption,
                 CreatedAt = DateTime.UtcNow
             },
             new Evidence
@@ -474,7 +474,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 StepExecutionId = stepExecutionId,
                 Claim = "ExpertOpinion",
-                EvidenceTypeId = (int)EvidenceType.ExpertOpinion,
+                EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.ExpertOpinion,
                 CreatedAt = DateTime.UtcNow
             }
         );
@@ -498,13 +498,13 @@ public class EvidenceRepositoryTests : IDisposable
             EvidenceId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             Claim = "Test Evidence",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)Domain.ValueObjects.EvidenceType.Fact,
             CreatedAt = DateTime.UtcNow
         });
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _repository.GetByTypeAsync(stepExecutionId, EvidenceType.Fact);
+        var result = await _repository.GetByTypeAsync(stepExecutionId, Domain.ValueObjects.EvidenceType.Fact);
 
         // Assert
         var trackedEntities = _context.ChangeTracker.Entries<Evidence>().Count();
@@ -527,7 +527,7 @@ public class EvidenceRepositoryTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Integration Test Evidence",
                 ReferenceSnippet = "Integration Snippet",
-                Type = EvidenceType.Fact,
+                Type = Domain.ValueObjects.EvidenceType.Fact,
                 Notes = "Integration Notes"
             }
         };
@@ -542,7 +542,7 @@ public class EvidenceRepositoryTests : IDisposable
         retrieved.Should().HaveCount(1);
         retrieved[0].Claim.Should().Be("Integration Test Evidence");
         retrieved[0].ReferenceSnippet.Should().Be("Integration Snippet");
-        retrieved[0].Type.Should().Be(EvidenceType.Fact);
+        retrieved[0].Type.Should().Be(Domain.ValueObjects.EvidenceType.Fact);
         retrieved[0].Notes.Should().Be("Integration Notes");
     }
 
@@ -559,7 +559,7 @@ public class EvidenceRepositoryTests : IDisposable
             {
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Evidence Step 1",
-                Type = EvidenceType.Fact
+                Type = Domain.ValueObjects.EvidenceType.Fact
             }
         };
 
@@ -569,7 +569,7 @@ public class EvidenceRepositoryTests : IDisposable
             {
                 EvidenceId = Guid.NewGuid(),
                 Claim = "Evidence Step 2",
-                Type = EvidenceType.Assumption
+                Type = Domain.ValueObjects.EvidenceType.Assumption
             }
         };
 

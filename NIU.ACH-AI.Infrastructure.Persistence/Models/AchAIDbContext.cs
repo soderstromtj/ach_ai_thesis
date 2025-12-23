@@ -44,8 +44,13 @@ public partial class AchAIDbContext : DbContext
     public virtual DbSet<StepExecution> StepExecutions { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=TIM-DESKTOP-W11;Database=ach-ai;Trusted_Connection=True;TrustServerCertificate=True;");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Only configure SqlServer if no provider is already set (e.g., in tests or DI)
+            optionsBuilder.UseSqlServer("Name=AchAiDBConnection");
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
