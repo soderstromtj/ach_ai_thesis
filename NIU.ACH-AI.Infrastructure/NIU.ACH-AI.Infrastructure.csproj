@@ -8,13 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj" />
-    <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
+    <Compile Remove="Persistence\**" />
+    <Compile Remove="Presentation\**" />
+    <EmbeddedResource Remove="Persistence\**" />
+    <EmbeddedResource Remove="Presentation\**" />
+    <None Remove="Persistence\**" />
+    <None Remove="Presentation\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Presentation\" />
-    <Folder Include="Persistence\" />
+    <ProjectReference Include="..\NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
   </ItemGroup>
 
 </Project>

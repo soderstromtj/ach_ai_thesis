@@ -56,7 +56,7 @@ namespace NIU.ACH_AI.FrontendConsole
             // Attempt to run the orchestration workflow
             try
             {
-                await RunOrchestrationAsync(host, experimentConfiguration);
+                await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
             }
             catch (Exception ex)
             {
