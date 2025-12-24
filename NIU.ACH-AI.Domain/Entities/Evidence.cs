@@ -15,8 +15,8 @@ namespace NIU.ACH_AI.Domain.Entities
             return $"EvidenceId: {EvidenceId}\n" +
                    $"Claim: {Claim}\n" +
                    $"Type: {Type}\n" +
-                   $"Notes: {Notes}\n" +
-                   $"ReferenceSnippet: {ReferenceSnippet}";
+                   $"Notes: {Notes ?? "N/A"}\n" +
+                   $"ReferenceSnippet: {ReferenceSnippet ?? "N/A"}";
         }
     }
 }

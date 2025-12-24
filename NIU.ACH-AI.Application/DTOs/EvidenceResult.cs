@@ -8,5 +8,12 @@ namespace NIU.ACH_AI.Application.DTOs
     public class EvidenceResult
     {
         public List<Evidence> Evidence { get; set; } = new List<Evidence>();
+
+        public override string ToString()
+        {
+            // Neatly format the evidence list for display
+            return string.Join(Environment.NewLine + Environment.NewLine, Evidence.Select((e, index) =>
+                $"{index + 1}. {e.ToString()}"));
+        }
     }
 }

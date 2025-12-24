@@ -8,6 +8,7 @@ using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
+using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
@@ -27,6 +28,9 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
+            // Get a console presenter for displaying results
+            var consolePresenter = new ConsoleResultPresenter();
+
             // Link up dependencies
             var host = CreateHostBuilder(args).Build();
 
@@ -38,17 +42,16 @@ namespace NIU.ACH_AI.FrontendConsole
                 return;
             }
 
-            // Extract the experiment number from args
-            int experimentIndex = ExtractExperimentIndexFromArgs(args);
-            ExperimentConfiguration experimentConfiguration = experimentSettings.Experiments[experimentIndex];
+            // For this example, just use the first experiment configuration
+            ExperimentConfiguration experimentConfiguration = experimentSettings.Experiments[0];
             if (experimentConfiguration == null)
             {
                 Console.WriteLine("Failed to retrieve experiment configuration or it doesn't exist. Exiting application.");
                 return;
             }
-                        
-            Console.WriteLine($"Experiment {experimentSettings.Experiments[experimentIndex].Id}: {experimentSettings.Experiments[experimentIndex].Description}");
-            Console.WriteLine(new string('=', 70));
+
+            // Display basic experiment information
+            consolePresenter.DisplayExperimentInfo(experimentConfiguration);
 
             // Attempt to run the orchestration workflow
             try
@@ -65,40 +68,6 @@ namespace NIU.ACH_AI.FrontendConsole
                 Console.WriteLine("\nPress any key to exit...");
                 Console.ReadKey();
             }
-        }
-
-        private static int ExtractExperimentIndexFromArgs(string[] args)
-        {
-            if (args.Length > 0)
-            {
-                var rawArg = args[0]?.Trim();
-
-                if (string.IsNullOrEmpty(rawArg))
-                {
-                    Console.WriteLine($"Warning: Invalid argument, using default 0.");
-                    return 0;
-                }
-                else if (rawArg.StartsWith('-'))
-                {
-                    Console.WriteLine($"Warning: Negative experiment index '{rawArg}' is not allowed. Using default 0.");
-                    return 0;
-                }
-                else
-                {
-                    try
-                    {
-                        int index = int.Parse(rawArg);
-                        return index - 1;
-                    }
-                    catch (Exception)
-                    {
-                        Console.WriteLine($"Warning: Unable to parse experiment index '{rawArg}'. Using default 0.");
-                        return 0;
-                    }
-                }
-            }
-
-            return 0;
         }
 
         /// <summary>
@@ -151,92 +120,6 @@ namespace NIU.ACH_AI.FrontendConsole
 
         #region Private Methods
         /// <summary>
-        /// Runs the orchestration workflow for the specified experiment
-        /// </summary>
-        /// <param name="host">The application host.</param>
-        /// <param name="experimentConfig">The configuration for the experiment.</param>
-        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig)
-        {
-            // Validate the experiment configuration
-            try
-            {
-                ValidateExperimentConfiguration(experimentConfig);
-            }
-            catch (Exception)
-            {
-                return;
-            }
-
-            // Build a logger factory to pass into each of the agent orchestration services
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
-
-            // Run the first ACH step for this example - Hypothesis Brainstorming
-            Console.WriteLine($"\n{new string('=', 70)}");
-            var achStepConfig = experimentConfig.ACHSteps[0];
-
-            // Build the input for the orchestration
-            var input = new OrchestrationPromptInput
-            {
-                KeyQuestion = experimentConfig.KeyQuestion,
-                Context = experimentConfig.Context,
-                TaskInstructions = achStepConfig.TaskInstructions,
-            };
-
-            var hypotheses = await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
-            Console.WriteLine($"\nInitial Hypotheses after Brainstorming Step:");
-            DisplayHypotheses(hypotheses);
-
-            // Update the input with the generated hypotheses for the next step
-            input.HypothesisResult = new HypothesisResult
-            {
-                Hypotheses = hypotheses
-            };
-
-            // update the experiment configuration to the next ACH step
-            achStepConfig = experimentConfig.ACHSteps[1];
-
-            var refinedHypotheses = await ExecuteHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[1], input);
-            Console.WriteLine($"\nRefined Hypotheses after Evaluation Step:");
-            DisplayHypotheses(refinedHypotheses);
-
-            Console.WriteLine($"{new string('=', 70)}\n");
-
-            // Update the experiment configuration to the next ACH step
-            achStepConfig = experimentConfig.ACHSteps[2];
-
-            var evidenceList = await ExecuteEvidenceExtractionAsync(host, experimentConfig.ACHSteps[2], input);
-            DisplayEvidence(evidenceList);
-
-            Console.WriteLine($"\n{new string('=', 70)}");
-
-            // Loop through each evidence and hypothesis and evaluate their relationship
-            foreach (var evidence in evidenceList)
-            {
-                foreach (var hypothesis in refinedHypotheses)
-                {
-                    Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
-
-                    // Update the input object with the current evidence and hypothesis
-                    input.EvidenceResult = new EvidenceResult
-                    {
-                        Evidence = new List<Evidence> { evidence }
-                    };
-                    input.HypothesisResult = new HypothesisResult
-                    {
-                        Hypotheses = new List<Hypothesis> { hypothesis }
-                    };
-
-                    // Evaluate the hypotheses against the evidence
-                    var evaluationResults = await ExecuteEvidenceHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[3], input);
-
-                    // Display the evaluation results
-                    Console.WriteLine("\nEvaluation Results:");
-                    evaluationResults.ToString();
-                }
-            }
-        }
-
-        /// <summary>
         /// Checks that the experiment configuration has all required fields.
         /// </summary>
         private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
@@ -264,7 +147,87 @@ namespace NIU.ACH_AI.FrontendConsole
                 throw new InvalidOperationException(
                     "No ACH steps are configured for this experiment. Please add at least one ACH step to the experiment settings in appsettings.json.");
             }
+        }
 
+        /// <summary>
+        /// Runs the orchestration workflow for the specified experiment
+        /// </summary>
+        /// <param name="host">The application host.</param>
+        /// <param name="experimentConfig">The configuration for the experiment.</param>
+        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ConsoleResultPresenter consoleResultPresenter)
+        {
+            // Validate the experiment configuration
+            try
+            {
+                ValidateExperimentConfiguration(experimentConfig);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            // Build a logger factory to pass into each of the agent orchestration services
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+
+            // Run the first ACH step for this example - Hypothesis Brainstorming
+            Console.WriteLine($"\n{new string('=', 70)}");
+            var achStepConfig = experimentConfig.ACHSteps[0];
+
+            // Build the input for the orchestration
+            var input = new OrchestrationPromptInput
+            {
+                KeyQuestion = experimentConfig.KeyQuestion,
+                Context = experimentConfig.Context,
+                TaskInstructions = achStepConfig.TaskInstructions,
+            };
+
+            var hypotheses = await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
+            consoleResultPresenter.DisplayHypotheses("Initial Hypotheses after Brainstorming Step:", hypotheses);
+
+            // Update the input with the generated hypotheses for the next step
+            input.HypothesisResult = new HypothesisResult
+            {
+                Hypotheses = hypotheses
+            };
+
+            // update the experiment configuration to the next ACH step
+            achStepConfig = experimentConfig.ACHSteps[1];
+
+            var refinedHypotheses = await ExecuteHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[1], input);
+            Console.WriteLine($"\nRefined Hypotheses after Evaluation Step:");
+            DisplayHypotheses(refinedHypotheses);
+
+            // Update the experiment configuration to the next ACH step
+            achStepConfig = experimentConfig.ACHSteps[2];
+
+            var evidenceList = await ExecuteEvidenceExtractionAsync(host, experimentConfig.ACHSteps[2], input);
+            DisplayEvidence(evidenceList);
+
+            // Loop through each evidence and hypothesis and evaluate their relationship
+            foreach (var evidence in evidenceList)
+            {
+                foreach (var hypothesis in refinedHypotheses)
+                {
+                    Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
+
+                    // Update the input object with the current evidence and hypothesis
+                    input.EvidenceResult = new EvidenceResult
+                    {
+                        Evidence = new List<Evidence> { evidence }
+                    };
+                    input.HypothesisResult = new HypothesisResult
+                    {
+                        Hypotheses = new List<Hypothesis> { hypothesis }
+                    };
+
+                    // Evaluate the hypotheses against the evidence
+                    var evaluationResults = await ExecuteEvidenceHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[3], input);
+
+                    // Display the evaluation results
+                    Console.WriteLine("\nEvaluation Results:");
+                    evaluationResults.ToString();
+                }
+            }
         }
 
         /// <summary>

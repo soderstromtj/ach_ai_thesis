@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Presentation\" />
     <Folder Include="Persistence\" />
   </ItemGroup>
 

@@ -38,5 +38,20 @@ namespace NIU.ACH_AI.Application.Configuration
         /// The ACH steps that comprise this experiment
         /// </summary>
         public ACHStepConfiguration[] ACHSteps { get; set; } = Array.Empty<ACHStepConfiguration>();
+
+        /// <summary>
+        /// Override ToString to provide a summary of the experiment configuration
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"Experiment ID: {Id}\n" +
+                   $"Name: {Name}\n" +
+                   $"Description: {Description}\n" +
+                   $"Key Question: {KeyQuestion}\n" +
+                   $"Context: {Context}\n" +
+                   $"Number of ACH Steps: {ACHSteps.Length}";
+        }
+
     }
 }
