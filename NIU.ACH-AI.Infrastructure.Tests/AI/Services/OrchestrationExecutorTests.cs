@@ -40,10 +40,12 @@ public class OrchestrationExecutorTests
 
         _aiServiceSettings = Options.Create(new AIServiceSettings
         {
-            Provider = "OpenAI",
-            ModelId = "gpt-4",
-            ApiKey = "test-key",
-            Endpoint = "https://api.openai.com"
+            OpenAI = new OpenAISettings
+            {
+                ApiKey = "test-api-key",
+                ModelId = "gpt-4o"
+            },
+            HttpTimeoutSeconds = 300
         });
 
         _orchestrationExecutor = new OrchestrationExecutor(
