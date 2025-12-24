@@ -12,9 +12,27 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Services;
 
 /// <summary>
-/// Unit tests for OrchestrationExecutor following FIRST principles.
-/// Tests are Fast, Isolated, Repeatable, Self-validating, and Timely.
-/// Verifies orchestration factory execution, service creation, and dependency management.
+/// Comprehensive unit tests for OrchestrationExecutor.
+///
+/// Testing Strategy:
+/// -----------------
+/// OrchestrationExecutor is an infrastructure service that encapsulates the common
+/// pattern of orchestration factory execution and dependency management. Tests verify
+/// service creation, factory execution, and proper dependency injection.
+///
+/// What We Can Test:
+/// 1. Constructor - Validates all dependencies are required and properly stored
+/// 2. ExecuteAsync - Verifies factory execution, logging, error handling, and cancellation
+/// 3. CreateAgentService - Confirms AgentService instances are created with correct configuration
+/// 4. GetKernelBuilderService - Ensures kernel builder service is properly exposed
+/// 5. GetLoggerFactory - Validates logger factory is accessible to consumers
+/// 6. CreateOrchestrationOptions - Tests options wrapper creation from step configuration
+///
+/// Testing Approach:
+/// Uses Moq to mock external dependencies (ILoggerFactory, IKernelBuilderService,
+/// IOrchestrationFactory) and FluentAssertions for readable assertions. Tests focus
+/// on the orchestration executor's coordination logic rather than the underlying
+/// Semantic Kernel infrastructure or AI service implementations.
 /// </summary>
 public class OrchestrationExecutorTests
 {
