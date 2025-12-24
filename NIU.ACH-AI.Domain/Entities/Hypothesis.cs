@@ -4,5 +4,10 @@
     {
         public string ShortTitle { get; set; } = string.Empty;
         public string HypothesisText { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"{ShortTitle}. {HypothesisText}";
+        }
     }
 }

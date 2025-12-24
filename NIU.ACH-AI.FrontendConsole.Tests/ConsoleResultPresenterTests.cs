@@ -199,7 +199,7 @@ public class ConsoleResultPresenterTests : IDisposable
         config.Name = null!;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _presenter.DisplayExperimentInfo(config));
+        Assert.Throws<ArgumentNullException>(() => _presenter.DisplayExperimentInfo(config));
     }
 
     /// <summary>
@@ -227,7 +227,7 @@ public class ConsoleResultPresenterTests : IDisposable
         config.KeyQuestion = null!;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _presenter.DisplayExperimentInfo(config));
+        Assert.Throws<ArgumentNullException>(() => _presenter.DisplayExperimentInfo(config));
     }
 
     /// <summary>
@@ -335,7 +335,7 @@ public class ConsoleResultPresenterTests : IDisposable
         var hypotheses = CreateSampleHypotheses(1);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _presenter.DisplayHypotheses(nullTitle!, hypotheses));
+        Assert.Throws<ArgumentNullException>(() => _presenter.DisplayHypotheses(nullTitle!, hypotheses));
     }
 
     /// <summary>
@@ -503,7 +503,7 @@ public class ConsoleResultPresenterTests : IDisposable
         var evidence = CreateSampleEvidence(1);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _presenter.DisplayEvidence(nullTitle!, evidence));
+        Assert.Throws<ArgumentNullException>(() => _presenter.DisplayEvidence(nullTitle!, evidence));
     }
 
     /// <summary>
@@ -744,7 +744,7 @@ public class ConsoleResultPresenterTests : IDisposable
         string? nullMessage = null;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _presenter.DisplayErrorMessage(nullMessage!));
+        Assert.Throws<ArgumentNullException>(() => _presenter.DisplayErrorMessage(nullMessage!));
     }
 
     /// <summary>
