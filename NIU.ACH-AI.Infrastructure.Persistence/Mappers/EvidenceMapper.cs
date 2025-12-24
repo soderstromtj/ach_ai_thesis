@@ -16,8 +16,8 @@ public static class EvidenceMapper
         DomainEntity.Evidence domain,
         Guid stepExecutionId)
     {
-        // First check if domain.EvidenceId is not empty, if it is not empty, we should try to parse it into a Guid
-        Guid evidenceId = string.IsNullOrEmpty(domain.EvidenceId.ToString()) 
+        // First check if domain.EvidenceId is not empty or Guid.Empty, if it is not empty, we should try to parse it into a Guid
+        Guid evidenceId = Guid.Empty.Equals(domain.EvidenceId) || string.IsNullOrEmpty(domain.EvidenceId.ToString()) 
             ? Guid.NewGuid() 
             : Guid.TryParse(domain.EvidenceId.ToString(), out var parsedGuid) ? parsedGuid : Guid.NewGuid();
 
