@@ -89,7 +89,10 @@ public class ConsoleResultPresenterTests : IDisposable
             {
                 new ACHStepConfiguration
                 {
-                    StepName = "Brainstorming",
+                    Id = 1,
+                    Name = "Brainstorming",
+                    Description = "Brainstorm hypotheses",
+                    TaskInstructions = "Generate hypotheses",
                     AgentConfigurations = Array.Empty<AgentConfiguration>(),
                     OrchestrationSettings = new OrchestrationSettings()
                 }
@@ -107,10 +110,8 @@ public class ConsoleResultPresenterTests : IDisposable
         {
             hypotheses.Add(new Hypothesis
             {
-                HypothesisId = Guid.NewGuid(),
                 ShortTitle = $"Hypothesis {i + 1}",
-                HypothesisText = $"Full text of hypothesis {i + 1}",
-                IsRefined = false
+                HypothesisText = $"Full text of hypothesis {i + 1}"
             });
         }
         return hypotheses;
@@ -143,11 +144,12 @@ public class ConsoleResultPresenterTests : IDisposable
     {
         return new EvidenceHypothesisEvaluation
         {
-            EvidenceId = Guid.NewGuid(),
-            HypothesisId = Guid.NewGuid(),
-            Consistency = Consistency.Consistent,
-            Relevance = Relevance.VeryRelevant,
-            Reasoning = "Test reasoning"
+            Hypothesis = new Hypothesis { ShortTitle = "Test Hypothesis", HypothesisText = "Test hypothesis text" },
+            Evidence = new Evidence { EvidenceId = Guid.NewGuid(), Claim = "Test claim", Type = EvidenceType.Fact },
+            Score = EvaluationScore.Consistent,
+            ScoreRationale = "Test score rationale",
+            ConfidenceLevel = 0.85m,
+            ConfidenceRationale = "Test confidence rationale"
         };
     }
 
@@ -637,20 +639,44 @@ public class ConsoleResultPresenterTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that DisplayEvaluation handles all consistency levels correctly.
+    /// Verifies that DisplayEvaluation handles all evaluation score levels correctly.
     /// </summary>
     [Fact]
-    public void DisplayEvaluation_WithDifferentConsistencyLevels_DisplaysCorrectly()
+    public void DisplayEvaluation_WithDifferentScoreLevels_DisplaysCorrectly()
     {
         // Arrange
         var evaluations = new[]
         {
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.Consistent, Relevance = Relevance.VeryRelevant, Reasoning = "Test" },
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.Inconsistent, Relevance = Relevance.VeryRelevant, Reasoning = "Test" },
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.NotApplicable, Relevance = Relevance.VeryRelevant, Reasoning = "Test" }
+            new EvidenceHypothesisEvaluation
+            {
+                Hypothesis = new Hypothesis { HypothesisText = "Test" },
+                Evidence = new Evidence { Claim = "Test", Type = EvidenceType.Fact },
+                Score = EvaluationScore.Consistent,
+                ScoreRationale = "Test",
+                ConfidenceLevel = 0.9m,
+                ConfidenceRationale = "Test"
+            },
+            new EvidenceHypothesisEvaluation
+            {
+                Hypothesis = new Hypothesis { HypothesisText = "Test" },
+                Evidence = new Evidence { Claim = "Test", Type = EvidenceType.Fact },
+                Score = EvaluationScore.Inconsistent,
+                ScoreRationale = "Test",
+                ConfidenceLevel = 0.8m,
+                ConfidenceRationale = "Test"
+            },
+            new EvidenceHypothesisEvaluation
+            {
+                Hypothesis = new Hypothesis { HypothesisText = "Test" },
+                Evidence = new Evidence { Claim = "Test", Type = EvidenceType.Fact },
+                Score = EvaluationScore.Neutral,
+                ScoreRationale = "Test",
+                ConfidenceLevel = 0.7m,
+                ConfidenceRationale = "Test"
+            }
         };
 
-        // Act & Assert - Should not throw for any consistency level
+        // Act & Assert - Should not throw for any score level
         foreach (var evaluation in evaluations)
         {
             ClearOutput();
@@ -661,27 +687,29 @@ public class ConsoleResultPresenterTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that DisplayEvaluation handles all relevance levels correctly.
+    /// Verifies that DisplayEvaluation displays confidence level correctly.
     /// </summary>
     [Fact]
-    public void DisplayEvaluation_WithDifferentRelevanceLevels_DisplaysCorrectly()
+    public void DisplayEvaluation_WithConfidenceLevel_DisplaysCorrectly()
     {
         // Arrange
-        var evaluations = new[]
+        var evaluation = new EvidenceHypothesisEvaluation
         {
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.Consistent, Relevance = Relevance.VeryRelevant, Reasoning = "Test" },
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.Consistent, Relevance = Relevance.SomewhatRelevant, Reasoning = "Test" },
-            new EvidenceHypothesisEvaluation { EvidenceId = Guid.NewGuid(), HypothesisId = Guid.NewGuid(), Consistency = Consistency.Consistent, Relevance = Relevance.NotRelevant, Reasoning = "Test" }
+            Hypothesis = new Hypothesis { HypothesisText = "Test" },
+            Evidence = new Evidence { Claim = "Test", Type = EvidenceType.Fact },
+            Score = EvaluationScore.Consistent,
+            ScoreRationale = "Strong evidence",
+            ConfidenceLevel = 0.95m,
+            ConfidenceRationale = "High confidence"
         };
 
-        // Act & Assert - Should not throw for any relevance level
-        foreach (var evaluation in evaluations)
-        {
-            ClearOutput();
-            _presenter.DisplayEvaluation(evaluation);
-            var output = GetOutput();
-            Assert.Contains(evaluation.ToString(), output);
-        }
+        // Act
+        _presenter.DisplayEvaluation(evaluation);
+        var output = GetOutput();
+
+        // Assert
+        Assert.Contains("0.95", output);
+        Assert.Contains("High confidence", output);
     }
 
     #endregion
@@ -943,6 +971,60 @@ public class ConsoleResultPresenterTests : IDisposable
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _presenter.DisplayEvidence(whitespaceTitle, evidence));
+    }
+
+    /// <summary>
+    /// Verifies that hypotheses with special characters are displayed correctly.
+    /// </summary>
+    [Fact]
+    public void DisplayHypotheses_WithSpecialCharactersInHypothesis_DisplaysCorrectly()
+    {
+        // Arrange
+        var title = "Test";
+        var hypotheses = new List<Hypothesis>
+        {
+            new Hypothesis
+            {
+                ShortTitle = "Special <>&\" chars",
+                HypothesisText = "Text with émojis 🎉"
+            }
+        };
+
+        // Act
+        _presenter.DisplayHypotheses(title, hypotheses);
+        var output = GetOutput();
+
+        // Assert
+        Assert.Contains("Special <>&\" chars", output);
+        Assert.Contains("émojis 🎉", output);
+    }
+
+    /// <summary>
+    /// Verifies that evidence with ExpertOpinion type is displayed correctly.
+    /// </summary>
+    [Fact]
+    public void DisplayEvidence_WithExpertOpinionType_DisplaysCorrectly()
+    {
+        // Arrange
+        var title = "Expert Opinion Evidence";
+        var evidence = new List<Evidence>
+        {
+            new Evidence
+            {
+                EvidenceId = Guid.NewGuid(),
+                Claim = "Expert opinion claim",
+                Type = EvidenceType.ExpertOpinion,
+                Notes = "From expert analysis"
+            }
+        };
+
+        // Act
+        _presenter.DisplayEvidence(title, evidence);
+        var output = GetOutput();
+
+        // Assert
+        Assert.Contains("ExpertOpinion", output);
+        Assert.Contains("Expert opinion claim", output);
     }
 
     #endregion
