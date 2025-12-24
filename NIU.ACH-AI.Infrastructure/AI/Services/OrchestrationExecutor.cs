@@ -4,7 +4,7 @@ using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 
-namespace NIU.ACH_AI.Application.Services
+namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
     /// <summary>
     /// Service responsible for executing orchestration factories.
@@ -60,7 +60,7 @@ namespace NIU.ACH_AI.Application.Services
         /// </summary>
         public IAgentService CreateAgentService(ACHStepConfiguration stepConfiguration)
         {
-            return new Infrastructure.AI.Services.AgentService(
+            return new AgentService(
                 stepConfiguration.AgentConfigurations,
                 _aiServiceSettings,
                 _loggerFactory);
