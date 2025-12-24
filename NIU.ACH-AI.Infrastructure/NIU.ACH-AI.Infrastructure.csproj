@@ -12,9 +12,4 @@
     <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Presentation\" />
-    <Folder Include="Persistence\" />
-  </ItemGroup>
-
 </Project>

@@ -12,7 +12,6 @@ using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
-using NIU.ACH_AI.Infrastructure.Persistence;
 using NIU.ACH_AI.Infrastructure.Persistence.Repositories;
 
 namespace NIU.ACH_AI.FrontendConsole
@@ -56,7 +55,7 @@ namespace NIU.ACH_AI.FrontendConsole
             // Attempt to run the orchestration workflow
             try
             {
-                await RunOrchestrationAsync(host, experimentConfiguration);
+                await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
             }
             catch (Exception ex)
             {
