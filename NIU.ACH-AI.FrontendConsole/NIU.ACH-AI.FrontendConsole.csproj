@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Infrastructure.Persistence\NIU.ACH-AI.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Infrastructure\NIU.ACH-AI.Infrastructure.csproj" />
   </ItemGroup>
 
