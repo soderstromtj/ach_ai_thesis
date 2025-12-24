@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Infrastructure.Configuration;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
@@ -22,6 +23,11 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
             IOptions<AIServiceSettings> aiServiceSettings,
             IKernelBuilderService kernelBuilderService)
         {
+            // Throw ArgumentNullException if any dependency is null
+            ArgumentNullException.ThrowIfNull(loggerFactory, nameof(loggerFactory));
+            ArgumentNullException.ThrowIfNull(aiServiceSettings, nameof(aiServiceSettings));
+            ArgumentNullException.ThrowIfNull(kernelBuilderService, nameof(kernelBuilderService));
+
             _loggerFactory = loggerFactory;
             _aiServiceSettings = aiServiceSettings.Value;
             _kernelBuilderService = kernelBuilderService;

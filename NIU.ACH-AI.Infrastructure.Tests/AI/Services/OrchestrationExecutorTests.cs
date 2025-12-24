@@ -495,7 +495,7 @@ public class OrchestrationExecutorTests
             Name = "Test Step",
             OrchestrationSettings = new OrchestrationSettings
             {
-                MaxTurns = 10,
+                MaximumInvocationCount = 10,
                 TimeoutInMinutes = 5,
                 WriteResponses = true,
                 StreamResponses = false
@@ -508,7 +508,7 @@ public class OrchestrationExecutorTests
         // Assert
         result.Should().NotBeNull();
         result.Value.Should().NotBeNull();
-        result.Value.MaxTurns.Should().Be(10);
+        result.Value.MaximumInvocationCount.Should().Be(10);
         result.Value.TimeoutInMinutes.Should().Be(5);
         result.Value.WriteResponses.Should().BeTrue();
         result.Value.StreamResponses.Should().BeFalse();
@@ -524,13 +524,13 @@ public class OrchestrationExecutorTests
         var stepConfiguration1 = new ACHStepConfiguration
         {
             Id = 1,
-            OrchestrationSettings = new OrchestrationSettings { MaxTurns = 10 }
+            OrchestrationSettings = new OrchestrationSettings { MaximumInvocationCount = 10 }
         };
 
         var stepConfiguration2 = new ACHStepConfiguration
         {
             Id = 2,
-            OrchestrationSettings = new OrchestrationSettings { MaxTurns = 20 }
+            OrchestrationSettings = new OrchestrationSettings { MaximumInvocationCount = 20 }
         };
 
         // Act
@@ -538,8 +538,8 @@ public class OrchestrationExecutorTests
         var result2 = _orchestrationExecutor.CreateOrchestrationOptions(stepConfiguration2);
 
         // Assert
-        result1.Value.MaxTurns.Should().Be(10);
-        result2.Value.MaxTurns.Should().Be(20);
+        result1.Value.MaximumInvocationCount.Should().Be(10);
+        result2.Value.MaximumInvocationCount.Should().Be(20);
     }
 
     /// <summary>
@@ -588,7 +588,7 @@ public class OrchestrationExecutorTests
             Id = 1,
             Name = "Integration Step",
             AgentConfigurations = Array.Empty<AgentConfiguration>(),
-            OrchestrationSettings = new OrchestrationSettings { MaxTurns = 5 }
+            OrchestrationSettings = new OrchestrationSettings { MaximumInvocationCount = 5 }
         };
 
         var input = new OrchestrationPromptInput
@@ -605,7 +605,7 @@ public class OrchestrationExecutorTests
         // Assert
         agentService.Should().NotBeNull();
         kernelBuilder.Should().NotBeNull();
-        options.Value.MaxTurns.Should().Be(5);
+        options.Value.MaximumInvocationCount.Should().Be(5);
         result.Should().HaveCount(1);
         result[0].ShortTitle.Should().Be("Integration Test");
     }
