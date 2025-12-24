@@ -229,7 +229,7 @@ public class HypothesisRepositoryTests : IDisposable
         var cancellationToken = new CancellationToken();
 
         // Act
-        await _repository.SaveBatchAsync(hypotheses, stepExecutionId, cancellationToken);
+        await _repository.SaveBatchAsync(hypotheses, stepExecutionId,cancellationToken: cancellationToken);
 
         // Assert
         var savedHypotheses = await _context.Hypotheses.ToListAsync();
