@@ -123,8 +123,7 @@ public class EvidenceHypothesisEvaluationResultTests
 
         // Assert
         Assert.NotNull(output);
-        Assert.Contains("Evaluation Scores:", output);
-        Assert.Contains("Rationales:", output);
+        Assert.Contains("No evaluations available.", output);
     }
 
     #endregion
@@ -194,7 +193,6 @@ public class EvidenceHypothesisEvaluationResultTests
         var output = result.ToString();
 
         // Assert
-        Assert.Contains("Evaluation Scores:", output);
         Assert.Contains("Consistent", output);
     }
 
@@ -217,8 +215,7 @@ public class EvidenceHypothesisEvaluationResultTests
         var output = result.ToString();
 
         // Assert
-        Assert.Contains("Rationales:", output);
-        Assert.Contains("- This is the rationale", output);
+        Assert.Contains("Score Rationale: This is the rationale", output);
     }
 
     #endregion
@@ -272,36 +269,10 @@ public class EvidenceHypothesisEvaluationResultTests
         var output = result.ToString();
 
         // Assert
-        Assert.Contains("- First rationale", output);
-        Assert.Contains("- Second rationale", output);
-        Assert.Contains("- Third rationale", output);
+        Assert.Contains("Score Rationale: First rationale", output);
+        Assert.Contains("Score Rationale: Second rationale", output);
+        Assert.Contains("Score Rationale: Third rationale", output);
     }
-
-    /// <summary>
-    /// WHY: Verifies ToString only shows first hypothesis.
-    /// (The implementation assumes all evaluations are for the same hypothesis)
-    /// </summary>
-    [Fact]
-    public void ToString_WithMultipleEvaluations_OnlyShowsFirstHypothesis()
-    {
-        // Arrange
-        var result = new EvidenceHypothesisEvaluationResult
-        {
-            Evaluations = new List<EvidenceHypothesisEvaluation>
-            {
-                CreateEvaluation("FirstHypothesis"),
-                CreateEvaluation("SecondHypothesis")
-            }
-        };
-
-        // Act
-        var output = result.ToString();
-
-        // Assert - Only checks once for hypothesis section
-        var hypothesisCount = output.Split("Hypothesis:").Length - 1;
-        Assert.Equal(1, hypothesisCount);
-    }
-
     #endregion
 
     #region ToString - Score Type Tests
@@ -395,7 +366,7 @@ public class EvidenceHypothesisEvaluationResultTests
         var output = result.ToString();
 
         // Assert
-        Assert.Contains("- ", output);
+        Assert.Contains("Score Rationale:", output);
     }
 
     /// <summary>
@@ -420,7 +391,7 @@ public class EvidenceHypothesisEvaluationResultTests
         // Assert
         for (int i = 1; i <= 20; i++)
         {
-            Assert.Contains($"- Rationale {i}", output);
+            Assert.Contains($"Score Rationale: Rationale {i}", output);
         }
     }
 

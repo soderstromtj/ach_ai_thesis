@@ -16,8 +16,8 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         public void DisplayExperimentInfo(ExperimentConfiguration experimentConfiguration)
         {
             ArgumentNullException.ThrowIfNull(experimentConfiguration);
-            ArgumentException.ThrowIfNullOrEmpty(experimentConfiguration.Name);
-            ArgumentException.ThrowIfNullOrEmpty(experimentConfiguration.KeyQuestion);
+            ArgumentException.ThrowIfNullOrEmpty(experimentConfiguration.Name?.Trim());
+            ArgumentException.ThrowIfNullOrEmpty(experimentConfiguration.KeyQuestion?.Trim());
 
             Console.WriteLine(experimentConfiguration.ToString());
             Console.WriteLine(new string(Separator, SeparatorLength));
@@ -31,7 +31,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         public void DisplayHypotheses(string title, IEnumerable<Hypothesis> hypotheses)
         {
             ArgumentNullException.ThrowIfNull(hypotheses);
-            ArgumentException.ThrowIfNullOrEmpty(title);
+            ArgumentException.ThrowIfNullOrEmpty(title?.Trim());
 
             Console.WriteLine(new string(Separator, SeparatorLength));
             Console.WriteLine(title);
@@ -50,7 +50,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         public void DisplayEvidence(string title, IEnumerable<Evidence> evidence)
         {
             ArgumentNullException.ThrowIfNull(evidence);
-            ArgumentException.ThrowIfNullOrEmpty(title);
+            ArgumentException.ThrowIfNullOrEmpty(title?.Trim());
 
             Console.WriteLine(new string(Separator, SeparatorLength));
             Console.WriteLine(title);
@@ -70,7 +70,8 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
 
         public void DisplayErrorMessage(string message)
         {
-            ArgumentException.ThrowIfNullOrEmpty(message);
+            ArgumentException.ThrowIfNullOrEmpty(message?.Trim());
+
             Console.WriteLine($"ERROR: {message}");
         }
 

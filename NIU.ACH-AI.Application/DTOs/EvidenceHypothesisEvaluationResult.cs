@@ -8,6 +8,11 @@ namespace NIU.ACH_AI.Application.DTOs
 
         public override string ToString()
         {
+            if (Evaluations == null || !Evaluations.Any())
+            {
+                return "No evaluations available.";
+            }
+
             // Neatly format the evaluations list for display
             return string.Join(Environment.NewLine + Environment.NewLine, Evaluations.Select((e, index) =>
                 $"{index + 1}. {e.ToString()}"));
