@@ -5,8 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
-using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Application.Services;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
@@ -96,6 +96,7 @@ namespace NIU.ACH_AI.FrontendConsole
                 {
                     RegisterExperimentConfigurations(services, context.Configuration);
                     RegisterKernelServices(services);
+                    RegisterOrchestrationServices(services);
                     RegisterLogging(services, context.Configuration);
                     RegisterDBContext(context, services);
                 });
@@ -165,15 +166,14 @@ namespace NIU.ACH_AI.FrontendConsole
                 return;
             }
 
-            // Build a logger factory to pass into each of the agent orchestration services
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            // Get the workflow coordinator from DI container
+            var workflowCoordinator = host.Services.GetRequiredService<IACHWorkflowCoordinator>();
 
-            // Run the first ACH step for this example - Hypothesis Brainstorming
-            Console.WriteLine($"\n{new string('=', 70)}");
-            var achStepConfig = experimentConfig.ACHSteps[0];
+            // Execute the complete workflow
+            var workflowResult = await workflowCoordinator.ExecuteWorkflowAsync(experimentConfig);
 
-            // Build the input for the orchestration
-            var input = new OrchestrationPromptInput
+            // Display results
+            if (workflowResult.Hypotheses != null)
             {
                 KeyQuestion = experimentConfig.KeyQuestion,
                 Context = experimentConfig.Context,
@@ -183,8 +183,7 @@ namespace NIU.ACH_AI.FrontendConsole
             var hypotheses = await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
             consoleResultPresenter.DisplayHypotheses("Initial Hypotheses after Brainstorming Step:", hypotheses);
 
-            // Update the input with the generated hypotheses for the next step
-            input.HypothesisResult = new HypothesisResult
+            if (workflowResult.RefinedHypotheses != null)
             {
                 Hypotheses = hypotheses
             };
@@ -196,11 +195,15 @@ namespace NIU.ACH_AI.FrontendConsole
             Console.WriteLine($"\nRefined Hypotheses after Evaluation Step:");
             DisplayHypotheses(refinedHypotheses);
 
+            Console.WriteLine($"{new string('=', 70)}\n");
+
             // Update the experiment configuration to the next ACH step
             achStepConfig = experimentConfig.ACHSteps[2];
 
             var evidenceList = await ExecuteEvidenceExtractionAsync(host, experimentConfig.ACHSteps[2], input);
             DisplayEvidence(evidenceList);
+
+            Console.WriteLine($"\n{new string('=', 70)}");
 
             // Loop through each evidence and hypothesis and evaluate their relationship
             foreach (var evidence in evidenceList)
@@ -209,24 +212,41 @@ namespace NIU.ACH_AI.FrontendConsole
                 {
                     Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
 
-                    // Update the input object with the current evidence and hypothesis
-                    input.EvidenceResult = new EvidenceResult
-                    {
-                        Evidence = new List<Evidence> { evidence }
-                    };
-                    input.HypothesisResult = new HypothesisResult
-                    {
-                        Hypotheses = new List<Hypothesis> { hypothesis }
-                    };
-
-                    // Evaluate the hypotheses against the evidence
-                    var evaluationResults = await ExecuteEvidenceHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[3], input);
-
-                    // Display the evaluation results
-                    Console.WriteLine("\nEvaluation Results:");
-                    evaluationResults.ToString();
-                }
+            if (workflowResult.Evaluations != null && workflowResult.Evaluations.Count > 0)
+            {
+                Console.WriteLine($"\nEvidence-Hypothesis Evaluations: {workflowResult.Evaluations.Count} total");
             }
+        }
+
+        /// <summary>
+        /// Checks that the experiment configuration has all required fields.
+        /// </summary>
+        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
+        {
+            if (string.IsNullOrWhiteSpace(config.Id))
+            {
+                throw new InvalidOperationException(
+                    "Id is not configured for this experiment. Please add 'Id' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.Name))
+            {
+                throw new InvalidOperationException(
+                    "Name is not configured for this experiment. Please add 'Name' to the experiment settings in appsettings.json.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.Description))
+            {
+                throw new InvalidOperationException(
+                    "Description is not configured for this experiment. Please add 'Description' to the experiment settings in appsettings.json.");
+            }
+
+            if (config.ACHSteps == null || config.ACHSteps.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "No ACH steps are configured for this experiment. Please add at least one ACH step to the experiment settings in appsettings.json.");
+            }
+
         }
 
         /// <summary>
@@ -254,68 +274,6 @@ namespace NIU.ACH_AI.FrontendConsole
             return hypotheses;
         }
 
-        /// <summary>
-        /// Runs the hypothesis evaluation and refinement step and returns a refined list of hypotheses.
-        /// </summary>
-        private static async Task<List<Hypothesis>> ExecuteHypothesisEvaluationAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
-        {
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
-            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
-            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
-            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
-            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
-
-            var hypothesisEvaluationFactory = new HypothesisRefinementOrchestrationFactory(
-                agentService,
-                kernelBuilderService,
-                orchestrationOptions,
-                loggerFactory);
-
-            var refinedHypotheses = await hypothesisEvaluationFactory.ExecuteCoreAsync(input);
-
-            return refinedHypotheses;
-        }
-
-        /// <summary>
-        /// Runs the evidence extraction step and returns the results.
-        /// </summary>
-        private static async Task<List<Evidence>> ExecuteEvidenceExtractionAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
-        {
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
-            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
-            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
-            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
-            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
-
-            var evidenceFactory = new EvidenceExtractionOrchestrationFactory(
-                agentService,
-                kernelBuilderService,
-                orchestrationOptions,
-                loggerFactory);
-
-            var evidenceList = await evidenceFactory.ExecuteCoreAsync(input);
-            return evidenceList;
-        }
-
-        /// <summary>
-        /// Runs the evidence evaluation step and returns the results.
-        /// </summary>
-        private static async Task<List<EvidenceHypothesisEvaluation>> ExecuteEvidenceHypothesisEvaluationAsync(IHost host, ACHStepConfiguration stepConfiguration, OrchestrationPromptInput input)
-        {
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
-            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
-            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
-            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
-            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
-            var evaluationFactory = new EvidenceHypothesisEvaluationOrchestrationFactory(
-                agentService,
-                kernelBuilderService,
-                orchestrationOptions,
-                loggerFactory);
-
-            var evaluationResult = await evaluationFactory.ExecuteCoreAsync(input);
-
-            return evaluationResult;
         }
 
         /// <summary>
@@ -386,6 +344,21 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
+        }
+
+        /// <summary>
+        /// Registers orchestration and workflow services in the container.
+        /// </summary>
+        private static void RegisterOrchestrationServices(IServiceCollection services)
+        {
+            // Register orchestration execution service
+            services.AddSingleton<IOrchestrationExecutor, OrchestrationExecutor>();
+
+            // Register factory provider for creating orchestration factories
+            services.AddSingleton<IOrchestrationFactoryProvider, OrchestrationFactoryProvider>();
+
+            // Register workflow coordinator for managing ACH workflow execution
+            services.AddScoped<IACHWorkflowCoordinator, ACHWorkflowCoordinator>();
         }
 
         /// <summary>
