@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
+using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Application.Services;
 using NIU.ACH_AI.Domain.Entities;
@@ -57,10 +58,16 @@ namespace NIU.ACH_AI.FrontendConsole
             {
                 await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
             }
+            catch (OperationCanceledException)
+            {
+                Environment.ExitCode = 1;
+                Console.Error.WriteLine("\nError: Operation canceled.");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"\nError: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
+                Environment.ExitCode = 1;
+                Console.Error.WriteLine($"\nError: {ex.Message}");
+                Console.Error.WriteLine(ex);
             }
             finally
             {
@@ -74,8 +81,6 @@ namespace NIU.ACH_AI.FrontendConsole
         /// </summary>
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            var experimentIndex = ParseCommandLineArguments(args);
-
             return Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
@@ -157,14 +162,7 @@ namespace NIU.ACH_AI.FrontendConsole
         private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ConsoleResultPresenter consoleResultPresenter)
         {
             // Validate the experiment configuration
-            try
-            {
-                ValidateExperimentConfiguration(experimentConfig);
-            }
-            catch (Exception)
-            {
-                return;
-            }
+            ValidateExperimentConfiguration(experimentConfig);
 
             // Get the workflow coordinator from DI container
             var workflowCoordinator = host.Services.GetRequiredService<IACHWorkflowCoordinator>();
@@ -173,159 +171,7 @@ namespace NIU.ACH_AI.FrontendConsole
             var workflowResult = await workflowCoordinator.ExecuteWorkflowAsync(experimentConfig);
 
             // Display results
-            if (workflowResult.Hypotheses != null)
-            {
-                KeyQuestion = experimentConfig.KeyQuestion,
-                Context = experimentConfig.Context,
-                TaskInstructions = achStepConfig.TaskInstructions,
-            };
-
-            var hypotheses = await ExecuteHypothesisBrainstormingAsync(host, achStepConfig, input);
-            consoleResultPresenter.DisplayHypotheses("Initial Hypotheses after Brainstorming Step:", hypotheses);
-
-            if (workflowResult.RefinedHypotheses != null)
-            {
-                Hypotheses = hypotheses
-            };
-
-            // update the experiment configuration to the next ACH step
-            achStepConfig = experimentConfig.ACHSteps[1];
-
-            var refinedHypotheses = await ExecuteHypothesisEvaluationAsync(host, experimentConfig.ACHSteps[1], input);
-            Console.WriteLine($"\nRefined Hypotheses after Evaluation Step:");
-            DisplayHypotheses(refinedHypotheses);
-
-            Console.WriteLine($"{new string('=', 70)}\n");
-
-            // Update the experiment configuration to the next ACH step
-            achStepConfig = experimentConfig.ACHSteps[2];
-
-            var evidenceList = await ExecuteEvidenceExtractionAsync(host, experimentConfig.ACHSteps[2], input);
-            DisplayEvidence(evidenceList);
-
-            Console.WriteLine($"\n{new string('=', 70)}");
-
-            // Loop through each evidence and hypothesis and evaluate their relationship
-            foreach (var evidence in evidenceList)
-            {
-                foreach (var hypothesis in refinedHypotheses)
-                {
-                    Console.WriteLine($"Evaluating the following evidence and hypothesis:\nEvidence: {evidence.Claim}\nHypothesis: {hypothesis.HypothesisText}");
-
-            if (workflowResult.Evaluations != null && workflowResult.Evaluations.Count > 0)
-            {
-                Console.WriteLine($"\nEvidence-Hypothesis Evaluations: {workflowResult.Evaluations.Count} total");
-            }
-        }
-
-        /// <summary>
-        /// Checks that the experiment configuration has all required fields.
-        /// </summary>
-        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
-        {
-            if (string.IsNullOrWhiteSpace(config.Id))
-            {
-                throw new InvalidOperationException(
-                    "Id is not configured for this experiment. Please add 'Id' to the experiment settings in appsettings.json.");
-            }
-
-            if (string.IsNullOrWhiteSpace(config.Name))
-            {
-                throw new InvalidOperationException(
-                    "Name is not configured for this experiment. Please add 'Name' to the experiment settings in appsettings.json.");
-            }
-
-            if (string.IsNullOrWhiteSpace(config.Description))
-            {
-                throw new InvalidOperationException(
-                    "Description is not configured for this experiment. Please add 'Description' to the experiment settings in appsettings.json.");
-            }
-
-            if (config.ACHSteps == null || config.ACHSteps.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    "No ACH steps are configured for this experiment. Please add at least one ACH step to the experiment settings in appsettings.json.");
-            }
-
-        }
-
-        /// <summary>
-        /// Runs the hypothesis brainstorming step and displays the results.
-        /// </summary>
-        private static async Task<List<Hypothesis>> ExecuteHypothesisBrainstormingAsync(
-            IHost host,
-            ACHStepConfiguration stepConfiguration,
-            OrchestrationPromptInput input)
-        {
-            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
-            var aiServiceSettings = host.Services.GetRequiredService<IOptions<AIServiceSettings>>().Value;
-            var agentService = new AgentService(stepConfiguration.AgentConfigurations, aiServiceSettings, loggerFactory);
-            var kernelBuilderService = host.Services.GetRequiredService<IKernelBuilderService>();
-            var orchestrationOptions = Options.Create(stepConfiguration.OrchestrationSettings);
-
-            var hypothesisFactory = new HypothesisBrainstormingOrchestrationFactory(
-                agentService,
-                kernelBuilderService,
-                orchestrationOptions,
-                loggerFactory);
-
-            var hypotheses = await hypothesisFactory.ExecuteCoreAsync(input);
-
-            return hypotheses;
-        }
-
-        }
-
-        /// <summary>
-        /// Prints the generated hypotheses to the console.
-        /// </summary>
-        private static void DisplayHypotheses(List<Hypothesis> hypotheses)
-        {
-            Console.WriteLine($"\n{new string('=', 70)}");
-            Console.WriteLine("\nGenerated Hypotheses:");
-
-            int hypothesisNum = 1;
-            foreach (var hypothesis in hypotheses)
-            {
-                Console.WriteLine($"\n{hypothesisNum}. {hypothesis.ShortTitle}");
-                Console.WriteLine($"Hypothesis: {hypothesis.HypothesisText}");
-                hypothesisNum++;
-            }
-
-        }
-
-        /// <summary>
-        /// Prints the extracted evidence to the console.
-        /// </summary>
-        private static void DisplayEvidence(List<Evidence> evidence)
-        {
-            Console.WriteLine($"\n{new string('=', 70)}");
-            Console.WriteLine("\nExtracted Evidence:");
-
-            foreach (var item in evidence)
-            {
-                Console.WriteLine(item.ToString());
-                Console.WriteLine();
-                Console.WriteLine(new string('-', 40));
-                Console.WriteLine();
-
-            }
-        }
-
-        /// <summary>
-        /// Extracts the ACH step number and experiment index from command-line arguments.
-        /// </summary>
-        private static int? ParseCommandLineArguments(string[] args)
-        {
-            int? experimentIndex = null;
-
-            if (args.Length >= 1 && int.TryParse(args[0], out int stepNum))
-            {
-                experimentIndex = stepNum;
-                return experimentIndex;
-            }
-
-            return 0;
+            
         }
 
         private static void RegisterExperimentConfigurations(IServiceCollection services, IConfiguration configuration)
