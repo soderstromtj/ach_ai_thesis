@@ -288,7 +288,7 @@ public class ACHWorkflowCoordinatorTests
 
         var expectedEvidence = new List<Evidence>
         {
-            new Evidence { Claim = "Evidence 1", Source = "Source 1" }
+            new Evidence { Claim = "Evidence 1", ReferenceSnippet = "Source 1" }
         };
 
         SetupMockFactory<List<Evidence>>(expectedEvidence);
@@ -321,7 +321,7 @@ public class ACHWorkflowCoordinatorTests
 
         var expectedEvidence = new List<Evidence>
         {
-            new Evidence { Claim = "Evidence", Source = "Source" }
+            new Evidence { Claim = "Evidence", ReferenceSnippet = "Source" }
         };
 
         SetupMockFactory<List<Evidence>>(expectedEvidence);
@@ -365,15 +365,15 @@ public class ACHWorkflowCoordinatorTests
 
         var evidence = new List<Evidence>
         {
-            new Evidence { Claim = "E1", Source = "S1" }
+            new Evidence { Claim = "E1", ReferenceSnippet = "S1" }
         };
 
         var evaluations = new List<EvidenceHypothesisEvaluation>
         {
             new EvidenceHypothesisEvaluation
             {
-                Consistency = "Consistent",
-                Relevance = "High"
+                ScoreRationale = "Consistent with hypothesis",
+                ConfidenceLevel = 0.9m
             }
         };
 
@@ -385,7 +385,7 @@ public class ACHWorkflowCoordinatorTests
         // Assert
         result.Success.Should().BeTrue();
         result.Evaluations.Should().HaveCount(1);
-        result.Evaluations![0].Consistency.Should().Be("Consistent");
+        result.Evaluations![0].ScoreRationale.Should().Be("Consistent with hypothesis");
     }
 
     /// <summary>
@@ -409,12 +409,12 @@ public class ACHWorkflowCoordinatorTests
 
         var evidence = new List<Evidence>
         {
-            new Evidence { Claim = "E1", Source = "S1" }
+            new Evidence { Claim = "E1", ReferenceSnippet = "S1" }
         };
 
         var evaluations = new List<EvidenceHypothesisEvaluation>
         {
-            new EvidenceHypothesisEvaluation { Consistency = "Neutral" }
+            new EvidenceHypothesisEvaluation { ScoreRationale = "Neutral assessment" }
         };
 
         SetupMockFactorySequence(hypotheses, evidence, evaluations);
@@ -450,7 +450,7 @@ public class ACHWorkflowCoordinatorTests
         var evidence = new List<Evidence> { new Evidence { Claim = "E1" } };
         var evaluations = new List<EvidenceHypothesisEvaluation>
         {
-            new EvidenceHypothesisEvaluation { Consistency = "Consistent" }
+            new EvidenceHypothesisEvaluation { ScoreRationale = "Consistent with evidence" }
         };
 
         SetupMockFactorySequence(hypotheses, evidence, evaluations);
@@ -491,7 +491,7 @@ public class ACHWorkflowCoordinatorTests
 
         var singleEvaluation = new List<EvidenceHypothesisEvaluation>
         {
-            new EvidenceHypothesisEvaluation { Consistency = "Consistent" }
+            new EvidenceHypothesisEvaluation { ScoreRationale = "Evaluation result" }
         };
 
         SetupMockFactorySequence(hypotheses, evidence, singleEvaluation);
@@ -529,7 +529,7 @@ public class ACHWorkflowCoordinatorTests
         var evidence = new List<Evidence> { new Evidence { Claim = "E1" } };
         var evaluations = new List<EvidenceHypothesisEvaluation>
         {
-            new EvidenceHypothesisEvaluation { Consistency = "Consistent" }
+            new EvidenceHypothesisEvaluation { ScoreRationale = "Evaluation complete" }
         };
 
         SetupMockFactorySequence(hypotheses, refinedHypotheses, evidence, evaluations);
