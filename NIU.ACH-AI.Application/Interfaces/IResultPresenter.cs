@@ -1,4 +1,5 @@
 ﻿using NIU.ACH_AI.Application.Configuration;
+using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Domain.Entities;
 
 namespace NIU.ACH_AI.Application.Interfaces
@@ -10,5 +11,6 @@ namespace NIU.ACH_AI.Application.Interfaces
         void DisplayEvidence(string title, IEnumerable<Evidence> evidence);
         void DisplayEvaluation(EvidenceHypothesisEvaluation evaluation);
         void DisplayErrorMessage(string message);
+        void DisplayWorkflowResult(ACHWorkflowResult result);
     }
 }

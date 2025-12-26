@@ -56,7 +56,8 @@ namespace NIU.ACH_AI.FrontendConsole
             // Attempt to run the orchestration workflow
             try
             {
-                await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
+                var workflowResult = await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
+                consolePresenter.DisplayWorkflowResult(workflowResult);
             }
             catch (OperationCanceledException)
             {
@@ -159,7 +160,7 @@ namespace NIU.ACH_AI.FrontendConsole
         /// </summary>
         /// <param name="host">The application host.</param>
         /// <param name="experimentConfig">The configuration for the experiment.</param>
-        private static async Task RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ConsoleResultPresenter consoleResultPresenter)
+        private static async Task<ACHWorkflowResult> RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ConsoleResultPresenter consoleResultPresenter)
         {
             // Validate the experiment configuration
             ValidateExperimentConfiguration(experimentConfig);
@@ -170,8 +171,7 @@ namespace NIU.ACH_AI.FrontendConsole
             // Execute the complete workflow
             var workflowResult = await workflowCoordinator.ExecuteWorkflowAsync(experimentConfig);
 
-            // Display results
-            
+            return workflowResult;
         }
 
         private static void RegisterExperimentConfigurations(IServiceCollection services, IConfiguration configuration)

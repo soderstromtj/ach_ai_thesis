@@ -1,4 +1,5 @@
 ﻿using NIU.ACH_AI.Application.Configuration;
+using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
 
@@ -75,5 +76,22 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
             Console.WriteLine($"ERROR: {message}");
         }
 
+        public void DisplayWorkflowResult(ACHWorkflowResult result)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+
+            // Display results
+            Console.WriteLine("\n=== Orchestration Workflow Completed ===\n");
+            if (result.Success)
+            {
+                DisplayHypotheses("Initial Hypotheses:", result.Hypotheses ?? []);
+                DisplayHypotheses("Refined Hypotheses:", result.RefinedHypotheses ?? []);
+                DisplayEvidence("Extracted Evidence:", result.Evidence ?? []);
+            }
+            else
+            {
+                Console.WriteLine($"Workflow failed with error: {result.ErrorMessage}");
+            }
+        }
     }
 }
