@@ -60,9 +60,11 @@ public class EvidenceHypothesisEvaluationMapperTests
     }
 
     [Theory]
-    [InlineData(EvaluationScore.Consistent, 0)]
-    [InlineData(EvaluationScore.Inconsistent, 1)]
-    [InlineData(EvaluationScore.Neutral, 2)]
+    [InlineData(EvaluationScore.VeryConsistent, 2)]
+    [InlineData(EvaluationScore.Consistent, 1)]
+    [InlineData(EvaluationScore.Neutral, 0)]
+    [InlineData(EvaluationScore.Inconsistent, -1)]
+    [InlineData(EvaluationScore.VeryInconsistent, -2)]
     public void ToDatabase_WithDifferentScores_MapsCorrectly(EvaluationScore score, int expectedId)
     {
         // Arrange
@@ -326,9 +328,11 @@ public class EvidenceHypothesisEvaluationMapperTests
     }
 
     [Theory]
-    [InlineData(0, EvaluationScore.Consistent)]
-    [InlineData(1, EvaluationScore.Inconsistent)]
-    [InlineData(2, EvaluationScore.Neutral)]
+    [InlineData(2, EvaluationScore.VeryConsistent)]
+    [InlineData(1, EvaluationScore.Consistent)]
+    [InlineData(0, EvaluationScore.Neutral)]
+    [InlineData(-1, EvaluationScore.Inconsistent)]
+    [InlineData(-2, EvaluationScore.VeryInconsistent)]
     public void ToDomain_WithDifferentScoreIds_MapsCorrectly(int scoreId, EvaluationScore expectedScore)
     {
         // Arrange

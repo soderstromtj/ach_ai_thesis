@@ -51,7 +51,7 @@ public class ACHWorkflowCoordinatorTests
         _mockLogger = new Mock<ILogger<ACHWorkflowCoordinator>>();
 
         _mockLoggerFactory
-            .Setup(x => x.CreateLogger<ACHWorkflowCoordinator>())
+            .Setup(x => x.CreateLogger(It.IsAny<string>()))
             .Returns(_mockLogger.Object);
 
         _mockWorkflowPersistence

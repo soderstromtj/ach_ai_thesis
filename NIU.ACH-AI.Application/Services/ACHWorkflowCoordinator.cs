@@ -23,6 +23,12 @@ namespace NIU.ACH_AI.Application.Services
             IWorkflowPersistence workflowPersistence,
             ILoggerFactory loggerFactory)
         {
+            // Check if dependencies are null
+            ArgumentNullException.ThrowIfNull(orchestrationExecutor);
+            ArgumentNullException.ThrowIfNull(factoryProvider);
+            ArgumentNullException.ThrowIfNull(workflowPersistence);
+            ArgumentNullException.ThrowIfNull(loggerFactory);
+
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
             _workflowPersistence = workflowPersistence;
