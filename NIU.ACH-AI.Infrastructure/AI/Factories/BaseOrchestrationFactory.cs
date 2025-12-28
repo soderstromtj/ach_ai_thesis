@@ -171,9 +171,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 var chunk = response.Content ?? string.Empty;
 
                 // Append chunk into per-agent buffer
-                // Note: ConcurrentDictionary is thread-safe, but StringBuilder is NOT.
-                // We must synchronize access to the StringBuilder to prevent corruption
-                // when multiple threads append concurrently.
                 var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
                 lock (buffer)
                 {
