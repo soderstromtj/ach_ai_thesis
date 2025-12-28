@@ -17,8 +17,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         IAgentService agentService,
         IKernelBuilderService kernelBuilderService,
         IOptions<OrchestrationSettings> orchestrationSettings,
-        ILoggerFactory loggerFactory)
-        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
+        ILoggerFactory loggerFactory,
+        IAgentResponsePersistence? agentResponsePersistence = null)
+        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
     {
         protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
         {

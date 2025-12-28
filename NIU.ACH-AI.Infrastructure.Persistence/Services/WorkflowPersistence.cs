@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
-using NIU.ACH_AI.Infrastructure.Persistence.Models;
+using DbModel = NIU.ACH_AI.Infrastructure.Persistence.Models;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 {
@@ -13,12 +13,12 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     /// </summary>
     public class WorkflowPersistence : IWorkflowPersistence
     {
-        private readonly AchAIDbContext _context;
+        private readonly DbModel.AchAIDbContext _context;
 
         /// <summary>
         /// Creates a persistence service using the ACH AI database context.
         /// </summary>
-        public WorkflowPersistence(AchAIDbContext context)
+        public WorkflowPersistence(DbModel.AchAIDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
@@ -33,7 +33,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Scenario context must be provided.", nameof(context));
             }
 
-            var scenario = new Scenario
+            var scenario = new DbModel.Scenario
             {
                 ScenarioId = Guid.NewGuid(),
                 Context = context
@@ -66,7 +66,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Scenario ID must be provided.", nameof(scenarioId));
             }
 
-            var experiment = new Experiment
+            var experiment = new DbModel.Experiment
             {
                 ExperimentId = Guid.NewGuid(),
                 ExperimentName = configuration.Name,
@@ -104,7 +104,11 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Experiment ID must be provided.", nameof(experimentId));
             }
 
-            var stepExecution = new StepExecution
+            Guid? orchestrationTypeId = await ResolveOrchestrationTypeIdAsync(
+                stepConfiguration.Name,
+                cancellationToken);
+
+            var stepExecution = new DbModel.StepExecution
             {
                 StepExecutionId = Guid.NewGuid(),
                 ExperimentId = experimentId,
@@ -112,6 +116,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 AchStepName = stepConfiguration.Name,
                 Description = stepConfiguration.Description,
                 TaskInstructions = stepConfiguration.TaskInstructions,
+                OrchestrationTypeId = orchestrationTypeId,
                 ExecutionStatus = "NotStarted",
                 RetryCount = 0
             };
@@ -202,6 +207,31 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             {
                 throw new InvalidOperationException("Failed to update step execution status.", ex);
             }
+        }
+
+        private async Task<Guid?> ResolveOrchestrationTypeIdAsync(
+            string stepName,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(stepName))
+            {
+                return null;
+            }
+
+            var description = stepName.ToLowerInvariant() switch
+            {
+                "hypothesis refinement" or "hypothesisrefinement" or "hypothesis evaluation" or "hypothesisevaluation"
+                    => "Sequential",
+                _ => "Parallel"
+            };
+
+            var orchestrationTypeId = await _context.OrchestrationTypes
+                .AsNoTracking()
+                .Where(t => t.Description.ToLower() == description.ToLower())
+                .Select(t => t.OrchestrationTypeId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return orchestrationTypeId == Guid.Empty ? null : orchestrationTypeId;
         }
     }
 }

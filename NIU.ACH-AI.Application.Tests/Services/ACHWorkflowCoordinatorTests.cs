@@ -38,6 +38,8 @@ public class ACHWorkflowCoordinatorTests
     private readonly Mock<IOrchestrationExecutor> _mockOrchestrationExecutor;
     private readonly Mock<IOrchestrationFactoryProvider> _mockFactoryProvider;
     private readonly Mock<IWorkflowPersistence> _mockWorkflowPersistence;
+    private readonly Mock<IAgentConfigurationPersistence> _mockAgentConfigurationPersistence;
+    private readonly Mock<IWorkflowResultPersistence> _mockWorkflowResultPersistence;
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
     private readonly Mock<ILogger<ACHWorkflowCoordinator>> _mockLogger;
     private readonly ACHWorkflowCoordinator _coordinator;
@@ -47,6 +49,8 @@ public class ACHWorkflowCoordinatorTests
         _mockOrchestrationExecutor = new Mock<IOrchestrationExecutor>();
         _mockFactoryProvider = new Mock<IOrchestrationFactoryProvider>();
         _mockWorkflowPersistence = new Mock<IWorkflowPersistence>();
+        _mockAgentConfigurationPersistence = new Mock<IAgentConfigurationPersistence>();
+        _mockWorkflowResultPersistence = new Mock<IWorkflowResultPersistence>();
         _mockLoggerFactory = new Mock<ILoggerFactory>();
         _mockLogger = new Mock<ILogger<ACHWorkflowCoordinator>>();
 
@@ -82,10 +86,41 @@ public class ACHWorkflowCoordinatorTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
+        _mockAgentConfigurationPersistence
+            .Setup(x => x.CreateAgentConfigurationsAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<AgentConfiguration>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase));
+
+        _mockWorkflowResultPersistence
+            .Setup(x => x.SaveHypothesesAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<Hypothesis>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockWorkflowResultPersistence
+            .Setup(x => x.SaveEvidenceAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<Evidence>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockWorkflowResultPersistence
+            .Setup(x => x.SaveEvaluationsAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EvidenceHypothesisEvaluation>>(),
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _coordinator = new ACHWorkflowCoordinator(
             _mockOrchestrationExecutor.Object,
             _mockFactoryProvider.Object,
             _mockWorkflowPersistence.Object,
+            _mockAgentConfigurationPersistence.Object,
+            _mockWorkflowResultPersistence.Object,
             _mockLoggerFactory.Object);
     }
 
@@ -103,6 +138,8 @@ public class ACHWorkflowCoordinatorTests
                 null!,
                 _mockFactoryProvider.Object,
                 _mockWorkflowPersistence.Object,
+                _mockAgentConfigurationPersistence.Object,
+                _mockWorkflowResultPersistence.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("orchestrationExecutor");
     }
@@ -119,6 +156,8 @@ public class ACHWorkflowCoordinatorTests
                 _mockOrchestrationExecutor.Object,
                 null!,
                 _mockWorkflowPersistence.Object,
+                _mockAgentConfigurationPersistence.Object,
+                _mockWorkflowResultPersistence.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("factoryProvider");
     }
@@ -135,6 +174,8 @@ public class ACHWorkflowCoordinatorTests
                 _mockOrchestrationExecutor.Object,
                 _mockFactoryProvider.Object,
                 _mockWorkflowPersistence.Object,
+                _mockAgentConfigurationPersistence.Object,
+                _mockWorkflowResultPersistence.Object,
                 null!));
         exception.ParamName.Should().Be("loggerFactory");
     }
@@ -150,6 +191,8 @@ public class ACHWorkflowCoordinatorTests
             _mockOrchestrationExecutor.Object,
             _mockFactoryProvider.Object,
             _mockWorkflowPersistence.Object,
+            _mockAgentConfigurationPersistence.Object,
+            _mockWorkflowResultPersistence.Object,
             _mockLoggerFactory.Object);
 
         // Assert

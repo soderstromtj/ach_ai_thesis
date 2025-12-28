@@ -15,23 +15,31 @@ namespace NIU.ACH_AI.Application.Services
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IOrchestrationFactoryProvider _factoryProvider;
         private readonly IWorkflowPersistence _workflowPersistence;
+        private readonly IAgentConfigurationPersistence _agentConfigurationPersistence;
+        private readonly IWorkflowResultPersistence _workflowResultPersistence;
         private readonly ILogger<ACHWorkflowCoordinator> _logger;
 
         public ACHWorkflowCoordinator(
             IOrchestrationExecutor orchestrationExecutor,
             IOrchestrationFactoryProvider factoryProvider,
             IWorkflowPersistence workflowPersistence,
+            IAgentConfigurationPersistence agentConfigurationPersistence,
+            IWorkflowResultPersistence workflowResultPersistence,
             ILoggerFactory loggerFactory)
         {
             // Check if dependencies are null
             ArgumentNullException.ThrowIfNull(orchestrationExecutor);
             ArgumentNullException.ThrowIfNull(factoryProvider);
             ArgumentNullException.ThrowIfNull(workflowPersistence);
+            ArgumentNullException.ThrowIfNull(agentConfigurationPersistence);
+            ArgumentNullException.ThrowIfNull(workflowResultPersistence);
             ArgumentNullException.ThrowIfNull(loggerFactory);
 
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
             _workflowPersistence = workflowPersistence;
+            _agentConfigurationPersistence = agentConfigurationPersistence;
+            _workflowResultPersistence = workflowResultPersistence;
             _logger = loggerFactory.CreateLogger<ACHWorkflowCoordinator>();
         }
 
@@ -62,6 +70,10 @@ namespace NIU.ACH_AI.Application.Services
                     Context = experimentConfig.Context
                 };
 
+                Guid? hypothesisStepExecutionId = null;
+                Guid? refinedHypothesisStepExecutionId = null;
+                Guid? evidenceStepExecutionId = null;
+
                 // Execute each ACH step in sequence
                 foreach (var step in experimentConfig.ACHSteps)
                 {
@@ -74,6 +86,13 @@ namespace NIU.ACH_AI.Application.Services
                         experimentId,
                         step,
                         cancellationToken);
+
+                    var agentConfigurationIds = await _agentConfigurationPersistence.CreateAgentConfigurationsAsync(
+                        stepExecutionContext.StepExecutionId,
+                        step.AgentConfigurations,
+                        cancellationToken);
+
+                    stepExecutionContext.AgentConfigurationIds = agentConfigurationIds;
                     var stepStart = DateTime.UtcNow;
                     await _workflowPersistence.UpdateStepExecutionStatusAsync(
                         stepExecutionContext.StepExecutionId,
@@ -87,7 +106,30 @@ namespace NIU.ACH_AI.Application.Services
                     // Execute the appropriate step based on configuration
                     try
                     {
-                        await ExecuteStepAsync(step, input, result, stepExecutionContext, cancellationToken);
+                        await ExecuteStepAsync(
+                            step,
+                            input,
+                            result,
+                            stepExecutionContext,
+                            refinedHypothesisStepExecutionId ?? hypothesisStepExecutionId,
+                            evidenceStepExecutionId,
+                            cancellationToken);
+
+                        var stepName = step.Name.ToLowerInvariant();
+                        switch (stepName)
+                        {
+                            case "hypothesis brainstorming" or "hypothesisbrainstorming":
+                                hypothesisStepExecutionId = stepExecutionContext.StepExecutionId;
+                                break;
+
+                            case "hypothesis evaluation" or "hypothesisevaluation" or "hypothesis refinement" or "hypothesisrefinement":
+                                refinedHypothesisStepExecutionId = stepExecutionContext.StepExecutionId;
+                                break;
+
+                            case "evidence extraction" or "evidenceextraction":
+                                evidenceStepExecutionId = stepExecutionContext.StepExecutionId;
+                                break;
+                        }
                         await _workflowPersistence.UpdateStepExecutionStatusAsync(
                             stepExecutionContext.StepExecutionId,
                             "Completed",
@@ -129,6 +171,8 @@ namespace NIU.ACH_AI.Application.Services
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
             StepExecutionContext stepExecutionContext,
+            Guid? hypothesisStepExecutionId,
+            Guid? evidenceStepExecutionId,
             CancellationToken cancellationToken)
         {
             var stepName = stepConfig.Name.ToLowerInvariant();
@@ -148,7 +192,14 @@ namespace NIU.ACH_AI.Application.Services
                     break;
 
                 case "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation":
-                    await ExecuteEvidenceHypothesisEvaluationAsync(stepConfig, input, workflowResult, stepExecutionContext, cancellationToken);
+                    await ExecuteEvidenceHypothesisEvaluationAsync(
+                        stepConfig,
+                        input,
+                        workflowResult,
+                        stepExecutionContext,
+                        hypothesisStepExecutionId,
+                        evidenceStepExecutionId,
+                        cancellationToken);
                     break;
 
                 default:
@@ -178,6 +229,12 @@ namespace NIU.ACH_AI.Application.Services
             workflowResult.Hypotheses = hypotheses;
             input.HypothesisResult = new HypothesisResult { Hypotheses = hypotheses };
 
+            await _workflowResultPersistence.SaveHypothesesAsync(
+                stepExecutionContext.StepExecutionId,
+                hypotheses,
+                isRefined: false,
+                cancellationToken: cancellationToken);
+
             _logger.LogInformation($"Generated {hypotheses.Count} hypotheses");
         }
 
@@ -201,6 +258,12 @@ namespace NIU.ACH_AI.Application.Services
             // Update workflow result and input for next step
             workflowResult.RefinedHypotheses = refinedHypotheses;
             input.HypothesisResult = new HypothesisResult { Hypotheses = refinedHypotheses };
+
+            await _workflowResultPersistence.SaveHypothesesAsync(
+                stepExecutionContext.StepExecutionId,
+                refinedHypotheses,
+                isRefined: true,
+                cancellationToken: cancellationToken);
 
             _logger.LogInformation($"Refined to {refinedHypotheses.Count} hypotheses");
         }
@@ -226,6 +289,11 @@ namespace NIU.ACH_AI.Application.Services
             workflowResult.Evidence = evidence;
             input.EvidenceResult = new EvidenceResult { Evidence = evidence };
 
+            await _workflowResultPersistence.SaveEvidenceAsync(
+                stepExecutionContext.StepExecutionId,
+                evidence,
+                cancellationToken: cancellationToken);
+
             _logger.LogInformation($"Extracted {evidence.Count} pieces of evidence");
         }
 
@@ -238,9 +306,23 @@ namespace NIU.ACH_AI.Application.Services
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
             StepExecutionContext stepExecutionContext,
+            Guid? hypothesisStepExecutionId,
+            Guid? evidenceStepExecutionId,
             CancellationToken cancellationToken)
         {
             var evaluations = new List<EvidenceHypothesisEvaluation>();
+
+            if (hypothesisStepExecutionId == null || hypothesisStepExecutionId == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "Hypothesis step execution ID is required before evidence-hypothesis evaluation.");
+            }
+
+            if (evidenceStepExecutionId == null || evidenceStepExecutionId == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "Evidence step execution ID is required before evidence-hypothesis evaluation.");
+            }
 
             // Use refined hypotheses if available, otherwise use initial hypotheses
             var hypothesesToEvaluate = workflowResult.RefinedHypotheses ?? workflowResult.Hypotheses ?? new List<Hypothesis>();
@@ -281,6 +363,12 @@ namespace NIU.ACH_AI.Application.Services
             }
 
             workflowResult.Evaluations = evaluations;
+            await _workflowResultPersistence.SaveEvaluationsAsync(
+                stepExecutionContext.StepExecutionId,
+                evaluations,
+                hypothesisStepExecutionId.Value,
+                evidenceStepExecutionId.Value,
+                cancellationToken);
             _logger.LogInformation($"Completed {evaluations.Count} evidence-hypothesis evaluations");
         }
     }

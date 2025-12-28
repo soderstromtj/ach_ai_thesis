@@ -123,6 +123,9 @@ namespace NIU.ACH_AI.FrontendConsole
             services.AddScoped<IHypothesisRepository, HypothesisRepository>();
             services.AddScoped<IEvidenceRepository, EvidenceRepository>();
             services.AddScoped<IEvidenceHypothesisEvaluationRepository, EvidenceHypothesisEvaluationRepository>();
+            services.AddScoped<IAgentConfigurationPersistence, AgentConfigurationPersistence>();
+            services.AddScoped<IAgentResponsePersistence, AgentResponsePersistence>();
+            services.AddScoped<IWorkflowResultPersistence, WorkflowResultPersistence>();
             services.AddScoped<IWorkflowPersistence, WorkflowPersistence>();
         }
 

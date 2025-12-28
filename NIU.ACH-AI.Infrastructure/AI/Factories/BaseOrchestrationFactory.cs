@@ -33,6 +33,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         protected readonly ChatHistory _history;
         protected readonly ILogger _logger;
         protected readonly ILoggerFactory _loggerFactory;
+        private readonly IAgentResponsePersistence? _agentResponsePersistence;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
@@ -45,7 +46,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IAgentResponsePersistence? agentResponsePersistence = null)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
@@ -53,6 +55,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _history = new ChatHistory();
             _loggerFactory = loggerFactory;
             _logger = CreateLogger(loggerFactory);
+            _agentResponsePersistence = agentResponsePersistence;
         }
 
         public async Task<TResult> ExecuteCoreAsync(
@@ -165,6 +168,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         #region Protected Callbacks
         protected async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
+            if (isFinal)
+            {
+                // capture metadata
+                Console.WriteLine(response.Metadata);
+            }
+
             if (_orchestrationSettings.StreamResponses)
             {
                 var agentName = response.AuthorName ?? "Unknown";
@@ -204,7 +213,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             });
         }
 
-        protected ValueTask ResponseCallback(ChatMessageContent response)
+        protected async ValueTask ResponseCallback(ChatMessageContent response)
         {
             _history.Add(response);
             _currentTurn++;
@@ -240,7 +249,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             // Start timer for next response
             _responseStopwatch.Restart();
 
-            // Future TODO: Store or process response metrics as needed
+            if (_agentResponsePersistence != null && _stepExecutionContext != null)
+            {
+                await PersistAgentResponseAsync(response, agentName, content, tokenCount, responseDuration);
+            }
 
             // Optionally write response to console
             if (_orchestrationSettings.WriteResponses)
@@ -251,7 +263,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             _logger.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
-            return ValueTask.CompletedTask;
+            return;
         }
         #endregion
 
@@ -309,6 +321,58 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// </summary>
         protected abstract string GetAgentSelectionReason(string? previousAgentName);
         #endregion
+
+        private async Task PersistAgentResponseAsync(
+            ChatMessageContent response,
+            string agentName,
+            string content,
+            int? outputTokenCount,
+            long responseDuration)
+        {
+            if (_stepExecutionContext == null)
+            {
+                return;
+            }
+
+            if (!_stepExecutionContext.AgentConfigurationIds.TryGetValue(agentName, out var agentConfigurationId))
+            {
+                _logger.LogWarning(
+                    $"Class: {GetType().Name}\tMessage: Agent configuration ID not found for agent '{agentName}'. Skipping response persistence.");
+                return;
+            }
+
+            int? inputTokenCount = null;
+            if (response.Metadata != null &&
+                response.Metadata.TryGetValue("InputTokenCount", out var inputTokenCountObj) &&
+                inputTokenCountObj is int inputTokenCountValue)
+            {
+                inputTokenCount = inputTokenCountValue;
+            }
+
+            var record = new AgentResponseRecord
+            {
+                StepExecutionId = _stepExecutionContext.StepExecutionId,
+                AgentConfigurationId = agentConfigurationId,
+                AgentName = agentName,
+                InputTokenCount = inputTokenCount,
+                OutputTokenCount = outputTokenCount,
+                ContentLength = content.Length,
+                Content = content,
+                TurnNumber = _currentTurn,
+                ResponseDuration = responseDuration
+            };
+
+            try
+            {
+                await _agentResponsePersistence!.SaveAgentResponseAsync(record, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    $"Class: {GetType().Name}\tMessage: Failed to persist agent response for agent '{agentName}'.");
+            }
+        }
     }
 }
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

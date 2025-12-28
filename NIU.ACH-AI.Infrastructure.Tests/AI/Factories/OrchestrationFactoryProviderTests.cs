@@ -53,7 +53,11 @@ public class OrchestrationFactoryProviderTests
             .Setup(e => e.GetLoggerFactory())
             .Returns(loggerFactoryMock.Object);
 
-        return new OrchestrationFactoryProvider(executorMock.Object);
+        var agentResponsePersistenceMock = new Mock<IAgentResponsePersistence>();
+
+        return new OrchestrationFactoryProvider(
+            executorMock.Object,
+            agentResponsePersistenceMock.Object);
     }
 
     private static ACHStepConfiguration CreateStep(string name)
