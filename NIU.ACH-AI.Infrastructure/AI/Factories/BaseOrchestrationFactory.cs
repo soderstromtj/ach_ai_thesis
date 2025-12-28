@@ -36,6 +36,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
+        private StepExecutionContext? _stepExecutionContext;
 
         // Buffer streaming chunks per agent to allow assembling partials before final arrives.
         private readonly ConcurrentDictionary<string, StringBuilder> _streamBuffers = new();
@@ -54,8 +55,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _logger = CreateLogger(loggerFactory);
         }
 
-        public async Task<TResult> ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken = default)
+        public async Task<TResult> ExecuteCoreAsync(
+            OrchestrationPromptInput input,
+            StepExecutionContext? stepExecutionContext = null,
+            CancellationToken cancellationToken = default)
         {
+            _stepExecutionContext = stepExecutionContext;
+            if (_stepExecutionContext != null)
+            {
+                _logger.LogDebug(
+                    $"Class: {GetType().Name}\tMessage: Step execution context set. StepExecutionId: {_stepExecutionContext.StepExecutionId}.");
+            }
+
             // Create agents to be used in orchestration
             IEnumerable<Agent> agents = _agentService.CreateAgents();
 

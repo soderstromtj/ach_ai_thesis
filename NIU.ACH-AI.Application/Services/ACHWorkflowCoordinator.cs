@@ -14,15 +14,18 @@ namespace NIU.ACH_AI.Application.Services
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IOrchestrationFactoryProvider _factoryProvider;
+        private readonly IWorkflowPersistence _workflowPersistence;
         private readonly ILogger<ACHWorkflowCoordinator> _logger;
 
         public ACHWorkflowCoordinator(
             IOrchestrationExecutor orchestrationExecutor,
             IOrchestrationFactoryProvider factoryProvider,
+            IWorkflowPersistence workflowPersistence,
             ILoggerFactory loggerFactory)
         {
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
+            _workflowPersistence = workflowPersistence;
             _logger = loggerFactory.CreateLogger<ACHWorkflowCoordinator>();
         }
 
@@ -43,6 +46,9 @@ namespace NIU.ACH_AI.Application.Services
 
             try
             {
+                var scenarioId = await _workflowPersistence.CreateScenarioAsync(experimentConfig.Context, cancellationToken);
+                var experimentId = await _workflowPersistence.CreateExperimentAsync(experimentConfig, scenarioId, cancellationToken);
+
                 // Build the base input from experiment configuration
                 var input = new OrchestrationPromptInput
                 {
@@ -58,11 +64,41 @@ namespace NIU.ACH_AI.Application.Services
                     Console.WriteLine($"Executing Step {step.Id}: {step.Name}");
                     Console.WriteLine(new string('=', 70));
 
+                    var stepExecutionContext = await _workflowPersistence.CreateStepExecutionAsync(
+                        experimentId,
+                        step,
+                        cancellationToken);
+                    var stepStart = DateTime.UtcNow;
+                    await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                        stepExecutionContext.StepExecutionId,
+                        "Running",
+                        start: stepStart,
+                        cancellationToken: cancellationToken);
+
                     // Update task instructions for current step
                     input.TaskInstructions = step.TaskInstructions;
 
                     // Execute the appropriate step based on configuration
-                    await ExecuteStepAsync(step, input, result, cancellationToken);
+                    try
+                    {
+                        await ExecuteStepAsync(step, input, result, stepExecutionContext, cancellationToken);
+                        await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                            stepExecutionContext.StepExecutionId,
+                            "Completed",
+                            end: DateTime.UtcNow,
+                            cancellationToken: cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                            stepExecutionContext.StepExecutionId,
+                            "Failed",
+                            end: DateTime.UtcNow,
+                            errorType: ex.GetType().Name,
+                            errorMessage: ex.Message,
+                            cancellationToken: cancellationToken);
+                        throw;
+                    }
                 }
 
                 result.Success = true;
@@ -86,6 +122,7 @@ namespace NIU.ACH_AI.Application.Services
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
+            StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
             var stepName = stepConfig.Name.ToLowerInvariant();
@@ -93,19 +130,19 @@ namespace NIU.ACH_AI.Application.Services
             switch (stepName)
             {
                 case "hypothesis brainstorming" or "hypothesisbrainstorming":
-                    await ExecuteHypothesisBrainstormingAsync(stepConfig, input, workflowResult, cancellationToken);
+                    await ExecuteHypothesisBrainstormingAsync(stepConfig, input, workflowResult, stepExecutionContext, cancellationToken);
                     break;
 
                 case "hypothesis evaluation" or "hypothesisevaluation" or "hypothesis refinement" or "hypothesisrefinement":
-                    await ExecuteHypothesisRefinementAsync(stepConfig, input, workflowResult, cancellationToken);
+                    await ExecuteHypothesisRefinementAsync(stepConfig, input, workflowResult, stepExecutionContext, cancellationToken);
                     break;
 
                 case "evidence extraction" or "evidenceextraction":
-                    await ExecuteEvidenceExtractionAsync(stepConfig, input, workflowResult, cancellationToken);
+                    await ExecuteEvidenceExtractionAsync(stepConfig, input, workflowResult, stepExecutionContext, cancellationToken);
                     break;
 
                 case "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation":
-                    await ExecuteEvidenceHypothesisEvaluationAsync(stepConfig, input, workflowResult, cancellationToken);
+                    await ExecuteEvidenceHypothesisEvaluationAsync(stepConfig, input, workflowResult, stepExecutionContext, cancellationToken);
                     break;
 
                 default:
@@ -121,10 +158,15 @@ namespace NIU.ACH_AI.Application.Services
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
+            StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
             var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(stepConfig);
-            var hypotheses = await _orchestrationExecutor.ExecuteAsync(factory, input, cancellationToken);
+            var hypotheses = await _orchestrationExecutor.ExecuteAsync(
+                factory,
+                input,
+                stepExecutionContext,
+                cancellationToken);
 
             // Update workflow result and input for next step
             workflowResult.Hypotheses = hypotheses;
@@ -140,10 +182,15 @@ namespace NIU.ACH_AI.Application.Services
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
+            StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
             var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(stepConfig);
-            var refinedHypotheses = await _orchestrationExecutor.ExecuteAsync(factory, input, cancellationToken);
+            var refinedHypotheses = await _orchestrationExecutor.ExecuteAsync(
+                factory,
+                input,
+                stepExecutionContext,
+                cancellationToken);
 
             // Update workflow result and input for next step
             workflowResult.RefinedHypotheses = refinedHypotheses;
@@ -159,10 +206,15 @@ namespace NIU.ACH_AI.Application.Services
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
+            StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
             var factory = _factoryProvider.CreateFactory<List<Evidence>>(stepConfig);
-            var evidence = await _orchestrationExecutor.ExecuteAsync(factory, input, cancellationToken);
+            var evidence = await _orchestrationExecutor.ExecuteAsync(
+                factory,
+                input,
+                stepExecutionContext,
+                cancellationToken);
 
             // Update workflow result and input for next step
             workflowResult.Evidence = evidence;
@@ -179,6 +231,7 @@ namespace NIU.ACH_AI.Application.Services
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
             ACHWorkflowResult workflowResult,
+            StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
             var evaluations = new List<EvidenceHypothesisEvaluation>();
@@ -211,7 +264,11 @@ namespace NIU.ACH_AI.Application.Services
                     };
 
                     var factory = _factoryProvider.CreateFactory<List<EvidenceHypothesisEvaluation>>(stepConfig);
-                    var evaluationResults = await _orchestrationExecutor.ExecuteAsync(factory, evaluationInput, cancellationToken);
+                    var evaluationResults = await _orchestrationExecutor.ExecuteAsync(
+                        factory,
+                        evaluationInput,
+                        stepExecutionContext,
+                        cancellationToken);
 
                     evaluations.AddRange(evaluationResults);
                 }

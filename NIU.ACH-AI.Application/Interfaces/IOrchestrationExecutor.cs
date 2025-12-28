@@ -16,6 +16,7 @@ namespace NIU.ACH_AI.Application.Interfaces
         Task<TResult> ExecuteAsync<TResult>(
             IOrchestrationFactory<TResult> factory,
             OrchestrationPromptInput input,
+            StepExecutionContext? stepExecutionContext = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>

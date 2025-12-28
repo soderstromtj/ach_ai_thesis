@@ -4,6 +4,9 @@ namespace NIU.ACH_AI.Application.Interfaces
 {
     public interface IOrchestrationFactory<TResult>
     {
-        Task<TResult> ExecuteCoreAsync(OrchestrationPromptInput input, CancellationToken cancellationToken = default);
+        Task<TResult> ExecuteCoreAsync(
+            OrchestrationPromptInput input,
+            StepExecutionContext? stepExecutionContext = null,
+            CancellationToken cancellationToken = default);
     }
 }

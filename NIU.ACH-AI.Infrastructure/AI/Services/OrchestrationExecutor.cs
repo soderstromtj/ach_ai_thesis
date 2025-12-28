@@ -45,12 +45,13 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         public async Task<TResult> ExecuteAsync<TResult>(
             IOrchestrationFactory<TResult> factory,
             OrchestrationPromptInput input,
+            StepExecutionContext? stepExecutionContext = null,
             CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation($"Executing orchestration factory: {factory.GetType().Name}");
-                var result = await factory.ExecuteCoreAsync(input, cancellationToken);
+                var result = await factory.ExecuteCoreAsync(input, stepExecutionContext, cancellationToken);
                 _logger.LogInformation($"Successfully completed orchestration factory: {factory.GetType().Name}");
                 return result;
             }

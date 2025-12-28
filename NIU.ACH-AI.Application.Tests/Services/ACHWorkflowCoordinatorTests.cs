@@ -37,6 +37,7 @@ public class ACHWorkflowCoordinatorTests
 {
     private readonly Mock<IOrchestrationExecutor> _mockOrchestrationExecutor;
     private readonly Mock<IOrchestrationFactoryProvider> _mockFactoryProvider;
+    private readonly Mock<IWorkflowPersistence> _mockWorkflowPersistence;
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
     private readonly Mock<ILogger<ACHWorkflowCoordinator>> _mockLogger;
     private readonly ACHWorkflowCoordinator _coordinator;
@@ -45,6 +46,7 @@ public class ACHWorkflowCoordinatorTests
     {
         _mockOrchestrationExecutor = new Mock<IOrchestrationExecutor>();
         _mockFactoryProvider = new Mock<IOrchestrationFactoryProvider>();
+        _mockWorkflowPersistence = new Mock<IWorkflowPersistence>();
         _mockLoggerFactory = new Mock<ILoggerFactory>();
         _mockLogger = new Mock<ILogger<ACHWorkflowCoordinator>>();
 
@@ -52,9 +54,38 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.CreateLogger<ACHWorkflowCoordinator>())
             .Returns(_mockLogger.Object);
 
+        _mockWorkflowPersistence
+            .Setup(x => x.CreateScenarioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        _mockWorkflowPersistence
+            .Setup(x => x.CreateExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Guid.NewGuid());
+        _mockWorkflowPersistence
+            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid experimentId, ACHStepConfiguration step, CancellationToken _) =>
+                new StepExecutionContext
+                {
+                    ExperimentId = experimentId,
+                    StepExecutionId = Guid.NewGuid(),
+                    AchStepId = step.Id,
+                    AchStepName = step.Name
+                });
+        _mockWorkflowPersistence
+            .Setup(x => x.UpdateStepExecutionStatusAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _coordinator = new ACHWorkflowCoordinator(
             _mockOrchestrationExecutor.Object,
             _mockFactoryProvider.Object,
+            _mockWorkflowPersistence.Object,
             _mockLoggerFactory.Object);
     }
 
@@ -71,6 +102,7 @@ public class ACHWorkflowCoordinatorTests
             new ACHWorkflowCoordinator(
                 null!,
                 _mockFactoryProvider.Object,
+                _mockWorkflowPersistence.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("orchestrationExecutor");
     }
@@ -86,6 +118,7 @@ public class ACHWorkflowCoordinatorTests
             new ACHWorkflowCoordinator(
                 _mockOrchestrationExecutor.Object,
                 null!,
+                _mockWorkflowPersistence.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("factoryProvider");
     }
@@ -101,6 +134,7 @@ public class ACHWorkflowCoordinatorTests
             new ACHWorkflowCoordinator(
                 _mockOrchestrationExecutor.Object,
                 _mockFactoryProvider.Object,
+                _mockWorkflowPersistence.Object,
                 null!));
         exception.ParamName.Should().Be("loggerFactory");
     }
@@ -115,6 +149,7 @@ public class ACHWorkflowCoordinatorTests
         var coordinator = new ACHWorkflowCoordinator(
             _mockOrchestrationExecutor.Object,
             _mockFactoryProvider.Object,
+            _mockWorkflowPersistence.Object,
             _mockLoggerFactory.Object);
 
         // Assert
@@ -615,6 +650,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
@@ -680,6 +716,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 mockFactory.Object,
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 cancellationToken))
             .ReturnsAsync(expectedHypotheses);
 
@@ -691,6 +728,7 @@ public class ACHWorkflowCoordinatorTests
             x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 cancellationToken),
             Times.Once);
     }
@@ -796,7 +834,7 @@ public class ACHWorkflowCoordinatorTests
     {
         var mockFactory = new Mock<IOrchestrationFactory<T>>();
         mockFactory
-            .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(returnValue);
 
         _mockFactoryProvider
@@ -807,6 +845,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<T>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(returnValue);
     }
@@ -822,7 +861,7 @@ public class ACHWorkflowCoordinatorTests
                 var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
                 var index = setupIndex;
                 mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync((List<Hypothesis>)results[index]);
                 return mockFactory.Object;
             });
@@ -834,7 +873,7 @@ public class ACHWorkflowCoordinatorTests
                 var mockFactory = new Mock<IOrchestrationFactory<List<Evidence>>>();
                 var evidenceIndex = Array.FindIndex(results, r => r is List<Evidence>);
                 mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync((List<Evidence>)results[evidenceIndex]);
                 return mockFactory.Object;
             });
@@ -846,7 +885,7 @@ public class ACHWorkflowCoordinatorTests
                 var mockFactory = new Mock<IOrchestrationFactory<List<EvidenceHypothesisEvaluation>>>();
                 var evalIndex = Array.FindIndex(results, r => r is List<EvidenceHypothesisEvaluation>);
                 mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync((List<EvidenceHypothesisEvaluation>)results[evalIndex]);
                 return mockFactory.Object;
             });
@@ -855,6 +894,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => (List<Hypothesis>)results[setupIndex++]);
 
@@ -862,6 +902,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<List<Evidence>>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => (List<Evidence>)results[Array.FindIndex(results, r => r is List<Evidence>)]);
 
@@ -869,6 +910,7 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.ExecuteAsync(
                 It.IsAny<IOrchestrationFactory<List<EvidenceHypothesisEvaluation>>>(),
                 It.IsAny<OrchestrationPromptInput>(),
+                It.IsAny<StepExecutionContext?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((List<EvidenceHypothesisEvaluation>)results[Array.FindIndex(results, r => r is List<EvidenceHypothesisEvaluation>)]);
     }

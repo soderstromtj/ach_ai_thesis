@@ -153,7 +153,7 @@ public class OrchestrationExecutorTests
 
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedHypotheses);
 
         var input = new OrchestrationPromptInput
@@ -169,7 +169,7 @@ public class OrchestrationExecutorTests
         result.Should().NotBeNull();
         result.Should().HaveCount(1);
         result[0].ShortTitle.Should().Be("Test Hypothesis");
-        mockFactory.Verify(f => f.ExecuteCoreAsync(input, default), Times.Once);
+        mockFactory.Verify(f => f.ExecuteCoreAsync(input, null, default), Times.Once);
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public class OrchestrationExecutorTests
         // Arrange
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Hypothesis>());
 
         var input = new OrchestrationPromptInput();
@@ -209,7 +209,7 @@ public class OrchestrationExecutorTests
         // Arrange
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Hypothesis>());
 
         var input = new OrchestrationPromptInput();
@@ -238,16 +238,16 @@ public class OrchestrationExecutorTests
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         var cancellationToken = new CancellationToken();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), cancellationToken))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), cancellationToken))
             .ReturnsAsync(new List<Hypothesis>());
 
         var input = new OrchestrationPromptInput();
 
         // Act
-        await _orchestrationExecutor.ExecuteAsync(mockFactory.Object, input, cancellationToken);
+        await _orchestrationExecutor.ExecuteAsync(mockFactory.Object, input, null, cancellationToken);
 
         // Assert
-        mockFactory.Verify(f => f.ExecuteCoreAsync(input, cancellationToken), Times.Once);
+        mockFactory.Verify(f => f.ExecuteCoreAsync(input, null, cancellationToken), Times.Once);
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ public class OrchestrationExecutorTests
         var expectedException = new InvalidOperationException("Test exception");
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
         var input = new OrchestrationPromptInput();
@@ -290,7 +290,7 @@ public class OrchestrationExecutorTests
         // Arrange
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>?>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((List<Hypothesis>?)null);
 
         var input = new OrchestrationPromptInput();
@@ -316,7 +316,7 @@ public class OrchestrationExecutorTests
 
         var mockFactory = new Mock<IOrchestrationFactory<List<Evidence>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedEvidence);
 
         var input = new OrchestrationPromptInput();
@@ -595,7 +595,7 @@ public class OrchestrationExecutorTests
         // Arrange
         var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Hypothesis>
             {
                 new Hypothesis { ShortTitle = "Integration Test", HypothesisText = "Test" }
@@ -637,7 +637,7 @@ public class OrchestrationExecutorTests
         // Arrange
         var mockFactory1 = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
         mockFactory1
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Hypothesis>
             {
                 new Hypothesis { ShortTitle = "Hypothesis 1" }
@@ -645,7 +645,7 @@ public class OrchestrationExecutorTests
 
         var mockFactory2 = new Mock<IOrchestrationFactory<List<Evidence>>>();
         mockFactory2
-            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Evidence>
             {
                 new Evidence { Claim = "Evidence 1" }
