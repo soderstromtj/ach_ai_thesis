@@ -2,12 +2,50 @@
 
 To update the Entity Framework models based on the database schema changes, follow these steps:
 
+## Prerequisites
+
+Before running the scaffolding command, ensure you have the Entity Framework Core tools installed.
+
+1.  **Install dotnet-ef tool**:
+    Run the following command to install the tool globally:
+    ```powershell
+    dotnet tool install --global dotnet-ef
+    ```
+
+    If you already have it installed but receive errors about versions, try updating it:
+    ```powershell
+    dotnet tool update --global dotnet-ef
+    ```
+
+    *Note: You may need to restart your terminal after installing the tool for the command to be recognized.*
+
+### Troubleshooting Installation Errors
+
+If you encounter the error: *"The settings file in the tool's NuGet package is invalid: Settings file 'DotnetToolSettings.xml' was not found in the package"*, follow these steps to reset your NuGet cache and reinstall:
+
+1.  **Clear NuGet Cache**:
+    ```powershell
+    dotnet nuget locals all --clear
+    ```
+
+2.  **Uninstall Existing Tool (if any)**:
+    ```powershell
+    dotnet tool uninstall --global dotnet-ef
+    ```
+
+3.  **Reinstall Tool**:
+    ```powershell
+    dotnet tool install --global dotnet-ef
+    ```
+
+## Migration Steps
+
 1.  **Apply SQL Migration**:
     Ensure the database has been updated using the provided `migration.sql` script.
 
 2.  **Navigate to Infrastructure Persistence Project**:
-    Open a terminal and navigate to the persistence project directory:
-    ```bash
+    Open your terminal and navigate to the persistence project directory:
+    ```powershell
     cd NIU.ACH-AI.Infrastructure.Persistence
     ```
 
@@ -15,13 +53,19 @@ To update the Entity Framework models based on the database schema changes, foll
     Execute the following command to reverse-engineer the database and update the context and entities.
     *Note: Replace `[CONNECTION_STRING]` with your actual database connection string.*
 
-    ```bash
-    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer \
-      --output-dir Models \
-      --context-dir Models \
-      --context AchAIDbContext \
-      --force \
+    **PowerShell (Windows Terminal):**
+    ```powershell
+    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer `
+      --output-dir Models `
+      --context-dir Models `
+      --context AchAIDbContext `
+      --force `
       --no-onconfiguring
+    ```
+
+    **Single Line (Command Prompt / Bash):**
+    ```bash
+    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models --context-dir Models --context AchAIDbContext --force --no-onconfiguring
     ```
 
     **Parameters Explanation:**
