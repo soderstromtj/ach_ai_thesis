@@ -155,6 +155,16 @@ public partial class AchAIDbContext : DbContext
             entity.Property(e => e.StepExecutionId).HasColumnName("step_execution_id");
             entity.Property(e => e.TurnNumber).HasColumnName("turn_number");
 
+            entity.Property(e => e.CompletionId)
+                .HasMaxLength(100)
+                .HasColumnName("completion_id");
+            entity.Property(e => e.ReasoningTokenCount).HasColumnName("reasoning_token_count");
+            entity.Property(e => e.OutputAudioTokenCount).HasColumnName("output_audio_token_count");
+            entity.Property(e => e.AcceptedPredictionTokenCount).HasColumnName("accepted_prediction_token_count");
+            entity.Property(e => e.RejectedPredictionTokenCount).HasColumnName("rejected_prediction_token_count");
+            entity.Property(e => e.InputAudioTokenCount).HasColumnName("input_audio_token_count");
+            entity.Property(e => e.CachedInputTokenCount).HasColumnName("cached_input_token_count");
+
             entity.HasOne(d => d.AgentConfiguration).WithMany(p => p.AgentResponses)
                 .HasForeignKey(d => d.AgentConfigurationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

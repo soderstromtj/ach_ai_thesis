@@ -41,6 +41,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         // Buffer streaming chunks per agent to allow assembling partials before final arrives.
         private readonly ConcurrentDictionary<string, StringBuilder> _streamBuffers = new();
+        // Buffer streaming metadata per agent to allow capturing rich telemetry before final arrives.
+        private readonly ConcurrentDictionary<string, AgentResponseRecord> _metadataBuffers = new();
 
         protected BaseOrchestrationFactory(
             IAgentService agentService,
@@ -175,15 +177,121 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         #region Protected Callbacks
         protected async ValueTask StreamingResponseCallback(StreamingChatMessageContent response, bool isFinal)
         {
-            if (isFinal)
+            var agentName = response.AuthorName ?? "Unknown";
+
+            if (isFinal && response.Metadata != null)
             {
-                // capture metadata
-                Console.WriteLine(response.Metadata);
+                try
+                {
+                    // Capture rich metadata which is only available in the final streaming chunk
+                    var completionId = response.Metadata.TryGetValue("CompletionId", out var completionIdObj)
+                        ? completionIdObj?.ToString()
+                        : null;
+
+                    int? reasoningTokenCount = null;
+                    int? outputAudioTokenCount = null;
+                    int? acceptedPredictionTokenCount = null;
+                    int? rejectedPredictionTokenCount = null;
+                    int? inputAudioTokenCount = null;
+                    int? cachedInputTokenCount = null;
+
+                    if (response.Metadata.TryGetValue("Usage", out var usageObj))
+                    {
+                        // Handle usage object (which might be a dictionary or a strongly typed object depending on SDK version)
+                        // Assuming it's serialized/deserialized as a Dictionary<string, object> or JsonElement in many dynamic cases,
+                        // but SK often exposes it as a property bag.
+                        // Based on the sample provided by user, "Usage" is a nested object.
+
+                        // Since we can't easily rely on dynamic typing or specific SK types here without potentially
+                        // adding dependencies or reflection, we will try to inspect the structure if possible,
+                        // or rely on the top-level keys if flattened.
+                        // However, the user sample shows nested structure: Usage -> OutputTokenDetails -> ReasoningTokenCount
+
+                        // Helper to safely extract int from a dictionary or object if possible
+                        // For now, let's assume standard Dictionary<string, object> structure for Metadata
+                        // or property access if it was a specific type.
+
+                        // The sample JSON shows:
+                        // "Usage": { ... "OutputTokenDetails": { "ReasoningTokenCount": 1344 ... } ... }
+
+                        // We'll try to reflect over the usage object or cast to dictionary
+                        // SK often puts the raw OpenAI usage object there.
+                        // To be safe and clean, let's try to parse it if it's a Dictionary.
+                        if (usageObj is IDictionary<string, object> usageDict)
+                        {
+                            if (usageDict.TryGetValue("OutputTokenDetails", out var outputDetailsObj) &&
+                                outputDetailsObj is IDictionary<string, object> outputDetails)
+                            {
+                                reasoningTokenCount = GetIntFromDict(outputDetails, "ReasoningTokenCount");
+                                outputAudioTokenCount = GetIntFromDict(outputDetails, "AudioTokenCount");
+                                acceptedPredictionTokenCount = GetIntFromDict(outputDetails, "AcceptedPredictionTokenCount");
+                                rejectedPredictionTokenCount = GetIntFromDict(outputDetails, "RejectedPredictionTokenCount");
+                            }
+
+                            if (usageDict.TryGetValue("InputTokenDetails", out var inputDetailsObj) &&
+                                inputDetailsObj is IDictionary<string, object> inputDetails)
+                            {
+                                inputAudioTokenCount = GetIntFromDict(inputDetails, "AudioTokenCount");
+                                cachedInputTokenCount = GetIntFromDict(inputDetails, "CachedTokenCount");
+                            }
+                        }
+                        else
+                        {
+                            // If it's a strongly typed object (e.g. ComletionUsage), we might need reflection or 'dynamic'
+                            // Using dynamic to handle potential concrete types from SK/OpenAI connectors without hard dep
+                            try
+                            {
+                                dynamic dUsage = usageObj;
+                                dynamic? dOutputDetails = null;
+                                dynamic? dInputDetails = null;
+
+                                try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
+                                try { dInputDetails = dUsage.InputTokenDetails; } catch { }
+
+                                if (dOutputDetails != null)
+                                {
+                                    try { reasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
+                                    try { outputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
+                                    try { acceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
+                                    try { rejectedPredictionTokenCount = (int?)dOutputDetails.RejectedPredictionTokenCount; } catch { }
+                                }
+
+                                if (dInputDetails != null)
+                                {
+                                    try { inputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
+                                    try { cachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
+                                }
+                            }
+                            catch
+                            {
+                                // Fallback or ignore if dynamic access fails
+                            }
+                        }
+                    }
+
+                    // Store partial record in buffer
+                    // We only need the extra fields, but we'll use the DTO for convenience
+                    var metadataRecord = new AgentResponseRecord
+                    {
+                        CompletionId = completionId,
+                        ReasoningTokenCount = reasoningTokenCount,
+                        OutputAudioTokenCount = outputAudioTokenCount,
+                        AcceptedPredictionTokenCount = acceptedPredictionTokenCount,
+                        RejectedPredictionTokenCount = rejectedPredictionTokenCount,
+                        InputAudioTokenCount = inputAudioTokenCount,
+                        CachedInputTokenCount = cachedInputTokenCount
+                    };
+
+                    _metadataBuffers[agentName] = metadataRecord;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Class: {GetType().Name}\tMessage: Failed to extract metadata for agent '{agentName}'.");
+                }
             }
 
             if (_orchestrationSettings.StreamResponses)
             {
-                var agentName = response.AuthorName ?? "Unknown";
                 var chunk = response.Content ?? string.Empty;
 
                 // Append chunk into per-agent buffer
@@ -209,6 +317,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             }
 
             await ValueTask.CompletedTask;
+        }
+
+        private int? GetIntFromDict(IDictionary<string, object> dict, string key)
+        {
+            if (dict.TryGetValue(key, out var val) && val is int intVal)
+            {
+                return intVal;
+            }
+            return null;
         }
 
         protected async ValueTask<ChatMessageContent> InteractiveCallback()
@@ -258,7 +375,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             if (_agentResponsePersistence != null && _stepExecutionContext != null)
             {
-                await PersistAgentResponseAsync(response, agentName, content, tokenCount, responseDuration);
+                // Retrieve cached metadata if available
+                _metadataBuffers.TryRemove(agentName, out var cachedMetadata);
+                await PersistAgentResponseAsync(response, agentName, content, tokenCount, responseDuration, cachedMetadata);
             }
 
             // Optionally write response to console
@@ -334,7 +453,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             string agentName,
             string content,
             int? outputTokenCount,
-            long responseDuration)
+            long responseDuration,
+            AgentResponseRecord? cachedMetadata)
         {
             if (_stepExecutionContext == null)
             {
@@ -366,7 +486,16 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 ContentLength = content.Length,
                 Content = content,
                 TurnNumber = _currentTurn,
-                ResponseDuration = responseDuration
+                ResponseDuration = responseDuration,
+
+                // Map extended metadata
+                CompletionId = cachedMetadata?.CompletionId,
+                ReasoningTokenCount = cachedMetadata?.ReasoningTokenCount,
+                OutputAudioTokenCount = cachedMetadata?.OutputAudioTokenCount,
+                AcceptedPredictionTokenCount = cachedMetadata?.AcceptedPredictionTokenCount,
+                RejectedPredictionTokenCount = cachedMetadata?.RejectedPredictionTokenCount,
+                InputAudioTokenCount = cachedMetadata?.InputAudioTokenCount,
+                CachedInputTokenCount = cachedMetadata?.CachedInputTokenCount
             };
 
             try

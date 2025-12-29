@@ -51,7 +51,16 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 Content = response.Content,
                 TurnNumber = response.TurnNumber,
                 ResponseDuration = response.ResponseDuration,
-                CreatedAt = response.CreatedAt
+                CreatedAt = response.CreatedAt,
+
+                // Map extended metadata
+                CompletionId = response.CompletionId,
+                ReasoningTokenCount = response.ReasoningTokenCount,
+                OutputAudioTokenCount = response.OutputAudioTokenCount,
+                AcceptedPredictionTokenCount = response.AcceptedPredictionTokenCount,
+                RejectedPredictionTokenCount = response.RejectedPredictionTokenCount,
+                InputAudioTokenCount = response.InputAudioTokenCount,
+                CachedInputTokenCount = response.CachedInputTokenCount
             };
 
             try

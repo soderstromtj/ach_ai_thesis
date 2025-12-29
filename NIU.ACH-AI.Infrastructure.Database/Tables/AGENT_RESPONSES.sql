@@ -14,6 +14,15 @@ CREATE TABLE [dbo].[AGENT_RESPONSES]
     [response_duration] BIGINT NULL,                            -- Response time in milliseconds
     [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
+    -- New fields for extended metadata
+    [completion_id] NVARCHAR(100) NULL,                         -- OpenAI Completion ID
+    [reasoning_token_count] INT NULL,                           -- Tokens used for reasoning (Chain of Thought)
+    [output_audio_token_count] INT NULL,                        -- Tokens used for audio output
+    [accepted_prediction_token_count] INT NULL,                 -- Tokens accepted in prediction
+    [rejected_prediction_token_count] INT NULL,                 -- Tokens rejected in prediction
+    [input_audio_token_count] INT NULL,                         -- Tokens used for audio input
+    [cached_input_token_count] INT NULL,                        -- Tokens read from cache
+
     -- Foreign key constraints
     CONSTRAINT [FK_AGENT_RESPONSES_AGENT_CONFIGURATIONS]
         FOREIGN KEY ([agent_configuration_id]) REFERENCES [AGENT_CONFIGURATIONS]([agent_configuration_id]),
@@ -30,7 +39,21 @@ CREATE TABLE [dbo].[AGENT_RESPONSES]
     CONSTRAINT [CK_AGENT_RESPONSES_turn_number]
         CHECK ([turn_number] IS NULL OR [turn_number] > 0),
     CONSTRAINT [CK_AGENT_RESPONSES_response_duration]
-        CHECK ([response_duration] IS NULL OR [response_duration] >= 0)
+        CHECK ([response_duration] IS NULL OR [response_duration] >= 0),
+
+    -- Check constraints for new fields
+    CONSTRAINT [CK_AGENT_RESPONSES_reasoning_token_count]
+        CHECK ([reasoning_token_count] IS NULL OR [reasoning_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_output_audio_token_count]
+        CHECK ([output_audio_token_count] IS NULL OR [output_audio_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_accepted_prediction_token_count]
+        CHECK ([accepted_prediction_token_count] IS NULL OR [accepted_prediction_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_rejected_prediction_token_count]
+        CHECK ([rejected_prediction_token_count] IS NULL OR [rejected_prediction_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_input_audio_token_count]
+        CHECK ([input_audio_token_count] IS NULL OR [input_audio_token_count] >= 0),
+    CONSTRAINT [CK_AGENT_RESPONSES_cached_input_token_count]
+        CHECK ([cached_input_token_count] IS NULL OR [cached_input_token_count] >= 0)
 )
 GO
 
