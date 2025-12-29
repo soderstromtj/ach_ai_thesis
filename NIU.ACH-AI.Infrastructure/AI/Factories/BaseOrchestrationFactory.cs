@@ -197,26 +197,26 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
                     if (response.Metadata.TryGetValue("Usage", out var usageObj))
                     {
-                        // Handles the usage object (which may be a dictionary or a strongly typed object depending on SDK version).
-                        // Assumes serialization as a Dictionary<string, object> or JsonElement in dynamic cases, 
-                        // though SK often exposes it as a property bag.
-                        // Notes that based on the sample provided, "Usage" is a nested object.
+                        // Handle usage object (which might be a dictionary or a strongly typed object depending on SDK version)
+                        // Assuming it's serialized/deserialized as a Dictionary<string, object> or JsonElement in many dynamic cases,
+                        // but SK often exposes it as a property bag.
+                        // Based on the sample provided by user, "Usage" is a nested object.
 
-                        // Avoids direct reliance on dynamic typing or specific SK types to prevent 
-                        // unnecessary dependencies or reflection. Inspects the structure where possible 
-                        // or relies on top-level keys if flattened.
-                        // Observes a nested structure in the user sample: Usage -> OutputTokenDetails -> ReasoningTokenCount.
+                        // Since we can't easily rely on dynamic typing or specific SK types here without potentially
+                        // adding dependencies or reflection, we will try to inspect the structure if possible,
+                        // or rely on the top-level keys if flattened.
+                        // However, the user sample shows nested structure: Usage -> OutputTokenDetails -> ReasoningTokenCount
 
-                        // Extracts an integer safely from a dictionary or object.
-                        // Assumes a standard Dictionary<string, object> structure for Metadata 
-                        // or property access for specific types.
+                        // Helper to safely extract int from a dictionary or object if possible
+                        // For now, let's assume standard Dictionary<string, object> structure for Metadata
+                        // or property access if it was a specific type.
 
-                        // References the sample JSON structure:
+                        // The sample JSON shows:
                         // "Usage": { ... "OutputTokenDetails": { "ReasoningTokenCount": 1344 ... } ... }
 
-                        // Attempts to reflect over the usage object or cast to a dictionary.
-                        // Recognizes that SK typically includes the raw OpenAI usage object.
-                        // Parses as a Dictionary to ensure a safe and clean implementation.
+                        // We'll try to reflect over the usage object or cast to dictionary
+                        // SK often puts the raw OpenAI usage object there.
+                        // To be safe and clean, let's try to parse it if it's a Dictionary.
                         if (usageObj is IDictionary<string, object> usageDict)
                         {
                             if (usageDict.TryGetValue("OutputTokenDetails", out var outputDetailsObj) &&
@@ -237,7 +237,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                         }
                         else
                         {
-                            // If it's a strongly typed object (e.g. CompletionUsage), we might need reflection or 'dynamic'
+                            // If it's a strongly typed object (e.g. ComletionUsage), we might need reflection or 'dynamic'
                             // Using dynamic to handle potential concrete types from SK/OpenAI connectors without hard dep
                             try
                             {

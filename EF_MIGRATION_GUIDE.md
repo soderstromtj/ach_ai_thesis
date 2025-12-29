@@ -2,6 +2,25 @@
 
 To update the Entity Framework models based on the database schema changes, follow these steps:
 
+## Prerequisites
+
+Before running the scaffolding command, ensure you have the Entity Framework Core tools installed.
+
+1.  **Install dotnet-ef tool**:
+    Run the following command to install the tool globally:
+    ```bash
+    dotnet tool install --global dotnet-ef
+    ```
+
+    If you already have it installed but receive errors about versions, try updating it:
+    ```bash
+    dotnet tool update --global dotnet-ef
+    ```
+
+    *Note: You may need to restart your terminal after installing the tool for the command to be recognized.*
+
+## Migration Steps
+
 1.  **Apply SQL Migration**:
     Ensure the database has been updated using the provided `migration.sql` script.
 
