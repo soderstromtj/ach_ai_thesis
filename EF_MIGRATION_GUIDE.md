@@ -19,6 +19,25 @@ Before running the scaffolding command, ensure you have the Entity Framework Cor
 
     *Note: You may need to restart your terminal after installing the tool for the command to be recognized.*
 
+### Troubleshooting Installation Errors
+
+If you encounter the error: *"The settings file in the tool's NuGet package is invalid: Settings file 'DotnetToolSettings.xml' was not found in the package"*, follow these steps to reset your NuGet cache and reinstall:
+
+1.  **Clear NuGet Cache**:
+    ```powershell
+    dotnet nuget locals all --clear
+    ```
+
+2.  **Uninstall Existing Tool (if any)**:
+    ```powershell
+    dotnet tool uninstall --global dotnet-ef
+    ```
+
+3.  **Reinstall Tool**:
+    ```powershell
+    dotnet tool install --global dotnet-ef
+    ```
+
 ## Migration Steps
 
 1.  **Apply SQL Migration**:
