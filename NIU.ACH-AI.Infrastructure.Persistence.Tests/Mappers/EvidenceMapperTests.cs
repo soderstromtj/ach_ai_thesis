@@ -121,9 +121,9 @@ public class EvidenceMapperTests
     /// Verifies that all evidence type enums (Fact, Assumption, ExpertOpinion) map correctly to their database integer IDs.
     /// </summary>
     [Theory]
-    [InlineData(EvidenceType.Fact, 0)]
-    [InlineData(EvidenceType.Assumption, 1)]
-    [InlineData(EvidenceType.ExpertOpinion, 2)]
+    [InlineData(EvidenceType.Fact, 1)]
+    [InlineData(EvidenceType.Assumption, 2)]
+    [InlineData(EvidenceType.ExpertOpinion, 3)]
     public void ToDatabase_WithDifferentEvidenceTypes_MapsCorrectly(EvidenceType type, int expectedId)
     {
         // Arrange
@@ -288,9 +288,9 @@ public class EvidenceMapperTests
     /// Verifies that database integer IDs correctly map back to their corresponding evidence type enums.
     /// </summary>
     [Theory]
-    [InlineData(0, EvidenceType.Fact)]
-    [InlineData(1, EvidenceType.Assumption)]
-    [InlineData(2, EvidenceType.ExpertOpinion)]
+    [InlineData(1, EvidenceType.Fact)]
+    [InlineData(2, EvidenceType.Assumption)]
+    [InlineData(3, EvidenceType.ExpertOpinion)]
     public void ToDomain_WithDifferentEvidenceTypeIds_MapsCorrectly(int typeId, EvidenceType expectedType)
     {
         // Arrange
