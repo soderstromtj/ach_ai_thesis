@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Infrastructure.Persistence.Models;
@@ -10,11 +11,11 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     /// </summary>
     public class AgentResponsePersistence : IAgentResponsePersistence
     {
-        private readonly AchAIDbContext _context;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public AgentResponsePersistence(AchAIDbContext context)
+        public AgentResponsePersistence(IServiceScopeFactory serviceScopeFactory)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         }
 
         public async Task SaveAgentResponseAsync(
@@ -55,8 +56,12 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 
             try
             {
-                _context.AgentResponses.Add(entity);
-                await _context.SaveChangesAsync(cancellationToken);
+                using (var scope = _serviceScopeFactory.CreateScope())
+                {
+                    var context = scope.ServiceProvider.GetRequiredService<AchAIDbContext>();
+                    context.AgentResponses.Add(entity);
+                    await context.SaveChangesAsync(cancellationToken);
+                }
             }
             catch (DbUpdateException ex)
             {
