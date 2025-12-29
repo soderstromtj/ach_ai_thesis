@@ -195,50 +195,68 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     int? inputAudioTokenCount = null;
                     int? cachedInputTokenCount = null;
 
-                    if (response.Metadata.TryGetValue("Usage", out var usageObj))
+                    if (response.Metadata.TryGetValue("Usage", out var usageObj) && usageObj != null)
                     {
-                        // Handle usage object (which might be a dictionary or a strongly typed object depending on SDK version)
-                        // Assuming it's serialized/deserialized as a Dictionary<string, object> or JsonElement in many dynamic cases,
-                        // but SK often exposes it as a property bag.
-                        // Based on the sample provided by user, "Usage" is a nested object.
+                        // DEBUG: Log the type of usage object to help diagnose extraction failures
+                        _logger.LogDebug($"Class: {GetType().Name}\tMessage: Extracting metadata. 'Usage' object type is: {usageObj.GetType().FullName}");
 
-                        // Since we can't easily rely on dynamic typing or specific SK types here without potentially
-                        // adding dependencies or reflection, we will try to inspect the structure if possible,
-                        // or rely on the top-level keys if flattened.
-                        // However, the user sample shows nested structure: Usage -> OutputTokenDetails -> ReasoningTokenCount
-
-                        // Helper to safely extract int from a dictionary or object if possible
-                        // For now, let's assume standard Dictionary<string, object> structure for Metadata
-                        // or property access if it was a specific type.
-
-                        // The sample JSON shows:
-                        // "Usage": { ... "OutputTokenDetails": { "ReasoningTokenCount": 1344 ... } ... }
-
-                        // We'll try to reflect over the usage object or cast to dictionary
-                        // SK often puts the raw OpenAI usage object there.
-                        // To be safe and clean, let's try to parse it if it's a Dictionary.
-                        if (usageObj is IDictionary<string, object> usageDict)
+                        // Strategy 1: System.Text.Json.JsonElement
+                        // In .NET 9 / Semantic Kernel, generic objects in Metadata are often deserialized as JsonElement
+                        if (usageObj is System.Text.Json.JsonElement jsonUsage)
                         {
-                            if (usageDict.TryGetValue("OutputTokenDetails", out var outputDetailsObj) &&
-                                outputDetailsObj is IDictionary<string, object> outputDetails)
+                            if (jsonUsage.TryGetProperty("OutputTokenDetails", out var outputDetails))
                             {
-                                reasoningTokenCount = GetIntFromDict(outputDetails, "ReasoningTokenCount");
-                                outputAudioTokenCount = GetIntFromDict(outputDetails, "AudioTokenCount");
-                                acceptedPredictionTokenCount = GetIntFromDict(outputDetails, "AcceptedPredictionTokenCount");
-                                rejectedPredictionTokenCount = GetIntFromDict(outputDetails, "RejectedPredictionTokenCount");
+                                reasoningTokenCount = GetIntFromJson(outputDetails, "ReasoningTokenCount");
+                                outputAudioTokenCount = GetIntFromJson(outputDetails, "AudioTokenCount");
+                                acceptedPredictionTokenCount = GetIntFromJson(outputDetails, "AcceptedPredictionTokenCount");
+                                rejectedPredictionTokenCount = GetIntFromJson(outputDetails, "RejectedPredictionTokenCount");
                             }
 
-                            if (usageDict.TryGetValue("InputTokenDetails", out var inputDetailsObj) &&
-                                inputDetailsObj is IDictionary<string, object> inputDetails)
+                            if (jsonUsage.TryGetProperty("InputTokenDetails", out var inputDetails))
                             {
-                                inputAudioTokenCount = GetIntFromDict(inputDetails, "AudioTokenCount");
-                                cachedInputTokenCount = GetIntFromDict(inputDetails, "CachedTokenCount");
+                                inputAudioTokenCount = GetIntFromJson(inputDetails, "AudioTokenCount");
+                                cachedInputTokenCount = GetIntFromJson(inputDetails, "CachedTokenCount");
                             }
                         }
+                        // Strategy 2: Dictionary<string, object>
+                        else if (usageObj is IDictionary<string, object> usageDict)
+                        {
+                            if (usageDict.TryGetValue("OutputTokenDetails", out var outputDetailsObj))
+                            {
+                                // Output details might be a nested Dictionary OR a JsonElement
+                                if (outputDetailsObj is IDictionary<string, object> outputDetails)
+                                {
+                                    reasoningTokenCount = GetIntFromDict(outputDetails, "ReasoningTokenCount");
+                                    outputAudioTokenCount = GetIntFromDict(outputDetails, "AudioTokenCount");
+                                    acceptedPredictionTokenCount = GetIntFromDict(outputDetails, "AcceptedPredictionTokenCount");
+                                    rejectedPredictionTokenCount = GetIntFromDict(outputDetails, "RejectedPredictionTokenCount");
+                                }
+                                else if (outputDetailsObj is System.Text.Json.JsonElement outputJson)
+                                {
+                                    reasoningTokenCount = GetIntFromJson(outputJson, "ReasoningTokenCount");
+                                    outputAudioTokenCount = GetIntFromJson(outputJson, "AudioTokenCount");
+                                    acceptedPredictionTokenCount = GetIntFromJson(outputJson, "AcceptedPredictionTokenCount");
+                                    rejectedPredictionTokenCount = GetIntFromJson(outputJson, "RejectedPredictionTokenCount");
+                                }
+                            }
+
+                            if (usageDict.TryGetValue("InputTokenDetails", out var inputDetailsObj))
+                            {
+                                if (inputDetailsObj is IDictionary<string, object> inputDetails)
+                                {
+                                    inputAudioTokenCount = GetIntFromDict(inputDetails, "AudioTokenCount");
+                                    cachedInputTokenCount = GetIntFromDict(inputDetails, "CachedTokenCount");
+                                }
+                                else if (inputDetailsObj is System.Text.Json.JsonElement inputJson)
+                                {
+                                    inputAudioTokenCount = GetIntFromJson(inputJson, "AudioTokenCount");
+                                    cachedInputTokenCount = GetIntFromJson(inputJson, "CachedTokenCount");
+                                }
+                            }
+                        }
+                        // Strategy 3: Dynamic / Reflection Fallback
                         else
                         {
-                            // If it's a strongly typed object (e.g. ComletionUsage), we might need reflection or 'dynamic'
-                            // Using dynamic to handle potential concrete types from SK/OpenAI connectors without hard dep
                             try
                             {
                                 dynamic dUsage = usageObj;
@@ -262,9 +280,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                                     try { cachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
-                                // Fallback or ignore if dynamic access fails
+                                _logger.LogWarning(ex, "Failed to extract metadata using dynamic/reflection strategy.");
                             }
                         }
                     }
@@ -321,9 +339,20 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         private int? GetIntFromDict(IDictionary<string, object> dict, string key)
         {
-            if (dict.TryGetValue(key, out var val) && val is int intVal)
+            if (dict.TryGetValue(key, out var val))
             {
-                return intVal;
+                if (val is int intVal) return intVal;
+                if (val is long longVal) return (int)longVal; // Handle broader integer types
+                if (val is System.Text.Json.JsonElement jsonVal && jsonVal.ValueKind == System.Text.Json.JsonValueKind.Number && jsonVal.TryGetInt32(out var jsonInt)) return jsonInt;
+            }
+            return null;
+        }
+
+        private int? GetIntFromJson(System.Text.Json.JsonElement element, string key)
+        {
+            if (element.TryGetProperty(key, out var prop) && prop.ValueKind == System.Text.Json.JsonValueKind.Number && prop.TryGetInt32(out var val))
+            {
+                return val;
             }
             return null;
         }
