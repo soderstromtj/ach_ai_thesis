@@ -8,12 +8,12 @@ Before running the scaffolding command, ensure you have the Entity Framework Cor
 
 1.  **Install dotnet-ef tool**:
     Run the following command to install the tool globally:
-    ```bash
+    ```powershell
     dotnet tool install --global dotnet-ef
     ```
 
     If you already have it installed but receive errors about versions, try updating it:
-    ```bash
+    ```powershell
     dotnet tool update --global dotnet-ef
     ```
 
@@ -25,8 +25,8 @@ Before running the scaffolding command, ensure you have the Entity Framework Cor
     Ensure the database has been updated using the provided `migration.sql` script.
 
 2.  **Navigate to Infrastructure Persistence Project**:
-    Open a terminal and navigate to the persistence project directory:
-    ```bash
+    Open your terminal and navigate to the persistence project directory:
+    ```powershell
     cd NIU.ACH-AI.Infrastructure.Persistence
     ```
 
@@ -34,13 +34,19 @@ Before running the scaffolding command, ensure you have the Entity Framework Cor
     Execute the following command to reverse-engineer the database and update the context and entities.
     *Note: Replace `[CONNECTION_STRING]` with your actual database connection string.*
 
-    ```bash
-    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer \
-      --output-dir Models \
-      --context-dir Models \
-      --context AchAIDbContext \
-      --force \
+    **PowerShell (Windows Terminal):**
+    ```powershell
+    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer `
+      --output-dir Models `
+      --context-dir Models `
+      --context AchAIDbContext `
+      --force `
       --no-onconfiguring
+    ```
+
+    **Single Line (Command Prompt / Bash):**
+    ```bash
+    dotnet ef dbcontext scaffold "[CONNECTION_STRING]" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models --context-dir Models --context AchAIDbContext --force --no-onconfiguring
     ```
 
     **Parameters Explanation:**
