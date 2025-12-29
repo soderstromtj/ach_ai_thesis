@@ -18,6 +18,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         /// <summary>
         /// Creates a persistence service using the ACH AI database context.
         /// </summary>
+        /// <param name="context">The ACH AI database context.</param>
         public WorkflowPersistence(DbModel.AchAIDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -26,6 +27,8 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         /// <summary>
         /// Persists a scenario row containing the experiment context text.
         /// </summary>
+        /// <param name="context">The ACH AI database context.</param>
+        /// <param name="cancellationToken">Token to cancel the operation.</param>
         public async Task<Guid> CreateScenarioAsync(string context, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(context))
@@ -55,6 +58,9 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         /// <summary>
         /// Persists an experiment row associated to the provided scenario.
         /// </summary>
+        /// <param name="configuration">The experiment configuration.</param>
+        /// <param name="scenarioId">The ID of the associated scenario.</param>
+        /// <param name="cancellationToken">Token to cancel the operation.</param>
         public async Task<Guid> CreateExperimentAsync(
             ExperimentConfiguration configuration,
             Guid scenarioId,
@@ -93,6 +99,9 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         /// Persists a step execution row for a specific ACH step.
         /// Returns a context object for downstream orchestration.
         /// </summary>
+        /// <param name="experimentId">The ID of the associated experiment.</param>
+        /// <param name="stepConfiguration">Configuration for the ACH step.</param>
+        /// <param name="cancellationToken">Token to cancel the operation.</param>
         public async Task<StepExecutionContext> CreateStepExecutionAsync(
             Guid experimentId,
             ACHStepConfiguration stepConfiguration,
@@ -222,7 +231,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             {
                 "hypothesis refinement" or "hypothesisrefinement" or "hypothesis evaluation" or "hypothesisevaluation"
                     => "Sequential",
-                _ => "Parallel"
+                _ => "Concurrent"
             };
 
             var orchestrationTypeId = await _context.OrchestrationTypes

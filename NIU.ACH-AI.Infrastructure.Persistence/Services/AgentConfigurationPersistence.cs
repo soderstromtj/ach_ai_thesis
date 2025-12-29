@@ -27,13 +27,12 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Step execution ID must be provided.", nameof(stepExecutionId));
             }
 
-            ArgumentNullException.ThrowIfNull(agentConfigurations, nameof(agentConfigurations));
+            if (agentConfigurations == null || !agentConfigurations.Any())
+            {
+                throw new ArgumentNullException(nameof(agentConfigurations), "Agent configurations must be provided.");
+            }
 
             var configurations = agentConfigurations.ToList();
-            if (configurations.Count == 0)
-            {
-                return new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
-            }
 
             var entities = new List<DbModel.AgentConfiguration>(configurations.Count);
             var agentIdMap = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);

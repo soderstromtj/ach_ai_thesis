@@ -58,6 +58,13 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _agentResponsePersistence = agentResponsePersistence;
         }
 
+        /// <summary>
+        /// Orchestrates the execution of an ACH step with the given input and returns the final result.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="stepExecutionContext"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public async Task<TResult> ExecuteCoreAsync(
             OrchestrationPromptInput input,
             StepExecutionContext? stepExecutionContext = null,

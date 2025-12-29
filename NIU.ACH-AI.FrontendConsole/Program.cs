@@ -133,6 +133,7 @@ namespace NIU.ACH_AI.FrontendConsole
         /// <summary>
         /// Checks that the experiment configuration has all required fields.
         /// </summary>
+        /// <param name="config">The experiment configuration to validate.</param>
         private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
         {
             if (string.IsNullOrWhiteSpace(config.Id))
@@ -165,7 +166,10 @@ namespace NIU.ACH_AI.FrontendConsole
         /// </summary>
         /// <param name="host">The application host.</param>
         /// <param name="experimentConfig">The configuration for the experiment.</param>
-        private static async Task<ACHWorkflowResult> RunOrchestrationAsync(IHost host, ExperimentConfiguration experimentConfig, ConsoleResultPresenter consoleResultPresenter)
+        private static async Task<ACHWorkflowResult> RunOrchestrationAsync(
+            IHost host, 
+            ExperimentConfiguration experimentConfig, 
+            ConsoleResultPresenter consoleResultPresenter)
         {
             // Validate the experiment configuration
             ValidateExperimentConfiguration(experimentConfig);
