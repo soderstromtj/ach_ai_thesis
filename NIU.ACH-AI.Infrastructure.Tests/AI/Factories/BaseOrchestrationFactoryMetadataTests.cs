@@ -13,6 +13,7 @@ using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
+using Xunit;
 
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 {
@@ -57,7 +58,7 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             }
 
             // Abstract implementations (not used for these tests but required)
-            protected override ILogger CreateLogger(ILoggerFactory loggerFactory) => new Mock<ILogger>().Object;
+            protected override ILogger CreateLogger(ILoggerFactory loggerFactory) => loggerFactory.CreateLogger("Test");
             protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, Agent[] agents, StructuredOutputTransform<EvidenceResult> outputTransform) => null!;
             protected override string GetResultTypeName() => "EvidenceResult";
             protected override List<Evidence> UnwrapResult(EvidenceResult wrapper) => new();
@@ -183,4 +184,3 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
         }
     }
 }
-#pragma warning restore SKEXP0110

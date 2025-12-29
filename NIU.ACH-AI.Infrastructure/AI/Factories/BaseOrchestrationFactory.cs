@@ -254,11 +254,17 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                                 }
                             }
                         }
-                        // Strategy 3: Dynamic / Reflection Fallback
+                        // Strategy 3: OpenAI.Chat.ChatTokenUsage (via Reflection/Dynamic)
+                        // The user confirmed the type is OpenAI.Chat.ChatTokenUsage.
+                        // We use dynamic to avoid a hard dependency on the OpenAI namespace if it's transitive.
                         else
                         {
                             try
                             {
+                                // In OpenAI SDK 2.x, ChatTokenUsage has properties:
+                                // OutputTokenDetails (ChatOutputTokenUsageDetails)
+                                // InputTokenDetails (ChatInputTokenUsageDetails)
+
                                 dynamic dUsage = usageObj;
                                 dynamic? dOutputDetails = null;
                                 dynamic? dInputDetails = null;
@@ -268,6 +274,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
                                 if (dOutputDetails != null)
                                 {
+                                    // ChatOutputTokenUsageDetails properties: ReasoningTokenCount, AudioTokenCount
                                     try { reasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
                                     try { outputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
                                     try { acceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
@@ -276,13 +283,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
                                 if (dInputDetails != null)
                                 {
+                                    // ChatInputTokenUsageDetails properties: AudioTokenCount, CachedTokenCount
                                     try { inputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
                                     try { cachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
                                 }
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogWarning(ex, "Failed to extract metadata using dynamic/reflection strategy.");
+                                _logger.LogWarning(ex, $"Failed to extract metadata using dynamic/reflection strategy for type {usageObj.GetType().FullName}.");
                             }
                         }
                     }
