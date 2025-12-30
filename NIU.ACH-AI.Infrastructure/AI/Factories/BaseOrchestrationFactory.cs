@@ -230,6 +230,23 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                      ? completionIdObj?.ToString()
                      : null;
 
+                 DateTimeOffset? createdAt = null;
+                 if (response.Metadata?.TryGetValue("CreatedAt", out var createdAtObj) == true && createdAtObj != null)
+                 {
+                     if (createdAtObj is DateTimeOffset dto)
+                     {
+                         createdAt = dto;
+                     }
+                     else if (createdAtObj is DateTime dt)
+                     {
+                         createdAt = new DateTimeOffset(dt);
+                     }
+                     else if (createdAtObj is string dateStr && DateTimeOffset.TryParse(dateStr, out var parsedDto))
+                     {
+                         createdAt = parsedDto;
+                     }
+                 }
+
                  int? reasoningTokenCount = null;
                  int? outputAudioTokenCount = null;
                  int? acceptedPredictionTokenCount = null;
@@ -300,7 +317,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                      acceptedPredictionTokenCount,
                      rejectedPredictionTokenCount,
                      inputAudioTokenCount,
-                     cachedInputTokenCount
+                     cachedInputTokenCount,
+                     createdAt
                  );
              }
              catch (Exception ex)
@@ -434,7 +452,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             int? acceptedPredictionTokenCount,
             int? rejectedPredictionTokenCount,
             int? inputAudioTokenCount,
-            int? cachedInputTokenCount)
+            int? cachedInputTokenCount,
+            DateTimeOffset? createdAt = null)
         {
             if (_stepExecutionContext == null)
             {
@@ -467,7 +486,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 AcceptedPredictionTokenCount = acceptedPredictionTokenCount,
                 RejectedPredictionTokenCount = rejectedPredictionTokenCount,
                 InputAudioTokenCount = inputAudioTokenCount,
-                CachedInputTokenCount = cachedInputTokenCount
+                CachedInputTokenCount = cachedInputTokenCount,
+                CreatedAt = createdAt?.UtcDateTime ?? DateTime.UtcNow
             };
 
             try
