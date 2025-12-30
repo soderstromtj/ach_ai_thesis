@@ -38,17 +38,6 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             public ValueTask InvokeResponseCallback(ChatMessageContent response)
                 => ResponseCallback(response);
 
-            // Accessor for the metadata buffer for verification
-            public ConcurrentDictionary<string, AgentResponseRecord> MetadataBuffers
-            {
-                get
-                {
-                    var field = typeof(BaseOrchestrationFactory<List<Evidence>, EvidenceResult>)
-                        .GetField("_metadataBuffers", BindingFlags.NonPublic | BindingFlags.Instance);
-                    return (ConcurrentDictionary<string, AgentResponseRecord>)field!.GetValue(this)!;
-                }
-            }
-
             // Helper to set StepExecutionContext via reflection since it is private
             public void SetStepExecutionContext(StepExecutionContext context)
             {
@@ -69,60 +58,14 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
         }
 
         [Fact]
-        public async Task StreamingResponseCallback_WithFinalChunkAndMetadata_CachesMetadata()
-        {
-            // Arrange
-            var agentName = "TestAgent";
-            var completionId = "cmpl-123";
-            var metadata = new Dictionary<string, object>
-            {
-                { "CompletionId", completionId },
-                { "Usage", new Dictionary<string, object>
-                    {
-                        { "OutputTokenDetails", new Dictionary<string, object>
-                            {
-                                { "ReasoningTokenCount", 100 },
-                                { "AudioTokenCount", 50 }
-                            }
-                        },
-                        { "InputTokenDetails", new Dictionary<string, object>
-                            {
-                                { "AudioTokenCount", 25 },
-                                { "CachedTokenCount", 200 }
-                            }
-                        }
-                    }
-                }
-            };
-
-            var response = new StreamingChatMessageContent(AuthorRole.Assistant, "Final chunk")
-            {
-                AuthorName = agentName,
-                Metadata = metadata
-            };
-
-            var factory = CreateFactory();
-
-            // Act
-            await factory.InvokeStreamingResponseCallback(response, isFinal: true);
-
-            // Assert
-            Assert.True(factory.MetadataBuffers.ContainsKey(agentName));
-            var cached = factory.MetadataBuffers[agentName];
-            Assert.Equal(completionId, cached.CompletionId);
-            Assert.Equal(100, cached.ReasoningTokenCount);
-            Assert.Equal(50, cached.OutputAudioTokenCount);
-            Assert.Equal(25, cached.InputAudioTokenCount);
-            Assert.Equal(200, cached.CachedInputTokenCount);
-        }
-
-        [Fact]
-        public async Task ResponseCallback_WithCachedMetadata_PassesMetadataToPersistence()
+        public async Task StreamingResponseCallback_WhenFinal_PersistsDirectlyWithMetadata()
         {
             // Arrange
             var agentName = "TestAgent";
             var persistenceMock = new Mock<IAgentResponsePersistence>();
-            var factory = CreateFactory(persistenceMock.Object);
+
+            // Create factory with StreamResponses = true
+            var factory = CreateFactory(persistenceMock.Object, streamResponses: true);
 
             // Set up context
             var executionId = Guid.NewGuid();
@@ -134,50 +77,119 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             };
             factory.SetStepExecutionContext(context);
 
-            // 1. Simulate streaming completion to populate cache
+            // Create metadata mimicking the structure we expect (using anonymous objects for dynamic access)
             var metadata = new Dictionary<string, object>
             {
-                { "CompletionId", "test-id" },
-                { "Usage", new Dictionary<string, object>
-                    {
-                        { "OutputTokenDetails", new Dictionary<string, object> { { "ReasoningTokenCount", 99 } } }
+                { "CompletionId", "cmpl-direct-persist" },
+                { "Usage", new {
+                        OutputTokenDetails = new { ReasoningTokenCount = 123, AudioTokenCount = 5 },
+                        InputTokenDetails = new { AudioTokenCount = 10, CachedTokenCount = 50 }
                     }
                 }
             };
-            var streamingResponse = new StreamingChatMessageContent(AuthorRole.Assistant, "")
+
+            // 1. Send a content chunk
+            var chunkResponse = new StreamingChatMessageContent(AuthorRole.Assistant, "Part 1 ")
+            {
+                AuthorName = agentName
+            };
+            await factory.InvokeStreamingResponseCallback(chunkResponse, isFinal: false);
+
+            // 2. Send final chunk with metadata
+            var finalResponse = new StreamingChatMessageContent(AuthorRole.Assistant, "Part 2")
             {
                 AuthorName = agentName,
                 Metadata = metadata
             };
-            await factory.InvokeStreamingResponseCallback(streamingResponse, isFinal: true);
-
-            // 2. Simulate final response callback
-            var finalResponse = new ChatMessageContent(AuthorRole.Assistant, "Content")
-            {
-                AuthorName = agentName
-            };
 
             // Act
-            await factory.InvokeResponseCallback(finalResponse);
+            await factory.InvokeStreamingResponseCallback(finalResponse, isFinal: true);
 
             // Assert
+            // Verify persistence was called with the aggregated content and correct metadata
             persistenceMock.Verify(p => p.SaveAgentResponseAsync(
                 It.Is<AgentResponseRecord>(r =>
                     r.AgentName == agentName &&
-                    r.CompletionId == "test-id" &&
-                    r.ReasoningTokenCount == 99),
+                    r.Content == "Part 1 Part 2" && // Aggregated content
+                    r.CompletionId == "cmpl-direct-persist" &&
+                    r.ReasoningTokenCount == 123 &&
+                    r.OutputAudioTokenCount == 5 &&
+                    r.InputAudioTokenCount == 10 &&
+                    r.CachedInputTokenCount == 50),
                 It.IsAny<CancellationToken>()), Times.Once);
-
-            // Verify cache is cleared
-            Assert.False(factory.MetadataBuffers.ContainsKey(agentName));
         }
 
-        private TestableOrchestrationFactory CreateFactory(IAgentResponsePersistence? persistence = null)
+        [Fact]
+        public async Task ResponseCallback_WhenStreamingEnabled_DoesNotPersistAgain()
+        {
+            // Arrange
+            var agentName = "TestAgent";
+            var persistenceMock = new Mock<IAgentResponsePersistence>();
+
+            // Create factory with StreamResponses = true
+            var factory = CreateFactory(persistenceMock.Object, streamResponses: true);
+
+            factory.SetStepExecutionContext(new StepExecutionContext
+            {
+                StepExecutionId = Guid.NewGuid(),
+                AgentConfigurationIds = new Dictionary<string, Guid> { { agentName, Guid.NewGuid() } }
+            });
+
+            // Act
+            // Call ResponseCallback (which happens after streaming)
+            await factory.InvokeResponseCallback(new ChatMessageContent(AuthorRole.Assistant, "Final Content")
+            {
+                AuthorName = agentName
+            });
+
+            // Assert
+            // Persistence should NOT be called here because it was handled in streaming
+            persistenceMock.Verify(p => p.SaveAgentResponseAsync(
+                It.IsAny<AgentResponseRecord>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ResponseCallback_WhenStreamingDisabled_PersistsStandardResponse()
+        {
+            // Arrange
+            var agentName = "TestAgent";
+            var persistenceMock = new Mock<IAgentResponsePersistence>();
+
+            // Create factory with StreamResponses = FALSE
+            var factory = CreateFactory(persistenceMock.Object, streamResponses: false);
+
+            factory.SetStepExecutionContext(new StepExecutionContext
+            {
+                StepExecutionId = Guid.NewGuid(),
+                AgentConfigurationIds = new Dictionary<string, Guid> { { agentName, Guid.NewGuid() } }
+            });
+
+            var response = new ChatMessageContent(AuthorRole.Assistant, "Standard Content")
+            {
+                AuthorName = agentName,
+                Metadata = new Dictionary<string, object> { { "OutputTokenCount", 42 } }
+            };
+
+            // Act
+            await factory.InvokeResponseCallback(response);
+
+            // Assert
+            // Persistence SHOULD be called here
+            persistenceMock.Verify(p => p.SaveAgentResponseAsync(
+                It.Is<AgentResponseRecord>(r =>
+                    r.AgentName == agentName &&
+                    r.Content == "Standard Content" &&
+                    r.OutputTokenCount == 42),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        private TestableOrchestrationFactory CreateFactory(IAgentResponsePersistence? persistence = null, bool streamResponses = true)
         {
             return new TestableOrchestrationFactory(
                 new Mock<IAgentService>().Object,
                 new Mock<IKernelBuilderService>().Object,
-                Options.Create(new OrchestrationSettings { StreamResponses = true, WriteResponses = false }),
+                Options.Create(new OrchestrationSettings { StreamResponses = streamResponses, WriteResponses = false }),
                 new Mock<ILoggerFactory>().Object,
                 persistence
             );
