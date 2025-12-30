@@ -233,6 +233,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                  int? inputAudioTokenCount = null;
                  int? cachedInputTokenCount = null;
 
+                 // Get standard token counts if available
+                 int? outputTokenCount = null;
+                 int? inputTokenCount = null;
+
                  if (response.Metadata?.TryGetValue("Usage", out var usageObj) == true && usageObj != null)
                  {
                      try
@@ -241,6 +245,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                          dynamic dUsage = usageObj;
                          dynamic? dOutputDetails = null;
                          dynamic? dInputDetails = null;
+
+                         // Extract top-level counts from Usage object first
+                         try { outputTokenCount = (int?)dUsage.OutputTokenCount; } catch { }
+                         try { inputTokenCount = (int?)dUsage.InputTokenCount; } catch { }
 
                          try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
                          try { dInputDetails = dUsage.InputTokenDetails; } catch { }
@@ -265,16 +273,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                      }
                  }
 
-                 // Reuse existing persist logic, constructing the DTO manually here
-                 // or call the method if we refactor it.
-                 // Let's create a specialized record here.
-
-                 // Get standard token counts if available
-                 int? outputTokenCount = null;
-                 int? inputTokenCount = null;
-
-                 if (response.Metadata?.TryGetValue("OutputTokenCount", out var outTokenObj) == true && outTokenObj is int outCount) outputTokenCount = outCount;
-                 if (response.Metadata?.TryGetValue("InputTokenCount", out var inTokenObj) == true && inTokenObj is int inCount) inputTokenCount = inCount;
+                 // Fallback: Try top-level keys if not found in Usage object (some other connectors might do this)
+                 if (outputTokenCount == null && response.Metadata?.TryGetValue("OutputTokenCount", out var outTokenObj) == true && outTokenObj is int outCount) outputTokenCount = outCount;
+                 if (inputTokenCount == null && response.Metadata?.TryGetValue("InputTokenCount", out var inTokenObj) == true && inTokenObj is int inCount) inputTokenCount = inCount;
 
                  // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
                  // We can estimate or leave it null/0 for streaming.
