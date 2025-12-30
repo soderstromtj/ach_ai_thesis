@@ -177,43 +177,47 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         {
             var agentName = response.AuthorName ?? "Unknown";
 
+            var chunk = response.Content ?? string.Empty;
+
+            // Append chunk into per-agent buffer
+            var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
+            lock (buffer)
+            {
+                buffer.Append(chunk);
+            }
+
+            // Show streaming output to console (simple live append)
             if (_orchestrationSettings.StreamResponses)
             {
-                var chunk = response.Content ?? string.Empty;
+                Console.Write(chunk);
+            }
 
-                // Append chunk into per-agent buffer
-                var buffer = _streamBuffers.GetOrAdd(agentName, _ => new StringBuilder());
+            // When the orchestrator indicates final chunk
+            if (isFinal)
+            {
+                // 1. Get full content
+                string fullContent;
                 lock (buffer)
                 {
-                    buffer.Append(chunk);
+                    fullContent = buffer.ToString();
                 }
 
-                // Show streaming output to console (simple live append)
-                Console.Write(chunk);
-
-                // When the orchestrator indicates final chunk
-                if (isFinal)
+                // 2. Persist response directly here, where metadata is available
+                if (_agentResponsePersistence != null && _stepExecutionContext != null && response.Metadata != null)
                 {
-                    // 1. Get full content
-                    string fullContent;
-                    lock (buffer)
-                    {
-                        fullContent = buffer.ToString();
-                    }
-
-                    // 2. Persist response directly here, where metadata is available
-                    if (_agentResponsePersistence != null && _stepExecutionContext != null && response.Metadata != null)
-                    {
-                         await PersistFromStreamingAsync(response, agentName, fullContent);
-                    }
-
-                    // Optionally write a newline to finalize console output for this agent
-                    Console.WriteLine();
-
-                    // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
-                    _streamBuffers.TryRemove(agentName, out _);
+                        await PersistFromStreamingAsync(response, agentName, fullContent);
                 }
+
+                // If streaming responses are being written, write a newline to finalize console output for this agent
+                if (_orchestrationSettings.StreamResponses)
+                {
+                    Console.WriteLine();
+                }
+
+                // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
+                _streamBuffers.TryRemove(agentName, out _);
             }
+
 
             await ValueTask.CompletedTask;
         }
@@ -349,20 +353,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             // Start timer for next response
             _responseStopwatch.Restart();
-
-            // Only persist here if streaming was DISABLED.
-            // If streaming was enabled, we already persisted in StreamingResponseCallback (isFinal).
-            if (!_orchestrationSettings.StreamResponses && _agentResponsePersistence != null && _stepExecutionContext != null)
-            {
-                 // Passing null for extended metadata as it's not available in standard ResponseCallback
-                await PersistAgentResponseInternalAsync(
-                    agentName,
-                    content,
-                    null, // Input token count (simplified extraction for non-streaming)
-                    tokenCount,
-                    responseDuration,
-                    null, null, null, null, null, null, null);
-            }
 
             // Optionally write response to console
             if (_orchestrationSettings.WriteResponses)

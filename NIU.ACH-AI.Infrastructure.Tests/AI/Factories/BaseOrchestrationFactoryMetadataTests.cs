@@ -144,41 +144,6 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 It.IsAny<CancellationToken>()), Times.Never);
         }
 
-        [Fact]
-        public async Task ResponseCallback_WhenStreamingDisabled_PersistsStandardResponse()
-        {
-            // Arrange
-            var agentName = "TestAgent";
-            var persistenceMock = new Mock<IAgentResponsePersistence>();
-
-            // Create factory with StreamResponses = FALSE
-            var factory = CreateFactory(persistenceMock.Object, streamResponses: false);
-
-            factory.SetStepExecutionContext(new StepExecutionContext
-            {
-                StepExecutionId = Guid.NewGuid(),
-                AgentConfigurationIds = new Dictionary<string, Guid> { { agentName, Guid.NewGuid() } }
-            });
-
-            var response = new ChatMessageContent(AuthorRole.Assistant, "Standard Content")
-            {
-                AuthorName = agentName,
-                Metadata = new Dictionary<string, object> { { "OutputTokenCount", 42 } }
-            };
-
-            // Act
-            await factory.InvokeResponseCallback(response);
-
-            // Assert
-            // Persistence SHOULD be called here
-            persistenceMock.Verify(p => p.SaveAgentResponseAsync(
-                It.Is<AgentResponseRecord>(r =>
-                    r.AgentName == agentName &&
-                    r.Content == "Standard Content" &&
-                    r.OutputTokenCount == 42),
-                It.IsAny<CancellationToken>()), Times.Once);
-        }
-
         private TestableOrchestrationFactory CreateFactory(IAgentResponsePersistence? persistence = null, bool streamResponses = true)
         {
             return new TestableOrchestrationFactory(
