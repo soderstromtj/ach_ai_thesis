@@ -371,17 +371,19 @@ namespace NIU.ACH_AI.Application.Services
                         result.Evidence = evidence;
                     }
 
+                    // Save results immediately to prevent data loss if the long-running process is interrupted
+                    await _workflowResultPersistence.SaveEvaluationsAsync(
+                        stepExecutionContext.StepExecutionId,
+                        evaluationResults,
+                        hypothesisStepExecutionId.Value,
+                        evidenceStepExecutionId.Value,
+                        cancellationToken);
+
                     evaluations.AddRange(evaluationResults);
                 }
             }
 
             workflowResult.Evaluations = evaluations;
-            await _workflowResultPersistence.SaveEvaluationsAsync(
-                stepExecutionContext.StepExecutionId,
-                evaluations,
-                hypothesisStepExecutionId.Value,
-                evidenceStepExecutionId.Value,
-                cancellationToken);
             _logger.LogInformation($"Completed {evaluations.Count} evidence-hypothesis evaluations");
         }
     }

@@ -581,6 +581,15 @@ public class ACHWorkflowCoordinatorTests
         result.Success.Should().BeTrue();
         // 2 hypotheses * 2 evidence = 4 evaluations
         result.Evaluations.Should().HaveCount(4);
+
+        // Verify that SaveEvaluationsAsync was called 4 times (once for each evaluation pair)
+        _mockWorkflowResultPersistence.Verify(x => x.SaveEvaluationsAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<IEnumerable<EvidenceHypothesisEvaluation>>(),
+                It.IsAny<Guid>(),
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(4));
     }
 
     #endregion
