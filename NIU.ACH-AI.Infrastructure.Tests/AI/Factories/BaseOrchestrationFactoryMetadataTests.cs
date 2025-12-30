@@ -14,6 +14,7 @@ using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using Xunit;
+using System.Dynamic;  // Add this for ExpandoObject
 
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 {
@@ -77,15 +78,11 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             };
             factory.SetStepExecutionContext(context);
 
-            // Create metadata mimicking the structure we expect (using anonymous objects for dynamic access)
+            // Create metadata using ExpandoObject for dynamic access across assemblies
             var metadata = new Dictionary<string, object>
             {
                 { "CompletionId", "cmpl-direct-persist" },
-                { "Usage", new {
-                        OutputTokenDetails = new { ReasoningTokenCount = 123, AudioTokenCount = 5 },
-                        InputTokenDetails = new { AudioTokenCount = 10, CachedTokenCount = 50 }
-                    }
-                }
+                { "Usage", CreateUsageMetadata() }
             };
 
             // 1. Send a content chunk
@@ -193,6 +190,18 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 new Mock<ILoggerFactory>().Object,
                 persistence
             );
+        }
+
+        private static dynamic CreateUsageMetadata()
+        {
+            dynamic usage = new ExpandoObject();
+            usage.OutputTokenDetails = new ExpandoObject();
+            usage.OutputTokenDetails.ReasoningTokenCount = 123;
+            usage.OutputTokenDetails.AudioTokenCount = 5;
+            usage.InputTokenDetails = new ExpandoObject();
+            usage.InputTokenDetails.AudioTokenCount = 10;
+            usage.InputTokenDetails.CachedTokenCount = 50;
+            return usage;
         }
     }
 }

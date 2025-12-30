@@ -371,7 +371,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 Console.WriteLine(content);
             }
 
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
+            _logger?.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
             return;
         }
@@ -453,7 +453,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             if (!_stepExecutionContext.AgentConfigurationIds.TryGetValue(agentName, out var agentConfigurationId))
             {
-                _logger.LogWarning(
+                _logger?.LogWarning(
                     $"Class: {GetType().Name}\tMessage: Agent configuration ID not found for agent '{agentName}'. Skipping response persistence.");
                 return;
             }
@@ -486,7 +486,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             }
             catch (Exception ex)
             {
-                _logger.LogError(
+                _logger?.LogError(
                     ex,
                     $"Class: {GetType().Name}\tMessage: Failed to persist agent response for agent '{agentName}'.");
             }
