@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
@@ -13,8 +11,8 @@ using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
-using Xunit;
 using System.Dynamic;  // Add this for ExpandoObject
+using System.Reflection;
 
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 {

@@ -99,13 +99,13 @@ public class ACHWorkflowCoordinatorTests
                 It.IsAny<IEnumerable<Hypothesis>>(),
                 It.IsAny<bool>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Guid id, IEnumerable<Hypothesis> hypotheses, bool isRefined, CancellationToken ct) => hypotheses.ToList());
         _mockWorkflowResultPersistence
             .Setup(x => x.SaveEvidenceAsync(
                 It.IsAny<Guid>(),
                 It.IsAny<IEnumerable<Evidence>>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((Guid id, IEnumerable<Evidence> evidence, CancellationToken ct) => evidence.ToList());
         _mockWorkflowResultPersistence
             .Setup(x => x.SaveEvaluationsAsync(
                 It.IsAny<Guid>(),

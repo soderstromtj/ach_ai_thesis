@@ -19,14 +19,14 @@ public class HypothesisRepository : IHypothesisRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task SaveBatchAsync(
+    public async Task<List<Hypothesis>> SaveBatchAsync(
         IEnumerable<Hypothesis> hypotheses,
         Guid stepExecutionId,
         bool isRefined = false,
         CancellationToken cancellationToken = default)
     {
         if (hypotheses == null || !hypotheses.Any())
-            return;
+            return new List<Hypothesis>();
 
         // Map domain entities to database entities
         var dbEntities = hypotheses
@@ -36,6 +36,9 @@ public class HypothesisRepository : IHypothesisRepository
         // Save to database
         await _context.Hypotheses.AddRangeAsync(dbEntities, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Map back to domain entities to return with IDs
+        return HypothesisMapper.ToDomain(dbEntities);
     }
 
     public async Task<List<Hypothesis>> GetByStepExecutionIdAsync(

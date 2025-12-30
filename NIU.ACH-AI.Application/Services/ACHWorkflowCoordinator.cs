@@ -82,16 +82,19 @@ namespace NIU.ACH_AI.Application.Services
                     Console.WriteLine($"Executing Step {step.Id}: {step.Name}");
                     Console.WriteLine(new string('=', 70));
 
+                    // Create step execution context which tracks state for this step
                     var stepExecutionContext = await _workflowPersistence.CreateStepExecutionAsync(
                         experimentId,
                         step,
                         cancellationToken);
 
+                    // Persist agent configurations for this step
                     var agentConfigurationIds = await _agentConfigurationPersistence.CreateAgentConfigurationsAsync(
                         stepExecutionContext.StepExecutionId,
                         step.AgentConfigurations,
                         cancellationToken);
 
+                    // Link agent configuration IDs to step execution context
                     stepExecutionContext.AgentConfigurationIds = agentConfigurationIds;
                     var stepStart = DateTime.UtcNow;
                     await _workflowPersistence.UpdateStepExecutionStatusAsync(
@@ -106,6 +109,7 @@ namespace NIU.ACH_AI.Application.Services
                     // Execute the appropriate step based on configuration
                     try
                     {
+                        // Execute the step and update workflow state
                         await ExecuteStepAsync(
                             step,
                             input,
@@ -175,6 +179,7 @@ namespace NIU.ACH_AI.Application.Services
             Guid? evidenceStepExecutionId,
             CancellationToken cancellationToken)
         {
+            // Determine which step to execute based on the step name
             var stepName = stepConfig.Name.ToLowerInvariant();
 
             switch (stepName)
@@ -225,15 +230,15 @@ namespace NIU.ACH_AI.Application.Services
                 stepExecutionContext,
                 cancellationToken);
 
-            // Update workflow result and input for next step
-            workflowResult.Hypotheses = hypotheses;
-            input.HypothesisResult = new HypothesisResult { Hypotheses = hypotheses };
-
-            await _workflowResultPersistence.SaveHypothesesAsync(
+            var savedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
                 stepExecutionContext.StepExecutionId,
                 hypotheses,
                 isRefined: false,
                 cancellationToken: cancellationToken);
+
+            // Update workflow result and input for next step with saved entities (containing IDs)
+            workflowResult.Hypotheses = savedHypotheses;
+            input.HypothesisResult = new HypothesisResult { Hypotheses = savedHypotheses };
 
             _logger.LogInformation($"Generated {hypotheses.Count} hypotheses");
         }
@@ -255,15 +260,15 @@ namespace NIU.ACH_AI.Application.Services
                 stepExecutionContext,
                 cancellationToken);
 
-            // Update workflow result and input for next step
-            workflowResult.RefinedHypotheses = refinedHypotheses;
-            input.HypothesisResult = new HypothesisResult { Hypotheses = refinedHypotheses };
-
-            await _workflowResultPersistence.SaveHypothesesAsync(
+            var savedRefinedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
                 stepExecutionContext.StepExecutionId,
                 refinedHypotheses,
                 isRefined: true,
                 cancellationToken: cancellationToken);
+
+            // Update workflow result and input for next step with saved entities (containing IDs)
+            workflowResult.RefinedHypotheses = savedRefinedHypotheses;
+            input.HypothesisResult = new HypothesisResult { Hypotheses = savedRefinedHypotheses };
 
             _logger.LogInformation($"Refined to {refinedHypotheses.Count} hypotheses");
         }
@@ -285,14 +290,14 @@ namespace NIU.ACH_AI.Application.Services
                 stepExecutionContext,
                 cancellationToken);
 
-            // Update workflow result and input for next step
-            workflowResult.Evidence = evidence;
-            input.EvidenceResult = new EvidenceResult { Evidence = evidence };
-
-            await _workflowResultPersistence.SaveEvidenceAsync(
+            var savedEvidence = await _workflowResultPersistence.SaveEvidenceAsync(
                 stepExecutionContext.StepExecutionId,
                 evidence,
                 cancellationToken: cancellationToken);
+
+            // Update workflow result and input for next step with saved entities (containing IDs)
+            workflowResult.Evidence = savedEvidence;
+            input.EvidenceResult = new EvidenceResult { Evidence = savedEvidence };
 
             _logger.LogInformation($"Extracted {evidence.Count} pieces of evidence");
         }
@@ -357,6 +362,14 @@ namespace NIU.ACH_AI.Application.Services
                         evaluationInput,
                         stepExecutionContext,
                         cancellationToken);
+
+                    foreach (var result in evaluationResults)
+                    {
+                        // Ensure the evaluation has the correct Hypothesis and Evidence objects with IDs
+                        // The LLM output might have new objects or incomplete ones, we must link to the persisted ones
+                        result.Hypothesis = hypothesis;
+                        result.Evidence = evidence;
+                    }
 
                     evaluations.AddRange(evaluationResults);
                 }

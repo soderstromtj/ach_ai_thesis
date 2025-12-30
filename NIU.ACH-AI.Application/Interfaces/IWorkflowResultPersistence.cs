@@ -4,13 +4,13 @@ namespace NIU.ACH_AI.Application.Interfaces
 {
     public interface IWorkflowResultPersistence
     {
-        Task SaveHypothesesAsync(
+        Task<List<Hypothesis>> SaveHypothesesAsync(
             Guid stepExecutionId,
             IEnumerable<Hypothesis> hypotheses,
             bool isRefined,
             CancellationToken cancellationToken = default);
 
-        Task SaveEvidenceAsync(
+        Task<List<Evidence>> SaveEvidenceAsync(
             Guid stepExecutionId,
             IEnumerable<Evidence> evidence,
             CancellationToken cancellationToken = default);

@@ -19,13 +19,13 @@ public class EvidenceRepository : IEvidenceRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task SaveBatchAsync(
+    public async Task<List<Evidence>> SaveBatchAsync(
         IEnumerable<Evidence> evidenceList,
         Guid stepExecutionId,
         CancellationToken cancellationToken = default)
     {
         if (evidenceList == null || !evidenceList.Any())
-            return;
+            return new List<Evidence>();
 
         // Map domain entities to database entities
         var dbEntities = evidenceList
@@ -35,6 +35,9 @@ public class EvidenceRepository : IEvidenceRepository
         // Save to database
         await _context.Evidences.AddRangeAsync(dbEntities, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Map back to domain entities to return with IDs
+        return EvidenceMapper.ToDomain(dbEntities);
     }
 
     public async Task<List<Evidence>> GetByStepExecutionIdAsync(

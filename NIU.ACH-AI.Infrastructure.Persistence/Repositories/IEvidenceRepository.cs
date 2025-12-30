@@ -11,7 +11,7 @@ public interface IEvidenceRepository
     /// <summary>
     /// Saves a batch of evidence items extracted by AI for a given step execution.
     /// </summary>
-    Task SaveBatchAsync(
+    Task<List<Evidence>> SaveBatchAsync(
         IEnumerable<Evidence> evidenceList,
         Guid stepExecutionId,
         CancellationToken cancellationToken = default);

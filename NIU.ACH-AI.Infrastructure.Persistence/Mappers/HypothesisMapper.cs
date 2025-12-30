@@ -18,7 +18,7 @@ public static class HypothesisMapper
     {
         return new DbModel.Hypothesis
         {
-            HypothesisId = Guid.NewGuid(),
+            HypothesisId = domain.HypothesisId != Guid.Empty ? domain.HypothesisId : Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             ShortTitle = domain.ShortTitle,
             HypothesisText = domain.HypothesisText,
@@ -30,14 +30,15 @@ public static class HypothesisMapper
     /// <summary>
     /// Converts a database hypothesis entity back to a domain entity.
     /// </summary>
-    public static DomainEntity.Hypothesis ToDomain(DbModel.Hypothesis database)
-    {
-        return new DomainEntity.Hypothesis
+        public static DomainEntity.Hypothesis ToDomain(DbModel.Hypothesis database)
         {
-            ShortTitle = database.ShortTitle,
-            HypothesisText = database.HypothesisText
-        };
-    }
+            return new DomainEntity.Hypothesis
+            {
+                HypothesisId = database.HypothesisId,
+                ShortTitle = database.ShortTitle,
+                HypothesisText = database.HypothesisText
+            };
+        }
 
     /// <summary>
     /// Converts multiple database entities to domain entities.
