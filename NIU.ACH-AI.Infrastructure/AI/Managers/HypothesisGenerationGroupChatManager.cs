@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Exceptions;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Application.Configuration;
 using System.Text.Json;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Managers
@@ -19,6 +20,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
     {
         private readonly OrchestrationPromptInput _input;
         private readonly List<string> _agentNames;
+        private readonly Dictionary<string, List<string>> _agentTags; // Map of AgentName -> Tags
         private readonly IChatCompletionService _chatCompletion;
         private readonly IGroupChatPromptStrategy _promptStrategy;
         private readonly AgentParticipationTracker _participationTracker;
@@ -28,36 +30,35 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         /// Initializes a new instance of the <see cref="HypothesisGenerationGroupChatManager"/> class.
         /// </summary>
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
-        /// <param name="agentNames">The names of all agents participating in the group chat.</param>
-        /// <param name="maximumInvocationLimit">The maximum number of turns allowed (0 or negative for unlimited).</param>
+        /// <param name="agentConfigs">The configurations of all agents participating in the group chat.</param>
         /// <param name="chatCompletion">The chat completion service for LLM interactions.</param>
         /// <param name="promptStrategy">The strategy for generating prompts.</param>
         /// <param name="participationTracker">The tracker for monitoring agent participation.</param>
         /// <param name="logger">The logger for diagnostic information.</param>
-        /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when agentNames is empty.</exception>
         public HypothesisGenerationGroupChatManager(
             OrchestrationPromptInput input,
-            List<string> agentNames,
+            IEnumerable<AgentConfiguration> agentConfigs,
             IChatCompletionService chatCompletion,
             IGroupChatPromptStrategy promptStrategy,
             AgentParticipationTracker participationTracker,
             ILogger<HypothesisGenerationGroupChatManager> logger)
         {
             ArgumentNullException.ThrowIfNull(input);
-            ArgumentNullException.ThrowIfNull(agentNames);
+            ArgumentNullException.ThrowIfNull(agentConfigs);
             ArgumentNullException.ThrowIfNull(chatCompletion);
             ArgumentNullException.ThrowIfNull(promptStrategy);
             ArgumentNullException.ThrowIfNull(participationTracker);
             ArgumentNullException.ThrowIfNull(logger);
 
-            if (agentNames.Count == 0)
+            var configsList = agentConfigs.ToList();
+            if (configsList.Count == 0)
             {
-                throw new ArgumentException("At least one agent name is required", nameof(agentNames));
+                throw new ArgumentException("At least one agent configuration is required", nameof(agentConfigs));
             }
 
             _input = input;
-            _agentNames = agentNames;
+            _agentNames = configsList.Select(c => c.Name).ToList();
+            _agentTags = configsList.ToDictionary(c => c.Name, c => c.Tags ?? new List<string>());
             _chatCompletion = chatCompletion;
             _promptStrategy = promptStrategy;
             _participationTracker = participationTracker;
@@ -65,7 +66,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 
             _logger.LogInformation(
                 "HypothesisGenerationGroupChatManager created with {AgentCount} agents and max limit of {MaxLimit}",
-                agentNames.Count,
+                _agentNames.Count,
                 MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
         }
 
@@ -91,10 +92,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         /// <summary>
         /// Selects the next agent to contribute to the group chat.
         /// </summary>
-        /// <param name="history">The chat history containing the conversation.</param>
-        /// <param name="team">The group chat team.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A result containing the name of the selected agent.</returns>
         public override async ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
             ChatHistory history,
             GroupChatTeam team,
@@ -102,19 +99,16 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         {
             int turnCount = GetTurnCount(history);
 
-            // All of the DIME-FIL agents and deception agent must participate first before moving on to screening and summarization
-            List<string> phaseOneAgents = new()
-            {
-                "DiplomaticHypothesisAgent",
-                "InformationHypothesisAgent",
-                "MilitaryHypothesisAgent",
-                "EconomicHypothesisAgent",
-                "FinancialHypothesisAgent",
-                "IntelligenceHypothesisAgent",
-                "LawEnforcementHypothesisAgent",
-                "DeceptionHypothesisAgent"
-            };
-
+            // Phase 1: Brainstorming Agents
+            // Identify agents with the "Brainstorming" tag
+            // Fallback: If no tags, use the old hardcoded list logic as a detailed fallback or just error?
+            // For now, let's assume we use tags. If no tags, default to all agents? 
+            // Better to stick to the plan: use tags.
+            var phaseOneAgents = GetAgentsByTag("Brainstorming");
+            
+            // Should prompt contain only phase one agents?
+            // The prompt strategy currently takes a list of candidate agents.
+            
             string prompt;
             if (turnCount < phaseOneAgents.Count)
             {
@@ -126,16 +120,24 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             if (turnCount == phaseOneAgents.Count)
             {
                 _logger.LogDebug("Selecting Hypothesis Screening Agent after Phase 1 completion");
-                prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "HypothesisScreeningAgent" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
+                var screeningAgents = GetAgentsByTag("Screening");
+                prompt = _promptStrategy.GetSelectionPrompt(_input, screeningAgents);
                 return await GetResponseAsync<string>(history, prompt, cancellationToken);
             }
-
             
             _logger.LogDebug("Selecting Summarizing Agent after Hypothesis Screening completion");
-            prompt = _promptStrategy.GetSelectionPrompt(_input, _agentNames.Select(name => name == "FinalHypothesisSummarizerFormatter" ? name : string.Empty).Where(name => !string.IsNullOrWhiteSpace(name)).ToList());
+            var summarizingAgents = GetAgentsByTag("Summarizing");
+            prompt = _promptStrategy.GetSelectionPrompt(_input, summarizingAgents);
 
             return await GetResponseAsync<string>(history, prompt, cancellationToken);
-            
+        }
+
+        private List<string> GetAgentsByTag(string tag)
+        {
+            return _agentTags
+                .Where(kvp => kvp.Value.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                .Select(kvp => kvp.Key)
+                .ToList();
         }
 
         /// <summary>

@@ -20,8 +20,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
             ILoggerFactory loggerFactory,
-            IAgentResponsePersistence? agentResponsePersistence = null)
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+            IAgentResponsePersistence? agentResponsePersistence = null,
+            ITokenUsageExtractor? tokenUsageExtractor = null)
+            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
         {
         }
 

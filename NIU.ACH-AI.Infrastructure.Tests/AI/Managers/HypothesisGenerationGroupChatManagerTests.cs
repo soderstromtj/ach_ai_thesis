@@ -6,6 +6,7 @@ using Moq;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Exceptions;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Infrastructure.AI.Managers;
 using System.Text.Json;
 
@@ -50,11 +51,26 @@ public class HypothesisGenerationGroupChatManagerTests
         var loggerMock = new Mock<ILogger<HypothesisGenerationGroupChatManager>>();
 
         var actualInput = input ?? CreateDefaultInput();
-        var actualAgentNames = agentNames ?? CreateDefaultAgentNames();
+        var names = agentNames ?? CreateDefaultAgentNames();
+
+        // Convert names to configs with tags logic
+        var configs = names.Select(name =>
+        {
+            var tags = new List<string>();
+            if (name == "HypothesisScreeningAgent") tags.Add("Screening");
+            else if (name == "FinalHypothesisSummarizerFormatter") tags.Add("Summarizing");
+            else tags.Add("Brainstorming"); // Default to brainstorming for DIME-FIL
+
+            return new AgentConfiguration
+            {
+                Name = name,
+                Tags = tags
+            };
+        }).ToList();
 
         var manager = new HypothesisGenerationGroupChatManager(
             actualInput,
-            actualAgentNames,
+            configs,
             chatCompletionMock.Object,
             promptStrategyMock.Object,
             participationTracker,
@@ -86,6 +102,23 @@ public class HypothesisGenerationGroupChatManagerTests
             "HypothesisScreeningAgent",
             "FinalHypothesisSummarizerFormatter"
         };
+    }
+
+    private static List<AgentConfiguration> CreateDefaultAgentConfigurations()
+    {
+        return CreateDefaultAgentNames().Select(name =>
+        {
+            var tags = new List<string>();
+            if (name == "HypothesisScreeningAgent") tags.Add("Screening");
+            else if (name == "FinalHypothesisSummarizerFormatter") tags.Add("Summarizing");
+            else tags.Add("Brainstorming");
+
+            return new AgentConfiguration
+            {
+                Name = name,
+                Tags = tags
+            };
+        }).ToList();
     }
 
     private static ChatHistory CreateEmptyHistory()
@@ -185,7 +218,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new HypothesisGenerationGroupChatManager(
                 null!,
-                CreateDefaultAgentNames(),
+                CreateDefaultAgentConfigurations(),
                 chatCompletionMock.Object,
                 promptStrategyMock.Object,
                 participationTracker,
@@ -216,7 +249,7 @@ public class HypothesisGenerationGroupChatManagerTests
                 participationTracker,
                 loggerMock.Object));
 
-        Assert.Equal("agentNames", exception.ParamName);
+        Assert.Equal("agentConfigs", exception.ParamName);
     }
 
     /// <summary>
@@ -234,7 +267,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new HypothesisGenerationGroupChatManager(
                 CreateDefaultInput(),
-                CreateDefaultAgentNames(),
+                CreateDefaultAgentConfigurations(),
                 null!,
                 promptStrategyMock.Object,
                 participationTracker,
@@ -258,7 +291,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new HypothesisGenerationGroupChatManager(
                 CreateDefaultInput(),
-                CreateDefaultAgentNames(),
+                CreateDefaultAgentConfigurations(),
                 chatCompletionMock.Object,
                 null!,
                 participationTracker,
@@ -282,7 +315,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new HypothesisGenerationGroupChatManager(
                 CreateDefaultInput(),
-                CreateDefaultAgentNames(),
+                CreateDefaultAgentConfigurations(),
                 chatCompletionMock.Object,
                 promptStrategyMock.Object,
                 null!,
@@ -306,7 +339,7 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new HypothesisGenerationGroupChatManager(
                 CreateDefaultInput(),
-                CreateDefaultAgentNames(),
+                CreateDefaultAgentConfigurations(),
                 chatCompletionMock.Object,
                 promptStrategyMock.Object,
                 participationTracker,
@@ -331,14 +364,14 @@ public class HypothesisGenerationGroupChatManagerTests
         var exception = Assert.Throws<ArgumentException>(() =>
             new HypothesisGenerationGroupChatManager(
                 CreateDefaultInput(),
-                new List<string>(), // Empty list
+                new List<AgentConfiguration>(), // Empty list
                 chatCompletionMock.Object,
                 promptStrategyMock.Object,
                 participationTracker,
                 loggerMock.Object));
 
-        Assert.Equal("agentNames", exception.ParamName);
-        Assert.Contains("At least one agent name is required", exception.Message);
+        Assert.Equal("agentConfigs", exception.ParamName);
+        Assert.Contains("At least one agent configuration is required", exception.Message);
     }
 
     #endregion
@@ -1065,12 +1098,17 @@ public class HypothesisGenerationGroupChatManagerTests
         var participationTracker = new AgentParticipationTracker();
         var loggerMock = new Mock<ILogger<HypothesisGenerationGroupChatManager>>();
 
-        var agentNames = new List<string> { "Agent1", "Agent2", "Agent3" };
+        var agentConfigs = new List<AgentConfiguration>
+        {
+            new AgentConfiguration { Name = "Agent1" },
+            new AgentConfiguration { Name = "Agent2" },
+            new AgentConfiguration { Name = "Agent3" }
+        };
 
         // Act
         var manager = new HypothesisGenerationGroupChatManager(
             CreateDefaultInput(),
-            agentNames,
+            agentConfigs,
             chatCompletionMock.Object,
             promptStrategyMock.Object,
             participationTracker,

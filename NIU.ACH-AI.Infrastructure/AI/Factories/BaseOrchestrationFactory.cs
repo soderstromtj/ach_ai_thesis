@@ -34,6 +34,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         protected readonly ILogger _logger;
         protected readonly ILoggerFactory _loggerFactory;
         private readonly IAgentResponsePersistence? _agentResponsePersistence;
+        private readonly ITokenUsageExtractor? _tokenUsageExtractor;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
         private readonly Stopwatch _responseStopwatch = new Stopwatch();
@@ -47,7 +48,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
             ILoggerFactory loggerFactory,
-            IAgentResponsePersistence? agentResponsePersistence = null)
+            IAgentResponsePersistence? agentResponsePersistence = null,
+            ITokenUsageExtractor? tokenUsageExtractor = null)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
@@ -56,6 +58,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger(GetType());
             _agentResponsePersistence = agentResponsePersistence;
+            _tokenUsageExtractor = tokenUsageExtractor;
         }
 
         /// <summary>
@@ -232,39 +235,16 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         private async Task PersistFromStreamingAsync(StreamingChatMessageContent response, string agentName, string content)
         {
-            try
-            {
-                var completionId = response.Metadata?.GetValueOrDefault("CompletionId")?.ToString();
-                var metadata = response.Metadata;
-
-                // Use helper to extract token usage and other metadata
-                var usageInfo = ExtractTokenUsage(metadata);
-
-                // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
-                // We rely on the _responseStopwatch which is running.
-               
-                long responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
-                
-                await PersistAgentResponseInternalAsync(
-                    agentName,
-                    content,
-                    usageInfo.InputTokenCount,
-                    usageInfo.OutputTokenCount,
-                    responseDuration,
-                    completionId,
-                    usageInfo.ReasoningTokenCount,
-                    usageInfo.OutputAudioTokenCount,
-                    usageInfo.AcceptedPredictionTokenCount,
-                    usageInfo.RejectedPredictionTokenCount,
-                    usageInfo.InputAudioTokenCount,
-                    usageInfo.CachedInputTokenCount,
-                    usageInfo.CreatedAt
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to persist streaming response for agent '{AgentName}'.", agentName);
-            }
+             // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
+            // We rely on the _responseStopwatch which is running.
+            long responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
+            
+            await PersistAgentResponseInternalAsync(
+                agentName,
+                content,
+                response.Metadata,
+                responseDuration
+            );
         }
 
         protected async ValueTask<ChatMessageContent> InteractiveCallback()
@@ -303,15 +283,17 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _previousAgentName = agentName;
                 }
 
-                // Extract token count from metadata if available
+                // Extract token count from metadata if available for logging
                 int? tokenCount = null;
-                if (response.Metadata != null)
+                if (_tokenUsageExtractor != null)
                 {
-                    // Try to get token count from metadata dictionary directly
-                    if (response.Metadata.TryGetValue("OutputTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
-                    {
-                        tokenCount = outputTokenCount;
-                    }
+                    var usage = _tokenUsageExtractor.ExtractTokenUsage(response.Metadata);
+                    tokenCount = usage.OutputTokenCount;
+                }
+                else if (response.Metadata?.TryGetValue("OutputTokenCount", out var outputTokenCountObj) == true && outputTokenCountObj is int outputTokenCount)
+                {
+                     // Fallback if extractor not provided
+                    tokenCount = outputTokenCount;
                 }
 
                 // Start timer for next response
@@ -344,7 +326,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         #endregion
 
         #region Abstract Methods - Template Method Pattern
-
         /// <summary>
         /// Creates the orchestration object specific to this factory type.
         /// Derived classes can create any type of AgentOrchestration (GroupChatOrchestration, ConcurrentOrchestration, etc.)
@@ -396,92 +377,13 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         #region Private Helpers
 
-        private TokenUsageInfo ExtractTokenUsage(IReadOnlyDictionary<string, object?>? metadata)
-        {
-            var info = new TokenUsageInfo();
-            if (metadata == null) return info;
-
-            // Extract CreatedAt
-            if (metadata.TryGetValue("CreatedAt", out var createdAtObj) && createdAtObj != null)
-            {
-                if (createdAtObj is DateTimeOffset dto) info.CreatedAt = dto;
-                else if (createdAtObj is DateTime dt) info.CreatedAt = new DateTimeOffset(dt);
-                else if (createdAtObj is string dateStr && DateTimeOffset.TryParse(dateStr, out var parsedDto)) info.CreatedAt = parsedDto;
-            }
-
-            if (metadata.TryGetValue("Usage", out var usageObj) && usageObj != null)
-            {
-                try
-                {
-                    // OpenAI.Chat.ChatTokenUsage via dynamic
-                    dynamic dUsage = usageObj;
-                   
-                    // Extract top-level counts
-                    try { info.OutputTokenCount = (int?)dUsage.OutputTokenCount; } catch { }
-                    try { info.InputTokenCount = (int?)dUsage.InputTokenCount; } catch { }
-
-                    dynamic? dOutputDetails = null;
-                    dynamic? dInputDetails = null;
-
-                    try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
-                    try { dInputDetails = dUsage.InputTokenDetails; } catch { }
-
-                    if (dOutputDetails != null)
-                    {
-                        try { info.ReasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
-                        try { info.OutputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
-                        try { info.AcceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
-                        try { info.RejectedPredictionTokenCount = (int?)dOutputDetails.RejectedPredictionTokenCount; } catch { }
-                    }
-
-                    if (dInputDetails != null)
-                    {
-                        try { info.InputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
-                        try { info.CachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to extract metadata using dynamic/reflection strategy for type {Type}.", usageObj.GetType().FullName);
-                }
-            }
-
-            // Fallback: Try top-level keys
-            if (info.OutputTokenCount == null && metadata.TryGetValue("OutputTokenCount", out var outTokenObj) && outTokenObj is int outCount) info.OutputTokenCount = outCount;
-            if (info.InputTokenCount == null && metadata.TryGetValue("InputTokenCount", out var inTokenObj) && inTokenObj is int inCount) info.InputTokenCount = inCount;
-
-            return info;
-        }
-
-        private class TokenUsageInfo
-        {
-            public int? InputTokenCount { get; set; }
-            public int? OutputTokenCount { get; set; }
-            public int? ReasoningTokenCount { get; set; }
-            public int? OutputAudioTokenCount { get; set; }
-            public int? AcceptedPredictionTokenCount { get; set; }
-            public int? RejectedPredictionTokenCount { get; set; }
-            public int? InputAudioTokenCount { get; set; }
-            public int? CachedInputTokenCount { get; set; }
-            public DateTimeOffset? CreatedAt { get; set; }
-        }
-
         private async Task PersistAgentResponseInternalAsync(
             string agentName,
             string content,
-            int? inputTokenCount,
-            int? outputTokenCount,
-            long responseDuration,
-            string? completionId,
-            int? reasoningTokenCount,
-            int? outputAudioTokenCount,
-            int? acceptedPredictionTokenCount,
-            int? rejectedPredictionTokenCount,
-            int? inputAudioTokenCount,
-            int? cachedInputTokenCount,
-            DateTimeOffset? createdAt = null)
+            IReadOnlyDictionary<string, object?>? metadata,
+            long responseDuration)
         {
-            if (_stepExecutionContext == null)
+            if (_stepExecutionContext == null || _agentResponsePersistence == null)
             {
                 return;
             }
@@ -495,33 +397,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 return;
             }
 
-            var record = new AgentResponseRecord
-            {
-                StepExecutionId = _stepExecutionContext.StepExecutionId,
-                AgentConfigurationId = agentConfigurationId,
-                AgentName = agentName,
-                InputTokenCount = inputTokenCount,
-                OutputTokenCount = outputTokenCount,
-                ContentLength = content.Length,
-                Content = content,
-                TurnNumber = _currentTurn,
-                ResponseDuration = responseDuration,
-
-                // Map extended metadata
-                CompletionId = completionId,
-                ReasoningTokenCount = reasoningTokenCount,
-                OutputAudioTokenCount = outputAudioTokenCount,
-                AcceptedPredictionTokenCount = acceptedPredictionTokenCount,
-                RejectedPredictionTokenCount = rejectedPredictionTokenCount,
-                InputAudioTokenCount = inputAudioTokenCount,
-                CachedInputTokenCount = cachedInputTokenCount,
-                CreatedAt = createdAt?.UtcDateTime ?? DateTime.UtcNow,
-                FinishedAt = DateTime.UtcNow
-            };
-
             try
             {
-                await _agentResponsePersistence!.SaveAgentResponseAsync(record, CancellationToken.None);
+                // Delegate all mapping and extraction logic to the enhanced persistence service
+                await _agentResponsePersistence.SaveAgentResponseAsync(
+                    content,
+                    metadata,
+                    agentName,
+                    _stepExecutionContext.StepExecutionId,
+                    agentConfigurationId,
+                    _currentTurn,
+                    responseDuration,
+                    CancellationToken.None);
             }
             catch (Exception ex)
             {

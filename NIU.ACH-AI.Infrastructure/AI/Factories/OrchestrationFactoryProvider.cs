@@ -14,13 +14,16 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IAgentResponsePersistence _agentResponsePersistence;
+        private readonly ITokenUsageExtractor _tokenUsageExtractor;
 
         public OrchestrationFactoryProvider(
             IOrchestrationExecutor orchestrationExecutor,
-            IAgentResponsePersistence agentResponsePersistence)
+            IAgentResponsePersistence agentResponsePersistence,
+            ITokenUsageExtractor tokenUsageExtractor)
         {
             _orchestrationExecutor = orchestrationExecutor;
             _agentResponsePersistence = agentResponsePersistence ?? throw new ArgumentNullException(nameof(agentResponsePersistence));
+            _tokenUsageExtractor = tokenUsageExtractor ?? throw new ArgumentNullException(nameof(tokenUsageExtractor));
         }
 
         /// <summary>
@@ -42,19 +45,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             {
                 "hypothesis brainstorming" or "hypothesisbrainstorming"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisBrainstormingOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
 
                 "hypothesis evaluation" or "hypothesisevaluation" or "hypothesis refinement" or "hypothesisrefinement"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisRefinementOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
 
                 "evidence extraction" or "evidenceextraction"
                     => CreateTypedFactory<TResult, List<Evidence>, EvidenceExtractionOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
 
                 "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation"
                     => CreateTypedFactory<TResult, List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
 
                 _ => throw new InvalidOperationException(
                     $"Unknown ACH step name: '{stepConfiguration.Name}'. " +
@@ -72,7 +75,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationOptions,
             ILoggerFactory loggerFactory,
-            IAgentResponsePersistence agentResponsePersistence)
+            IAgentResponsePersistence agentResponsePersistence,
+            ITokenUsageExtractor tokenUsageExtractor)
             where TFactory : IOrchestrationFactory<TExpectedResult>
         {
             // Verify that TResult matches TExpectedResult
@@ -91,7 +95,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 kernelBuilderService,
                 orchestrationOptions,
                 loggerFactory,
-                agentResponsePersistence)!;
+                agentResponsePersistence,
+                tokenUsageExtractor)!;
 
             // Cast to the requested interface type
             return (IOrchestrationFactory<TResult>)factory;

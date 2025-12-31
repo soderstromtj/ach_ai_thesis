@@ -20,5 +20,11 @@
         /// If not specified, uses the ModelId from the provider settings.
         /// </summary>
         public string? ModelId { get; set; }
+
+        /// <summary>
+        /// Optional list of tags or roles associated with this agent.
+        /// Used for dynamic selection strategies (e.g., "Brainstorming", "Screening", "Summarizing").
+        /// </summary>
+        public List<string> Tags { get; set; } = new();
     }
 }

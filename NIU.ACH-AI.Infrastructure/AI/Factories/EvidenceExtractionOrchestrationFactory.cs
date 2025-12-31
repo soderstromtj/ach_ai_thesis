@@ -18,8 +18,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         IKernelBuilderService kernelBuilderService,
         IOptions<OrchestrationSettings> orchestrationSettings,
         ILoggerFactory loggerFactory,
-        IAgentResponsePersistence? agentResponsePersistence = null)
-        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+        IAgentResponsePersistence? agentResponsePersistence = null,
+        ITokenUsageExtractor? tokenUsageExtractor = null)
+        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
     {
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(

@@ -12,10 +12,14 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     public class AgentResponsePersistence : IAgentResponsePersistence
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly ITokenUsageExtractor _tokenUsageExtractor;
 
-        public AgentResponsePersistence(IServiceScopeFactory serviceScopeFactory)
+        public AgentResponsePersistence(
+            IServiceScopeFactory serviceScopeFactory,
+            ITokenUsageExtractor tokenUsageExtractor)
         {
             _serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
+            _tokenUsageExtractor = tokenUsageExtractor ?? throw new ArgumentNullException(nameof(tokenUsageExtractor));
         }
 
         public async Task SaveAgentResponseAsync(
@@ -64,6 +68,64 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 FinishedAt = response.FinishedAt
             };
 
+            await SaveEntityAsync(entity, cancellationToken);
+        }
+
+        public async Task SaveAgentResponseAsync(
+            string content,
+            IReadOnlyDictionary<string, object?>? metadata,
+            string agentName,
+            Guid stepExecutionId,
+            Guid agentConfigurationId,
+            int turnNumber,
+            long responseDuration,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(agentName)) throw new ArgumentException("Agent name cannot be empty", nameof(agentName));
+            if (stepExecutionId == Guid.Empty) throw new ArgumentException("StepExecutionId cannot be empty", nameof(stepExecutionId));
+            if (agentConfigurationId == Guid.Empty) throw new ArgumentException("AgentConfigurationId cannot be empty", nameof(agentConfigurationId));
+
+            // Extract usage info
+            var usageInfo = _tokenUsageExtractor.ExtractTokenUsage(metadata);
+            
+            // Extract CompletionId from metadata if available
+            string? completionId = null;
+            if (metadata != null && metadata.TryGetValue("CompletionId", out var completionIdObj))
+            {
+                completionId = completionIdObj?.ToString();
+            }
+
+            var entity = new AgentResponse
+            {
+                AgentResponseId = Guid.NewGuid(),
+                StepExecutionId = stepExecutionId,
+                AgentConfigurationId = agentConfigurationId,
+                AgentName = agentName,
+                Content = content,
+                ContentLength = content?.Length ?? 0,
+                ResponseDuration = responseDuration,
+                
+                // Map from usage info
+                InputTokenCount = usageInfo.InputTokenCount,
+                OutputTokenCount = usageInfo.OutputTokenCount,
+                ReasoningTokenCount = usageInfo.ReasoningTokenCount,
+                OutputAudioTokenCount = usageInfo.OutputAudioTokenCount,
+                AcceptedPredictionTokenCount = usageInfo.AcceptedPredictionTokenCount,
+                RejectedPredictionTokenCount = usageInfo.RejectedPredictionTokenCount,
+                InputAudioTokenCount = usageInfo.InputAudioTokenCount,
+                CachedInputTokenCount = usageInfo.CachedInputTokenCount,
+                CreatedAt = usageInfo.CreatedAt?.UtcDateTime ?? DateTime.UtcNow,
+                
+                CompletionId = completionId,
+                FinishedAt = DateTime.UtcNow,
+                TurnNumber = turnNumber
+            };
+
+            await SaveEntityAsync(entity, cancellationToken);
+        }
+
+        private async Task SaveEntityAsync(AgentResponse entity, CancellationToken cancellationToken)
+        {
             try
             {
                 using (var scope = _serviceScopeFactory.CreateScope())

@@ -26,8 +26,9 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 IKernelBuilderService kernelBuilderService,
                 IOptions<OrchestrationSettings> orchestrationSettings,
                 ILoggerFactory loggerFactory,
-                IAgentResponsePersistence? agentResponsePersistence = null)
-                : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+                IAgentResponsePersistence? agentResponsePersistence = null,
+                ITokenUsageExtractor? tokenUsageExtractor = null)
+                : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
             {
             }
 
@@ -61,9 +62,20 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             // Arrange
             var agentName = "TestAgent";
             var persistenceMock = new Mock<IAgentResponsePersistence>();
+            var tokenExtractorMock = new Mock<ITokenUsageExtractor>(); // Create mock
+
+            // Setup mock to return expected values
+            tokenExtractorMock.Setup(x => x.ExtractTokenUsage(It.IsAny<IReadOnlyDictionary<string, object?>>()))
+                .Returns(new TokenUsageInfo
+                {
+                    ReasoningTokenCount = 123,
+                    OutputAudioTokenCount = 5,
+                    InputAudioTokenCount = 10,
+                    CachedInputTokenCount = 50
+                });
 
             // Create factory with StreamResponses = true
-            var factory = CreateFactory(persistenceMock.Object, streamResponses: true);
+            var factory = CreateFactory(persistenceMock.Object, tokenExtractorMock.Object, streamResponses: true);
 
             // Set up context
             var executionId = Guid.NewGuid();
@@ -101,15 +113,20 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 
             // Assert
             // Verify persistence was called with the aggregated content and correct metadata
+            // Verify persistence was called with the aggregated content and correct metadata
             persistenceMock.Verify(p => p.SaveAgentResponseAsync(
-                It.Is<AgentResponseRecord>(r =>
-                    r.AgentName == agentName &&
-                    r.Content == "Part 1 Part 2" && // Aggregated content
-                    r.CompletionId == "cmpl-direct-persist" &&
-                    r.ReasoningTokenCount == 123 &&
-                    r.OutputAudioTokenCount == 5 &&
-                    r.InputAudioTokenCount == 10 &&
-                    r.CachedInputTokenCount == 50),
+                "Part 1 Part 2", // Aggregated content
+                It.Is<IReadOnlyDictionary<string, object?>>(m => 
+                    m != null &&
+                    m.ContainsKey("CompletionId") &&
+                    m["CompletionId"]!.ToString() == "cmpl-direct-persist" &&
+                    m.ContainsKey("Usage")
+                ), 
+                agentName,
+                executionId,
+                configId,
+                It.IsAny<int>(), // Turn
+                It.IsAny<long>(), // Duration
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -143,7 +160,10 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 It.IsAny<CancellationToken>()), Times.Never);
         }
 
-        private TestableOrchestrationFactory CreateFactory(IAgentResponsePersistence? persistence = null, bool streamResponses = true)
+        private TestableOrchestrationFactory CreateFactory(
+            IAgentResponsePersistence? persistence = null,
+            ITokenUsageExtractor? tokenUsageExtractor = null,
+            bool streamResponses = true)
         {
             var loggerFactoryMock = new Mock<ILoggerFactory>();
             loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>()))
@@ -154,7 +174,8 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 new Mock<IKernelBuilderService>().Object,
                 Options.Create(new OrchestrationSettings { StreamResponses = streamResponses, WriteResponses = false }),
                 loggerFactoryMock.Object,
-                persistence
+                persistence,
+                tokenUsageExtractor
             );
         }
 

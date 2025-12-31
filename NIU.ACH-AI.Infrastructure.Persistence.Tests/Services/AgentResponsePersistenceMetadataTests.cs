@@ -4,6 +4,7 @@ using Moq;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Infrastructure.Persistence.Models;
 using NIU.ACH_AI.Infrastructure.Persistence.Services;
+using NIU.ACH_AI.Application.Interfaces;
 using Xunit;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
@@ -13,12 +14,14 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
         private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
         private readonly Mock<IServiceScope> _mockScope;
         private readonly Mock<IServiceProvider> _mockServiceProvider;
+        private readonly Mock<ITokenUsageExtractor> _mockTokenUsageExtractor;
 
         public AgentResponsePersistenceMetadataTests()
         {
             _mockScopeFactory = new Mock<IServiceScopeFactory>();
             _mockScope = new Mock<IServiceScope>();
             _mockServiceProvider = new Mock<IServiceProvider>();
+            _mockTokenUsageExtractor = new Mock<ITokenUsageExtractor>();
 
             _mockScopeFactory.Setup(x => x.CreateScope()).Returns(_mockScope.Object);
             _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
@@ -42,7 +45,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
                 return scope.Object;
             });
 
-            var persistence = new AgentResponsePersistence(_mockScopeFactory.Object);
+            var persistence = new AgentResponsePersistence(_mockScopeFactory.Object, _mockTokenUsageExtractor.Object);
 
             var record = new AgentResponseRecord
             {
