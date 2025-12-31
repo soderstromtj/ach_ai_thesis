@@ -46,7 +46,6 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             }
 
             // Abstract implementations (not used for these tests but required)
-            protected override ILogger CreateLogger(ILoggerFactory loggerFactory) => loggerFactory.CreateLogger("Test");
             protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, Agent[] agents, StructuredOutputTransform<EvidenceResult> outputTransform) => null!;
             protected override string GetResultTypeName() => "EvidenceResult";
             protected override List<Evidence> UnwrapResult(EvidenceResult wrapper) => new();
@@ -146,11 +145,15 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 
         private TestableOrchestrationFactory CreateFactory(IAgentResponsePersistence? persistence = null, bool streamResponses = true)
         {
+            var loggerFactoryMock = new Mock<ILoggerFactory>();
+            loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>()))
+                .Returns(new Mock<ILogger>().Object);
+
             return new TestableOrchestrationFactory(
                 new Mock<IAgentService>().Object,
                 new Mock<IKernelBuilderService>().Object,
                 Options.Create(new OrchestrationSettings { StreamResponses = streamResponses, WriteResponses = false }),
-                new Mock<ILoggerFactory>().Object,
+                loggerFactoryMock.Object,
                 persistence
             );
         }

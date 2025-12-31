@@ -25,10 +25,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         {
         }
 
-        protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
-        {
-            return loggerFactory.CreateLogger<EvidenceHypothesisEvaluationOrchestrationFactory>();
-        }
 
         protected override AgentOrchestration<string, EvidenceHypothesisEvaluationResult> CreateOrchestration(
             OrchestrationPromptInput input,

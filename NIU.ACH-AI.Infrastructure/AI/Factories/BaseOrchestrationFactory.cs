@@ -54,7 +54,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _orchestrationSettings = orchestrationSettings.Value;
             _history = new ChatHistory();
             _loggerFactory = loggerFactory;
-            _logger = CreateLogger(loggerFactory);
+            _logger = loggerFactory.CreateLogger(GetType());
             _agentResponsePersistence = agentResponsePersistence;
         }
 
@@ -74,23 +74,27 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             if (_stepExecutionContext != null)
             {
                 _logger.LogDebug(
-                    $"Class: {GetType().Name}\tMessage: Step execution context set. StepExecutionId: {_stepExecutionContext.StepExecutionId}.");
+                    "Class: {ClassName}\tMessage: Step execution context set. StepExecutionId: {StepExecutionId}.",
+                    GetType().Name,
+                    _stepExecutionContext.StepExecutionId);
             }
 
             // Create agents to be used in orchestration
             IEnumerable<Agent> agents = _agentService.CreateAgents();
 
-            // Use .Where and .Select to filter out nulls and project to string
+            // Filter out null names and ensure unique list
             var agentNames = agents
                 .Select(a => a.Name)
-                .Where(name => name != null)
-                .Cast<string>()
+                .OfType<string>()
                 .ToList();
 
             // Build kernel for orchestration (different from agents' kernels)
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Setting up output transform settings. Expect an output of type {GetResultTypeName()}.");
+            _logger.LogDebug(
+                "Class: {ClassName}\tMessage: Setting up output transform settings. Expect an output of type {ResultType}.",
+                GetType().Name,
+                GetResultTypeName());
 
             // Create structured output transform
             var outputTransform = new StructuredOutputTransform<TWrapper>(
@@ -100,22 +104,25 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     ResponseFormat = typeof(TWrapper)
                 });
 
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Creating orchestration object with {agents.Count()} agents.");
+            _logger.LogDebug(
+                "Class: {ClassName}\tMessage: Creating orchestration object with {AgentCount} agents.",
+                GetType().Name,
+                agents.Count());
 
             // Allow derived classes to create their specific orchestration type
             AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, agentNames, kernel, agents.ToArray(), outputTransform);
 
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Starting in-process runtime that will execute the orchestration and manage state");
+            _logger.LogDebug("Class: {ClassName}\tMessage: Starting in-process runtime that will execute the orchestration and manage state", GetType().Name);
             var runtime = new InProcessRuntime();
             await runtime.StartAsync(cancellationToken);
 
             try
             {
                 // Invoke orchestration with input and runtime context
-                _logger.LogDebug($"Class: {GetType().Name}\tMessage: Invoking orchestration with input.");
+                _logger.LogDebug("Class: {ClassName}\tMessage: Invoking orchestration with input.", GetType().Name);
                 var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
-                _logger.LogDebug($"Class: {GetType().Name}\tMessage: Orchestration invocation completed. Processing result.");
+                _logger.LogDebug("Class: {ClassName}\tMessage: Orchestration invocation completed. Processing result.", GetType().Name);
 
                 TResult? output = null;
                 string? transformFailureReason = null;
@@ -123,7 +130,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 try
                 {
                     // Attempt to get structured output with timeout
-                    _logger.LogDebug($"Class: {GetType().Name}\tMessage: Attempting to retrieve structured output from orchestration result.");
+                    _logger.LogDebug("Class: {ClassName}\tMessage: Attempting to retrieve structured output from orchestration result.", GetType().Name);
                     var wrappedResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
                         cancellationToken);
@@ -131,25 +138,28 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     if (wrappedResult == null)
                     {
                         transformFailureReason = "GetValueAsync returned null - structured output transformation likely failed";
-                        _logger.LogError($"Class: {GetType().Name}\tMessage: {transformFailureReason}");
+                        _logger.LogError("Class: {ClassName}\tMessage: {FailureReason}", GetType().Name, transformFailureReason);
                     }
                     else
                     {
                         // Unwrap the result wrapper to get the actual result list
                         output = UnwrapResult(wrappedResult);
                         var itemCount = GetItemCount(output);
-                        _logger.LogDebug($"Class: {GetType().Name}\tMessage: Successfully retrieved structured output with {itemCount} items.");
+                        _logger.LogDebug(
+                            "Class: {ClassName}\tMessage: Successfully retrieved structured output with {ItemCount} items.",
+                            GetType().Name,
+                            itemCount);
                     }
                 }
                 catch (TimeoutException tex)
                 {
                     transformFailureReason = $"Timeout after {_orchestrationSettings.TimeoutInMinutes} minutes while waiting for structured output";
-                    _logger.LogError(tex, $"Class: {GetType().Name}\tMessage: {transformFailureReason}");
+                    _logger.LogError(tex, "Class: {ClassName}\tMessage: {FailureReason}", GetType().Name, transformFailureReason);
                 }
                 catch (Exception ex)
                 {
                     transformFailureReason = $"Exception during structured output transformation: {ex.GetType().Name} - {ex.Message}";
-                    _logger.LogError(ex, $"Class: {GetType().Name}\tMessage: {transformFailureReason}");
+                    _logger.LogError(ex, "Class: {ClassName}\tMessage: {FailureReason}", GetType().Name, transformFailureReason);
                 }
 
                 // Return output with null safety
@@ -162,12 +172,17 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Class: {GetType().Name}\tMessage: Exception during orchestration invocation: {ex.GetType().Name} - {ex.Message}");
+                _logger.LogError(
+                    ex,
+                    "Class: {ClassName}\tMessage: Exception during orchestration invocation: {ExceptionType} - {ExceptionMessage}",
+                    GetType().Name,
+                    ex.GetType().Name,
+                    ex.Message);
                 return CreateErrorResult();
             }
             finally
             {
-                _logger.LogDebug($"Class: {GetType().Name}\tMessage: Stopping in-process runtime.");
+                _logger.LogDebug("Class: {ClassName}\tMessage: Stopping in-process runtime.", GetType().Name);
                 await runtime.RunUntilIdleAsync();
             }
         }
@@ -186,10 +201,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 buffer.Append(chunk);
             }
 
-            // Show streaming output to console (simple live append)
+            // Log streaming output instead of Console.Write
             if (_orchestrationSettings.StreamResponses)
             {
-                Console.Write(chunk);
+               _logger.LogTrace("Agent: {AgentName} Chunk: {Chunk}", agentName, chunk);
             }
 
             // When the orchestrator indicates final chunk
@@ -205,131 +220,56 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 // 2. Persist response directly here, where metadata is available
                 if (_agentResponsePersistence != null && _stepExecutionContext != null && response.Metadata != null)
                 {
-                        await PersistFromStreamingAsync(response, agentName, fullContent);
-                }
-
-                // If streaming responses are being written, write a newline to finalize console output for this agent
-                if (_orchestrationSettings.StreamResponses)
-                {
-                    Console.WriteLine();
+                    await PersistFromStreamingAsync(response, agentName, fullContent);
                 }
 
                 // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
                 _streamBuffers.TryRemove(agentName, out _);
             }
 
-
             await ValueTask.CompletedTask;
         }
 
         private async Task PersistFromStreamingAsync(StreamingChatMessageContent response, string agentName, string content)
         {
-             try
-             {
-                 var completionId = response.Metadata?.TryGetValue("CompletionId", out var completionIdObj) == true
-                     ? completionIdObj?.ToString()
-                     : null;
+            try
+            {
+                var completionId = response.Metadata?.GetValueOrDefault("CompletionId")?.ToString();
+                var metadata = response.Metadata;
 
-                 DateTimeOffset? createdAt = null;
-                 if (response.Metadata?.TryGetValue("CreatedAt", out var createdAtObj) == true && createdAtObj != null)
-                 {
-                     if (createdAtObj is DateTimeOffset dto)
-                     {
-                         createdAt = dto;
-                     }
-                     else if (createdAtObj is DateTime dt)
-                     {
-                         createdAt = new DateTimeOffset(dt);
-                     }
-                     else if (createdAtObj is string dateStr && DateTimeOffset.TryParse(dateStr, out var parsedDto))
-                     {
-                         createdAt = parsedDto;
-                     }
-                 }
+                // Use helper to extract token usage and other metadata
+                var usageInfo = ExtractTokenUsage(metadata);
 
-                 int? reasoningTokenCount = null;
-                 int? outputAudioTokenCount = null;
-                 int? acceptedPredictionTokenCount = null;
-                 int? rejectedPredictionTokenCount = null;
-                 int? inputAudioTokenCount = null;
-                 int? cachedInputTokenCount = null;
-
-                 // Get standard token counts if available
-                 int? outputTokenCount = null;
-                 int? inputTokenCount = null;
-
-                 if (response.Metadata?.TryGetValue("Usage", out var usageObj) == true && usageObj != null)
-                 {
-                     try
-                     {
-                         // OpenAI.Chat.ChatTokenUsage via dynamic
-                         dynamic dUsage = usageObj;
-                         dynamic? dOutputDetails = null;
-                         dynamic? dInputDetails = null;
-
-                         // Extract top-level counts from Usage object first
-                         try { outputTokenCount = (int?)dUsage.OutputTokenCount; } catch { }
-                         try { inputTokenCount = (int?)dUsage.InputTokenCount; } catch { }
-
-                         try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
-                         try { dInputDetails = dUsage.InputTokenDetails; } catch { }
-
-                         if (dOutputDetails != null)
-                         {
-                             try { reasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
-                             try { outputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
-                             try { acceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
-                             try { rejectedPredictionTokenCount = (int?)dOutputDetails.RejectedPredictionTokenCount; } catch { }
-                         }
-
-                         if (dInputDetails != null)
-                         {
-                             try { inputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
-                             try { cachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
-                         }
-                     }
-                     catch (Exception ex)
-                     {
-                         _logger.LogWarning(ex, $"Failed to extract metadata using dynamic/reflection strategy for type {usageObj.GetType().FullName}.");
-                     }
-                 }
-
-                 // Fallback: Try top-level keys if not found in Usage object (some other connectors might do this)
-                 if (outputTokenCount == null && response.Metadata?.TryGetValue("OutputTokenCount", out var outTokenObj) == true && outTokenObj is int outCount) outputTokenCount = outCount;
-                 if (inputTokenCount == null && response.Metadata?.TryGetValue("InputTokenCount", out var inTokenObj) == true && inTokenObj is int inCount) inputTokenCount = inCount;
-
-                 // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
-                 // We can estimate or leave it null/0 for streaming.
-                 // OR we can rely on the _responseStopwatch which is running.
-                 long responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
-                 // Note: _responseStopwatch is stopped/restarted in ResponseCallback.
-                 // In streaming, ResponseCallback might be called AFTER this.
-
-                 await PersistAgentResponseInternalAsync(
-                     agentName,
-                     content,
-                     inputTokenCount,
-                     outputTokenCount,
-                     responseDuration,
-                     completionId,
-                     reasoningTokenCount,
-                     outputAudioTokenCount,
-                     acceptedPredictionTokenCount,
-                     rejectedPredictionTokenCount,
-                     inputAudioTokenCount,
-                     cachedInputTokenCount,
-                     createdAt
-                 );
-             }
-             catch (Exception ex)
-             {
-                 _logger.LogWarning(ex, $"Failed to persist streaming response for agent '{agentName}'.");
-             }
+                // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
+                // We rely on the _responseStopwatch which is running.
+               
+                long responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
+                
+                await PersistAgentResponseInternalAsync(
+                    agentName,
+                    content,
+                    usageInfo.InputTokenCount,
+                    usageInfo.OutputTokenCount,
+                    responseDuration,
+                    completionId,
+                    usageInfo.ReasoningTokenCount,
+                    usageInfo.OutputAudioTokenCount,
+                    usageInfo.AcceptedPredictionTokenCount,
+                    usageInfo.RejectedPredictionTokenCount,
+                    usageInfo.InputAudioTokenCount,
+                    usageInfo.CachedInputTokenCount,
+                    usageInfo.CreatedAt
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to persist streaming response for agent '{AgentName}'.", agentName);
+            }
         }
 
         protected async ValueTask<ChatMessageContent> InteractiveCallback()
         {
-            _logger.LogDebug($"Class: {GetType().Name}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.");
+            _logger.LogDebug("Class: {ClassName}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.", GetType().Name);
             return await ValueTask.FromResult(new ChatMessageContent
             {
                 Content = "Continuing orchestration without user input."
@@ -377,14 +317,26 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 // Start timer for next response
                 _responseStopwatch.Restart();
 
-                // Optionally write response to console
                 if (_orchestrationSettings.WriteResponses)
                 {
-                    Console.WriteLine($"\n[Turn {_currentTurn}] Agent '{agentName}' responded with {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.\n");
-                    Console.WriteLine(content);
+                    _logger.LogInformation(
+                        "\n[Turn {Turn}] Agent '{AgentName}' responded with {ContentLength} characters{TokenCountInfo} in {ResponseDuration} ms.\nContent: {Content}",
+                        _currentTurn,
+                        agentName,
+                        content.Length,
+                        tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty,
+                        responseDuration,
+                        content);
                 }
 
-                _logger?.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
+                _logger?.LogDebug(
+                    "Class: {ClassName}\tMessage: Received response from agent '{AgentName}' on turn {Turn} with content length {ContentLength} characters{TokenCountInfo} in {ResponseDuration} ms.",
+                    GetType().Name,
+                    agentName,
+                    _currentTurn - 1,
+                    content.Length,
+                    tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty,
+                    responseDuration);
             }
 
             return;
@@ -392,10 +344,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         #endregion
 
         #region Abstract Methods - Template Method Pattern
-        /// <summary>
-        /// Creates the logger instance for this factory.
-        /// </summary>
-        protected abstract ILogger CreateLogger(ILoggerFactory loggerFactory);
 
         /// <summary>
         /// Creates the orchestration object specific to this factory type.
@@ -446,6 +394,78 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         protected abstract string GetAgentSelectionReason(string? previousAgentName);
         #endregion
 
+        #region Private Helpers
+
+        private TokenUsageInfo ExtractTokenUsage(IReadOnlyDictionary<string, object?>? metadata)
+        {
+            var info = new TokenUsageInfo();
+            if (metadata == null) return info;
+
+            // Extract CreatedAt
+            if (metadata.TryGetValue("CreatedAt", out var createdAtObj) && createdAtObj != null)
+            {
+                if (createdAtObj is DateTimeOffset dto) info.CreatedAt = dto;
+                else if (createdAtObj is DateTime dt) info.CreatedAt = new DateTimeOffset(dt);
+                else if (createdAtObj is string dateStr && DateTimeOffset.TryParse(dateStr, out var parsedDto)) info.CreatedAt = parsedDto;
+            }
+
+            if (metadata.TryGetValue("Usage", out var usageObj) && usageObj != null)
+            {
+                try
+                {
+                    // OpenAI.Chat.ChatTokenUsage via dynamic
+                    dynamic dUsage = usageObj;
+                   
+                    // Extract top-level counts
+                    try { info.OutputTokenCount = (int?)dUsage.OutputTokenCount; } catch { }
+                    try { info.InputTokenCount = (int?)dUsage.InputTokenCount; } catch { }
+
+                    dynamic? dOutputDetails = null;
+                    dynamic? dInputDetails = null;
+
+                    try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
+                    try { dInputDetails = dUsage.InputTokenDetails; } catch { }
+
+                    if (dOutputDetails != null)
+                    {
+                        try { info.ReasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
+                        try { info.OutputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
+                        try { info.AcceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
+                        try { info.RejectedPredictionTokenCount = (int?)dOutputDetails.RejectedPredictionTokenCount; } catch { }
+                    }
+
+                    if (dInputDetails != null)
+                    {
+                        try { info.InputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
+                        try { info.CachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to extract metadata using dynamic/reflection strategy for type {Type}.", usageObj.GetType().FullName);
+                }
+            }
+
+            // Fallback: Try top-level keys
+            if (info.OutputTokenCount == null && metadata.TryGetValue("OutputTokenCount", out var outTokenObj) && outTokenObj is int outCount) info.OutputTokenCount = outCount;
+            if (info.InputTokenCount == null && metadata.TryGetValue("InputTokenCount", out var inTokenObj) && inTokenObj is int inCount) info.InputTokenCount = inCount;
+
+            return info;
+        }
+
+        private class TokenUsageInfo
+        {
+            public int? InputTokenCount { get; set; }
+            public int? OutputTokenCount { get; set; }
+            public int? ReasoningTokenCount { get; set; }
+            public int? OutputAudioTokenCount { get; set; }
+            public int? AcceptedPredictionTokenCount { get; set; }
+            public int? RejectedPredictionTokenCount { get; set; }
+            public int? InputAudioTokenCount { get; set; }
+            public int? CachedInputTokenCount { get; set; }
+            public DateTimeOffset? CreatedAt { get; set; }
+        }
+
         private async Task PersistAgentResponseInternalAsync(
             string agentName,
             string content,
@@ -469,7 +489,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             if (!_stepExecutionContext.AgentConfigurationIds.TryGetValue(agentName, out var agentConfigurationId))
             {
                 _logger?.LogWarning(
-                    $"Class: {GetType().Name}\tMessage: Agent configuration ID not found for agent '{agentName}'. Skipping response persistence.");
+                    "Class: {ClassName}\tMessage: Agent configuration ID not found for agent '{AgentName}'. Skipping response persistence.",
+                    GetType().Name,
+                    agentName);
                 return;
             }
 
@@ -505,9 +527,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             {
                 _logger?.LogError(
                     ex,
-                    $"Class: {GetType().Name}\tMessage: Failed to persist agent response for agent '{agentName}'.");
+                    "Class: {ClassName}\tMessage: Failed to persist agent response for agent '{AgentName}'.",
+                    GetType().Name,
+                    agentName);
             }
         }
+        #endregion
     }
 }
 #pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

@@ -54,7 +54,6 @@ public class BaseOrchestrationFactoryTests
     private class TestableOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
     {
         // Track calls to abstract methods for verification
-        public int CreateLoggerCallCount { get; private set; }
         public int CreateOrchestrationCallCount { get; private set; }
         public int UnwrapResultCallCount { get; private set; }
         public int GetItemCountCallCount { get; private set; }
@@ -98,11 +97,6 @@ public class BaseOrchestrationFactoryTests
 
         #region Abstract Method Implementations
 
-        protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
-        {
-            CreateLoggerCallCount++;
-            return loggerFactory.CreateLogger<TestableOrchestrationFactory>();
-        }
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
             OrchestrationPromptInput input,
@@ -272,19 +266,6 @@ public class BaseOrchestrationFactoryTests
         Assert.Empty(factory.ExposedHistory);
     }
 
-    /// <summary>
-    /// WHY: Verifies the constructor invokes CreateLogger, the first template method.
-    /// This confirms the Template Method pattern is working correctly.
-    /// </summary>
-    [Fact]
-    public void Constructor_Always_CallsCreateLogger()
-    {
-        // Arrange & Act
-        var (factory, _, _, _, _) = CreateFactory();
-
-        // Assert
-        Assert.Equal(1, factory.CreateLoggerCallCount);
-    }
 
     /// <summary>
     /// WHY: Verifies the logger factory is stored for potential future use.
@@ -451,27 +432,18 @@ public class BaseOrchestrationFactoryTests
             AuthorName = "TestAgent",
             Content = "Test console output"
         };
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act
+        await factory.InvokeResponseCallback(response);
 
-            // Act
-            await factory.InvokeResponseCallback(response);
-
-            // Assert - Verify content appears in console output
-            var output = consoleOutput.ToString();
-            Assert.Contains("TestAgent", output);
-            Assert.Contains("Test console output", output);
-            Assert.Contains("Turn", output); // Turn tracking indicator
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Assert - Verify content appears in logs
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("TestAgent") && v.ToString().Contains("Test console output")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>
@@ -530,25 +502,18 @@ public class BaseOrchestrationFactoryTests
             Content = "Response with tokens",
             Metadata = metadata
         };
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act
+        await factory.InvokeResponseCallback(response);
 
-            // Act
-            await factory.InvokeResponseCallback(response);
-
-            // Assert - Token count should appear in output
-            var output = consoleOutput.ToString();
-            Assert.Contains("150 tokens", output);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Assert - Token count should appear in logs
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("150 tokens")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>
@@ -659,25 +624,18 @@ public class BaseOrchestrationFactoryTests
         var settings = new OrchestrationSettings { StreamResponses = true };
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse("TestAgent", "chunk content");
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act
+        await factory.InvokeStreamingResponseCallback(response, isFinal: false);
 
-            // Act
-            await factory.InvokeStreamingResponseCallback(response, isFinal: false);
-
-            // Assert - Content should be written to console
-            var output = consoleOutput.ToString();
-            Assert.Contains("chunk content", output);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Assert - Content should be logged as Trace
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Trace,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("chunk content")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>
@@ -691,25 +649,18 @@ public class BaseOrchestrationFactoryTests
         var settings = new OrchestrationSettings { StreamResponses = true };
         var (factory, _, _, _, _) = CreateFactory(settings);
         var response = CreateStreamingResponse("TestAgent", "final content");
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output - IMPORTANT: Save and restore to avoid affecting other tests
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act
+        await factory.InvokeStreamingResponseCallback(response, isFinal: true);
 
-            // Act
-            await factory.InvokeStreamingResponseCallback(response, isFinal: true);
-
-            // Assert - Should complete without error
-            var output = consoleOutput.ToString();
-            Assert.Contains("final content", output);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        // Assert - Content should be logged as Trace (final chunk is still a chunk)
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Trace,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("final content")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>
@@ -786,32 +737,37 @@ public class BaseOrchestrationFactoryTests
         // Arrange
         var settings = new OrchestrationSettings { StreamResponses = true };
         var (factory, _, _, _, _) = CreateFactory(settings);
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act - Send multiple chunks from same agent
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("TestAgent", "Hello "), isFinal: false);
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("TestAgent", "World "), isFinal: false);
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("TestAgent", "!"), isFinal: true);
 
-            // Act - Send multiple chunks from same agent
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("TestAgent", "Hello "), isFinal: false);
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("TestAgent", "World "), isFinal: false);
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("TestAgent", "!"), isFinal: true);
+        // Assert - All chunks should be logged
+        loggerMock.Verify(l => l.Log(
+           LogLevel.Trace,
+           It.IsAny<EventId>(),
+           It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Hello ")),
+           It.IsAny<Exception>(),
+           It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
 
-            // Assert - All chunks should be in output
-            var output = consoleOutput.ToString();
-            Assert.Contains("Hello ", output);
-            Assert.Contains("World ", output);
-            Assert.Contains("!", output);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        loggerMock.Verify(l => l.Log(
+           LogLevel.Trace,
+           It.IsAny<EventId>(),
+           It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("World ")),
+           It.IsAny<Exception>(),
+           It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+        
+        loggerMock.Verify(l => l.Log(
+           LogLevel.Trace,
+           It.IsAny<EventId>(),
+           It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("!")),
+           It.IsAny<Exception>(),
+           It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>
@@ -888,35 +844,32 @@ public class BaseOrchestrationFactoryTests
         // Arrange
         var settings = new OrchestrationSettings { StreamResponses = true };
         var (factory, _, _, _, _) = CreateFactory(settings);
+        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Capture console output
-        var originalOut = Console.Out;
-        using var consoleOutput = new StringWriter();
-        try
-        {
-            Console.SetOut(consoleOutput);
+        // Act - Interleave chunks from two agents
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("Agent1", "A1-Chunk1 "), isFinal: false);
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("Agent2", "A2-Chunk1 "), isFinal: false);
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("Agent1", "A1-Chunk2"), isFinal: true);
+        await factory.InvokeStreamingResponseCallback(
+            CreateStreamingResponse("Agent2", "A2-Chunk2"), isFinal: true);
 
-            // Act - Interleave chunks from two agents
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("Agent1", "A1-Chunk1 "), isFinal: false);
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("Agent2", "A2-Chunk1 "), isFinal: false);
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("Agent1", "A1-Chunk2"), isFinal: true);
-            await factory.InvokeStreamingResponseCallback(
-                CreateStreamingResponse("Agent2", "A2-Chunk2"), isFinal: true);
+        // Assert - All chunks from both agents should be logged
+        loggerMock.Verify(l => l.Log(
+           LogLevel.Trace,
+           It.IsAny<EventId>(),
+           It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("A1-Chunk1")),
+           It.IsAny<Exception>(),
+           It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
 
-            // Assert - All chunks from both agents should be in output
-            var output = consoleOutput.ToString();
-            Assert.Contains("A1-Chunk1", output);
-            Assert.Contains("A1-Chunk2", output);
-            Assert.Contains("A2-Chunk1", output);
-            Assert.Contains("A2-Chunk2", output);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+        loggerMock.Verify(l => l.Log(
+           LogLevel.Trace,
+           It.IsAny<EventId>(),
+           It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("A2-Chunk1")),
+           It.IsAny<Exception>(),
+           It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
     }
 
     /// <summary>

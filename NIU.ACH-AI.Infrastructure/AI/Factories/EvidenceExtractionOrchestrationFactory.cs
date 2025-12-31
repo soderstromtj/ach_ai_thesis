@@ -21,10 +21,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         IAgentResponsePersistence? agentResponsePersistence = null)
         : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
     {
-        protected override ILogger CreateLogger(ILoggerFactory loggerFactory)
-        {
-            return loggerFactory.CreateLogger<EvidenceExtractionOrchestrationFactory>();
-        }
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
             OrchestrationPromptInput input,
