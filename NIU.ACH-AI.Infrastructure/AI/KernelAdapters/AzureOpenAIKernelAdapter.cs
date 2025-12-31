@@ -6,14 +6,24 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 
 namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
 {
+    /// <summary>
+    /// Adapter implementation for building Azure OpenAI Kernel instances.
+    /// </summary>
     public class AzureOpenAIKernelAdapter : IKernelBuilderAdapter
     {
         private readonly AzureOpenAISettings _settings;
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
 
+        /// <inheritdoc />
         public AIServiceProvider SupportedProvider => AIServiceProvider.AzureOpenAI;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AzureOpenAIKernelAdapter"/> class.
+        /// </summary>
+        /// <param name="settings">Specific Azure OpenAI settings.</param>
+        /// <param name="aiServiceSettings">Global AI service settings.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
         public AzureOpenAIKernelAdapter(
             AzureOpenAISettings settings,
             AIServiceSettings aiServiceSettings,
@@ -24,6 +34,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
             _loggerFactory = loggerFactory;
         }
 
+        /// <inheritdoc />
         public Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();

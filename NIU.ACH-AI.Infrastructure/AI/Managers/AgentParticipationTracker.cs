@@ -26,7 +26,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         /// Gets the set of unique agent names that have participated in the conversation.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
-        /// <returns>A set of agent names that have contributed to the conversation.</returns>
+        /// <returns>A hash set containing the names of all agents that have contributed at least one message.</returns>
         public HashSet<string> GetParticipatingAgents(ChatHistory history)
         {
             ArgumentNullException.ThrowIfNull(history);

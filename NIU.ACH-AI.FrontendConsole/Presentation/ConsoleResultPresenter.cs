@@ -62,6 +62,10 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
             }
         }
 
+        /// <summary>
+        /// Displays the evaluation of evidence against a hypothesis.
+        /// </summary>
+        /// <param name="evaluation">The evaluation of evidence against a hypothesis.</param>
         public void DisplayEvaluation(EvidenceHypothesisEvaluation evaluation)
         {
             ArgumentNullException.ThrowIfNull(evaluation);
@@ -69,6 +73,10 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
             Console.WriteLine(evaluation.ToString());
         }
 
+        /// <summary>
+        /// Displays an error message to the console.
+        /// </summary>
+        /// <param name="message">The error message to display.</param>
         public void DisplayErrorMessage(string message)
         {
             ArgumentException.ThrowIfNullOrEmpty(message?.Trim());
@@ -76,6 +84,11 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
             Console.WriteLine($"ERROR: {message}");
         }
 
+
+        /// <summary>
+        /// Displays the results of the ACH orchestration workflow.
+        /// </summary>
+        /// <param name="result">The workflow result to display.</param>
         public void DisplayWorkflowResult(ACHWorkflowResult result)
         {
             ArgumentNullException.ThrowIfNull(result);

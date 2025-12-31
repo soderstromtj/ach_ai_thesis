@@ -13,15 +13,31 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    public class EvidenceExtractionOrchestrationFactory(
-        IAgentService agentService,
-        IKernelBuilderService kernelBuilderService,
-        IOptions<OrchestrationSettings> orchestrationSettings,
-        ILoggerFactory loggerFactory,
-        IAgentResponsePersistence? agentResponsePersistence = null,
-        ITokenUsageExtractor? tokenUsageExtractor = null)
-        : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
+    /// <summary>
+    /// Factory for creating evidence extraction orchestrations.
+    /// Uses concurrent execution to extract evidence from multiple sources/agents simultaneously.
+    /// </summary>
+    public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EvidenceExtractionOrchestrationFactory"/> class.
+        /// </summary>
+        /// <param name="agentService">Service for creating agents.</param>
+        /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
+        /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
+        public EvidenceExtractionOrchestrationFactory(
+            IAgentService agentService,
+            IKernelBuilderService kernelBuilderService,
+            IOptions<OrchestrationSettings> orchestrationSettings,
+            ILoggerFactory loggerFactory,
+            IAgentResponsePersistence? agentResponsePersistence = null,
+            ITokenUsageExtractor? tokenUsageExtractor = null)
+            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
+        {
+        }
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
             OrchestrationPromptInput input,

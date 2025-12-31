@@ -43,6 +43,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         // Buffer streaming chunks per agent to allow assembling partials before final arrives.
         private readonly ConcurrentDictionary<string, StringBuilder> _streamBuffers = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BaseOrchestrationFactory{TResult, TWrapper}"/> class.
+        /// </summary>
+        /// <param name="agentService">Service for creating agents.</param>
+        /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
+        /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         protected BaseOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
@@ -64,10 +73,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// <summary>
         /// Orchestrates the execution of an ACH step with the given input and returns the final result.
         /// </summary>
-        /// <param name="input"></param>
-        /// <param name="stepExecutionContext"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <param name="input">The input prompt and context for orchestration.</param>
+        /// <param name="stepExecutionContext">The execution context for tracking step status.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The result of the orchestration execution.</returns>
         public async Task<TResult> ExecuteCoreAsync(
             OrchestrationPromptInput input,
             StepExecutionContext? stepExecutionContext = null,

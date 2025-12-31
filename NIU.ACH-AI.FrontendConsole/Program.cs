@@ -15,6 +15,10 @@ namespace NIU.ACH_AI.FrontendConsole
 {
 #pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 
+    /// <summary>
+    /// The entry point for the NIU ACH-AI Frontend Console application.
+    /// Manages the application host, dependency injection, and high-level workflow execution.
+    /// </summary>
     public class Program
     {
         /// <summary>

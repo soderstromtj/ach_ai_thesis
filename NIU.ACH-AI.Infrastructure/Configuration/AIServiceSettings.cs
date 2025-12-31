@@ -6,8 +6,19 @@
     /// </summary>
     public class AIServiceSettings
     {
+        /// <summary>
+        /// Gets or sets the Azure OpenAI specific settings.
+        /// </summary>
         public AzureOpenAISettings? AzureOpenAI { get; set; }
+
+        /// <summary>
+        /// Gets or sets the OpenAI specific settings.
+        /// </summary>
         public OpenAISettings? OpenAI { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Ollama specific settings.
+        /// </summary>
         public OllamaSettings? Ollama { get; set; }
 
         /// <summary>

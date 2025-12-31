@@ -16,6 +16,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         private readonly IAgentResponsePersistence _agentResponsePersistence;
         private readonly ITokenUsageExtractor _tokenUsageExtractor;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrchestrationFactoryProvider"/> class.
+        /// </summary>
+        /// <param name="orchestrationExecutor">The executor service for orchestration.</param>
+        /// <param name="agentResponsePersistence">Service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Service for extracting token usage.</param>
         public OrchestrationFactoryProvider(
             IOrchestrationExecutor orchestrationExecutor,
             IAgentResponsePersistence agentResponsePersistence,
@@ -30,6 +36,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// Creates the appropriate orchestration factory based on the ACH step configuration.
         /// Maps step names/IDs to specific factory implementations.
         /// </summary>
+        /// <typeparam name="TResult">The expected result type of the factory.</typeparam>
+        /// <param name="stepConfiguration">The configuration for the ACH step.</param>
+        /// <returns>An instance of an orchestration factory capable of executing the step.</returns>
         public IOrchestrationFactory<TResult> CreateFactory<TResult>(ACHStepConfiguration stepConfiguration)
         {
             var agentService = _orchestrationExecutor.CreateAgentService(stepConfiguration);

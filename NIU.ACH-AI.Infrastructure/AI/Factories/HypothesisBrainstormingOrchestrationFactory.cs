@@ -19,6 +19,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
     /// </summary>
     public class HypothesisBrainstormingOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HypothesisBrainstormingOrchestrationFactory"/> class.
+        /// </summary>
+        /// <param name="agentService">Service for creating agents.</param>
+        /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
+        /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         public HypothesisBrainstormingOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,

@@ -170,6 +170,13 @@ namespace NIU.ACH_AI.Application.Services
         /// <summary>
         /// Executes a single ACH step and updates the workflow state.
         /// </summary>
+        /// <param name="stepConfig">The configuration for the step to execute.</param>
+        /// <param name="input">The orchestration input prompt and context.</param>
+        /// <param name="workflowResult">The detailed workflow result object to update.</param>
+        /// <param name="stepExecutionContext">The persistence context/ID for this step execution.</param>
+        /// <param name="hypothesisStepExecutionId">The ID of the hypothesis generation step (if needed for linking).</param>
+        /// <param name="evidenceStepExecutionId">The ID of the evidence extraction step (if needed for linking).</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         private async Task ExecuteStepAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
@@ -214,8 +221,13 @@ namespace NIU.ACH_AI.Application.Services
         }
 
         /// <summary>
-        /// Executes the hypothesis brainstorming step.
+        /// Executes the hypothesis brainstorming step using the configured factory.
         /// </summary>
+        /// <param name="stepConfig">The step configuration.</param>
+        /// <param name="input">The orchestration input.</param>
+        /// <param name="workflowResult">The workflow result to update with generated hypotheses.</param>
+        /// <param name="stepExecutionContext">The step execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         private async Task ExecuteHypothesisBrainstormingAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
@@ -244,8 +256,13 @@ namespace NIU.ACH_AI.Application.Services
         }
 
         /// <summary>
-        /// Executes the hypothesis refinement/evaluation step.
+        /// Executes the hypothesis refinement/evaluation step using the configured factory.
         /// </summary>
+        /// <param name="stepConfig">The step configuration.</param>
+        /// <param name="input">The orchestration input (including initial hypotheses).</param>
+        /// <param name="workflowResult">The workflow result to update with refined hypotheses.</param>
+        /// <param name="stepExecutionContext">The step execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         private async Task ExecuteHypothesisRefinementAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
@@ -274,8 +291,13 @@ namespace NIU.ACH_AI.Application.Services
         }
 
         /// <summary>
-        /// Executes the evidence extraction step.
+        /// Executes the evidence extraction step using the configured factory.
         /// </summary>
+        /// <param name="stepConfig">The step configuration.</param>
+        /// <param name="input">The orchestration input.</param>
+        /// <param name="workflowResult">The workflow result to update with extracted evidence.</param>
+        /// <param name="stepExecutionContext">The step execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         private async Task ExecuteEvidenceExtractionAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
@@ -304,8 +326,16 @@ namespace NIU.ACH_AI.Application.Services
 
         /// <summary>
         /// Executes the evidence-hypothesis evaluation step.
-        /// Evaluates each piece of evidence against each hypothesis.
+        /// Evaluates each piece of evidence against each hypothesis utilizing the configured factory.
         /// </summary>
+        /// <param name="stepConfig">The step configuration.</param>
+        /// <param name="input">The orchestration input.</param>
+        /// <param name="workflowResult">The workflow result to update with evaluation results.</param>
+        /// <param name="stepExecutionContext">The step execution context.</param>
+        /// <param name="hypothesisStepExecutionId">The source hypothesis step ID.</param>
+        /// <param name="evidenceStepExecutionId">The source evidence step ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <exception cref="InvalidOperationException">Thrown if hypothesis or evidence step IDs are missing.</exception>
         private async Task ExecuteEvidenceHypothesisEvaluationAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,

@@ -11,8 +11,17 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 
 namespace NIU.ACH_AI.FrontendConsole.Extensions
 {
+    /// <summary>
+    /// Extension methods for setting up frontend-specific services and configuration.
+    /// </summary>
     public static class DependencyInjection
     {
+        /// <summary>
+        /// Registers frontend services, configuration settings, and logging to the service collection.
+        /// </summary>
+        /// <param name="services">The service collection to add services to.</param>
+        /// <param name="configuration">The configuration containing app settings.</param>
+        /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddFrontendServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Register Configuration

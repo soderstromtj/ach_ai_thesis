@@ -13,8 +13,21 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    /// <summary>
+    /// Factory for creating evidence-hypothesis evaluation orchestrations.
+    /// Uses concurrent execution to evaluate evidence against hypotheses.
+    /// </summary>
     public class EvidenceHypothesisEvaluationOrchestrationFactory : BaseOrchestrationFactory<List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationResult>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EvidenceHypothesisEvaluationOrchestrationFactory"/> class.
+        /// </summary>
+        /// <param name="agentService">Service for creating agents.</param>
+        /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
+        /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         public EvidenceHypothesisEvaluationOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,

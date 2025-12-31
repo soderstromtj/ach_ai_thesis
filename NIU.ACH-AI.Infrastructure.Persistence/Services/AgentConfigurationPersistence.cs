@@ -12,11 +12,25 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     {
         private readonly DbModel.AchAIDbContext _context;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AgentConfigurationPersistence"/> class.
+        /// </summary>
+        /// <param name="context">The database context.</param>
         public AgentConfigurationPersistence(DbModel.AchAIDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <summary>
+        /// Creates and persists agent configurations for a specific step execution.
+        /// validating that the referenced providers and models exist.
+        /// </summary>
+        /// <param name="stepExecutionId">The unique identifier of the step execution.</param>
+        /// <param name="agentConfigurations">The collection of agent configurations to persist.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <returns>A dictionary mapping agent names to their persisted configuration IDs.</returns>
+        /// <exception cref="ArgumentException">Thrown when required arguments are invalid or missing.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when referenced providers/models are not found or database update fails.</exception>
         public async Task<IReadOnlyDictionary<string, Guid>> CreateAgentConfigurationsAsync(
             Guid stepExecutionId,
             IEnumerable<AgentConfiguration> agentConfigurations,

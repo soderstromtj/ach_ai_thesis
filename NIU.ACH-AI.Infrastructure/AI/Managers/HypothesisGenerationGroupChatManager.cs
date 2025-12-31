@@ -132,6 +132,11 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             return await GetResponseAsync<string>(history, prompt, cancellationToken);
         }
 
+        /// <summary>
+        /// Retrieves a list of agent names that have the specified tag.
+        /// </summary>
+        /// <param name="tag">The tag to filter agents by.</param>
+        /// <returns>A list of agent names matching the tag.</returns>
         private List<string> GetAgentsByTag(string tag)
         {
             return _agentTags

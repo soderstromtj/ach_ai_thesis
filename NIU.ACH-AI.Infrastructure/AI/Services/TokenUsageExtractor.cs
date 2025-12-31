@@ -6,10 +6,17 @@ using System.Collections.Generic;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
+    /// <summary>
+    /// Service for extracting token usage information from AI provider metadata.
+    /// </summary>
     public class TokenUsageExtractor : ITokenUsageExtractor
     {
         private readonly ILogger<TokenUsageExtractor> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TokenUsageExtractor"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance.</param>
         public TokenUsageExtractor(ILogger<TokenUsageExtractor> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));

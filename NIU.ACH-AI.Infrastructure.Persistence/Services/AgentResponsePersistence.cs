@@ -14,6 +14,11 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly ITokenUsageExtractor _tokenUsageExtractor;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AgentResponsePersistence"/> class.
+        /// </summary>
+        /// <param name="serviceScopeFactory">Factory for creating service scopes to access scoped DbContext.</param>
+        /// <param name="tokenUsageExtractor">Service to extract token usage from response metadata.</param>
         public AgentResponsePersistence(
             IServiceScopeFactory serviceScopeFactory,
             ITokenUsageExtractor tokenUsageExtractor)
@@ -22,6 +27,13 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             _tokenUsageExtractor = tokenUsageExtractor ?? throw new ArgumentNullException(nameof(tokenUsageExtractor));
         }
 
+        /// <summary>
+        /// Persists a fully populated agent response record to the database.
+        /// </summary>
+        /// <param name="response">The agent response record to save.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentNullException">Thrown when response is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when required identifiers in response are missing.</exception>
         public async Task SaveAgentResponseAsync(
             AgentResponseRecord response,
             CancellationToken cancellationToken = default)
@@ -71,6 +83,18 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             await SaveEntityAsync(entity, cancellationToken);
         }
 
+        /// <summary>
+        /// Persists an agent response by extracting metadata and constructing the record internally.
+        /// </summary>
+        /// <param name="content">The textual content of the response.</param>
+        /// <param name="metadata">The metadata dictionary from the AI service response.</param>
+        /// <param name="agentName">The name of the agent producing the response.</param>
+        /// <param name="stepExecutionId">The ID of the current step execution.</param>
+        /// <param name="agentConfigurationId">The ID of the agent's configuration.</param>
+        /// <param name="turnNumber">The turn number in the conversation.</param>
+        /// <param name="responseDuration">The duration of the response generation in milliseconds.</param>
+        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+        /// <exception cref="ArgumentException">Thrown when required arguments are invalid.</exception>
         public async Task SaveAgentResponseAsync(
             string content,
             IReadOnlyDictionary<string, object?>? metadata,

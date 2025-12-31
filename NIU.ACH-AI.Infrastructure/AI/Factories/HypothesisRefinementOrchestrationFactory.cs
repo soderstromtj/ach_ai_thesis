@@ -13,8 +13,21 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    /// <summary>
+    /// Factory for creating hypothesis refinement orchestrations.
+    /// Uses sequential execution to refine hypotheses iteratively.
+    /// </summary>
     public class HypothesisRefinementOrchestrationFactory : BaseOrchestrationFactory<List<Hypothesis>, HypothesisResult>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HypothesisRefinementOrchestrationFactory"/> class.
+        /// </summary>
+        /// <param name="agentService">Service for creating agents.</param>
+        /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
+        /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
+        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         public HypothesisRefinementOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,

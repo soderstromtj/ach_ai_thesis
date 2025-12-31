@@ -2,10 +2,22 @@
 
 namespace NIU.ACH_AI.Application.DTOs
 {
+    /// <summary>
+    /// Represents the result of an evaluation phase, containing a list of evidence-hypothesis evaluations.
+    /// </summary>
     public class EvidenceHypothesisEvaluationResult
     {
+        /// <summary>
+        /// Gets or sets the list of evaluations performed.
+        /// </summary>
         public List<EvidenceHypothesisEvaluation> Evaluations { get; set; } = new List<EvidenceHypothesisEvaluation>();
 
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>
+        /// A formatted string listing all evaluations or a default message if none exist.
+        /// </returns>
         public override string ToString()
         {
             if (Evaluations == null || !Evaluations.Any())

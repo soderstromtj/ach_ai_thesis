@@ -14,11 +14,24 @@ public class EvidenceHypothesisEvaluationRepository : IEvidenceHypothesisEvaluat
 {
     private readonly AchAIDbContext _context;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EvidenceHypothesisEvaluationRepository"/> class.
+    /// </summary>
+    /// <param name="context">The database context.</param>
     public EvidenceHypothesisEvaluationRepository(AchAIDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    /// <summary>
+    /// Saves a batch of evidence-hypothesis evaluation entities to the database.
+    /// </summary>
+    /// <param name="evaluations">The list of evaluation domain entities to save.</param>
+    /// <param name="stepExecutionId">The ID of the step execution associated with the evaluations.</param>
+    /// <param name="hypothesisIdMap">A map of hypothesis titles to their persistent IDs.</param>
+    /// <param name="evidenceIdMap">A map of evidence claims to their persistent IDs.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <exception cref="InvalidOperationException">Thrown when a referenced hypothesis or evidence is not found in the ID maps.</exception>
     public async Task SaveBatchAsync(
         IEnumerable<EvidenceHypothesisEvaluation> evaluations,
         Guid stepExecutionId,
@@ -63,6 +76,12 @@ public class EvidenceHypothesisEvaluationRepository : IEvidenceHypothesisEvaluat
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Retrieves all evaluations associated with a specific step execution.
+    /// </summary>
+    /// <param name="stepExecutionId">The ID of the step execution.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <returns>A list of evaluation domain entities.</returns>
     public async Task<List<EvidenceHypothesisEvaluation>> GetByStepExecutionIdAsync(
         Guid stepExecutionId,
         CancellationToken cancellationToken = default)
@@ -77,6 +96,12 @@ public class EvidenceHypothesisEvaluationRepository : IEvidenceHypothesisEvaluat
         return EvidenceHypothesisEvaluationMapper.ToDomain(dbEntities);
     }
 
+    /// <summary>
+    /// Retrieves all evaluations associated with a specific hypothesis.
+    /// </summary>
+    /// <param name="hypothesisId">The ID of the hypothesis.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <returns>A list of evaluation domain entities for the hypothesis.</returns>
     public async Task<List<EvidenceHypothesisEvaluation>> GetByHypothesisIdAsync(
         Guid hypothesisId,
         CancellationToken cancellationToken = default)
@@ -91,6 +116,12 @@ public class EvidenceHypothesisEvaluationRepository : IEvidenceHypothesisEvaluat
         return EvidenceHypothesisEvaluationMapper.ToDomain(dbEntities);
     }
 
+    /// <summary>
+    /// Retrieves all evaluations associated with a specific evidence item.
+    /// </summary>
+    /// <param name="evidenceId">The ID of the evidence.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <returns>A list of evaluation domain entities for the evidence.</returns>
     public async Task<List<EvidenceHypothesisEvaluation>> GetByEvidenceIdAsync(
         Guid evidenceId,
         CancellationToken cancellationToken = default)

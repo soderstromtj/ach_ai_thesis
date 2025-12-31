@@ -11,6 +11,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
     /// Service responsible for executing orchestration factories.
     /// Encapsulates the common pattern of service resolution and factory execution.
     /// </summary>
+    /// <summary>
+    /// Service responsible for executing orchestration factories.
+    /// Encapsulates the common pattern of service resolution and factory execution.
+    /// </summary>
     public class OrchestrationExecutor : IOrchestrationExecutor
     {
         private readonly ILoggerFactory _loggerFactory;
@@ -18,6 +22,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly IKernelBuilderService _kernelBuilderService;
         private readonly ILogger<OrchestrationExecutor> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrchestrationExecutor"/> class.
+        /// </summary>
+        /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="aiServiceSettings">AI service settings options.</param>
+        /// <param name="kernelBuilderService">Kernel builder service.</param>
         public OrchestrationExecutor(
             ILoggerFactory loggerFactory,
             IOptions<AIServiceSettings> aiServiceSettings,

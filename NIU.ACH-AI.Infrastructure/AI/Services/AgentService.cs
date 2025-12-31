@@ -8,6 +8,9 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
+    /// <summary>
+    /// Service for creating and configuring AI agents based on application settings.
+    /// </summary>
     public class AgentService : IAgentService
     {
         private readonly IEnumerable<AgentConfiguration> _agentConfigurations;
@@ -15,6 +18,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AgentService"/> class.
+        /// </summary>
+        /// <param name="agentConfigurations">Configurations for the agents to be created.</param>
+        /// <param name="aiServiceSettings">Global AI service settings.</param>
+        /// <param name="loggerFactory">Factory for creating loggers.</param>
         public AgentService(
             IEnumerable<AgentConfiguration> agentConfigurations,
             AIServiceSettings aiServiceSettings,
