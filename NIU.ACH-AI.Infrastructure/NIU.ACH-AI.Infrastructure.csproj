@@ -17,8 +17,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\NIU.ACH-AI.Application\NIU.ACH-AI.Application.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.Infrastructure.Persistence\NIU.ACH-AI.Infrastructure.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

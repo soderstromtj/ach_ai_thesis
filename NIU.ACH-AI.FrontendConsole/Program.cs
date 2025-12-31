@@ -1,26 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
-using NIU.ACH_AI.Application.Services;
-using NIU.ACH_AI.Domain.Entities;
+using NIU.ACH_AI.FrontendConsole.Configuration;
+using NIU.ACH_AI.FrontendConsole.Extensions;
 using NIU.ACH_AI.FrontendConsole.Presentation;
-using NIU.ACH_AI.Infrastructure.AI.Factories;
-using NIU.ACH_AI.Infrastructure.AI.Services;
-using NIU.ACH_AI.Infrastructure.Configuration;
-using NIU.ACH_AI.Infrastructure.Persistence.Repositories;
-using NIU.ACH_AI.Infrastructure.Persistence.Services;
+using NIU.ACH_AI.Infrastructure;
+using NIU.ACH_AI.Infrastructure.Persistence;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
 #pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 
-    class Program
+    public class Program
     {
         /// <summary>
         /// Entry point that starts the application and runs the ACH orchestration.
@@ -29,25 +24,21 @@ namespace NIU.ACH_AI.FrontendConsole
         {
             Console.WriteLine("=== Application started. Press Ctrl+C to shut down. ===");
 
-            // Get a console presenter for displaying results
-            var consolePresenter = new ConsoleResultPresenter();
-
             // Link up dependencies
             var host = CreateHostBuilder(args).Build();
 
+            // Resolve Presenter from DI
+            var consolePresenter = host.Services.GetRequiredService<ConsoleResultPresenter>();
+
             // Get the experiment settings
             var experimentSettings = host.Services.GetRequiredService<IOptions<ExperimentsSettings>>().Value;
-            if (experimentSettings == null || experimentSettings.Experiments == null || experimentSettings.Experiments.Length == 0)
-            {
-                Console.WriteLine("Failed to retrieve experiment settings or no experiments configured. Exiting application.");
-                return;
-            }
+            
+            // Experiment Selection Strategy
+            var experimentConfiguration = SelectExperiment(experimentSettings, args);
 
-            // For this example, just use the first experiment configuration
-            ExperimentConfiguration experimentConfiguration = experimentSettings.Experiments[0];
             if (experimentConfiguration == null)
             {
-                Console.WriteLine("Failed to retrieve experiment configuration or it doesn't exist. Exiting application.");
+                Console.WriteLine("No valid experiment configuration found. Exiting application.");
                 return;
             }
 
@@ -57,7 +48,7 @@ namespace NIU.ACH_AI.FrontendConsole
             // Attempt to run the orchestration workflow
             try
             {
-                var workflowResult = await RunOrchestrationAsync(host, experimentConfiguration, consolePresenter);
+                var workflowResult = await RunOrchestrationAsync(host, experimentConfiguration);
                 consolePresenter.DisplayWorkflowResult(workflowResult);
             }
             catch (OperationCanceledException)
@@ -86,93 +77,68 @@ namespace NIU.ACH_AI.FrontendConsole
             return Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
-                    // Base configuration with non-sensitive defaults (committed to source control)
                     config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-                    // Environment-specific configuration (optional, can be committed or not)
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json",
-                        optional: true, reloadOnChange: true);
-
-                    // Secrets file - contains sensitive information (NOT committed to source control)
+                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
                     config.AddJsonFile("appsettings.secrets.json", optional: true, reloadOnChange: true);
-
-                    // Environment variables can override all file-based configuration
                     config.AddEnvironmentVariables();
                 })
                 .ConfigureServices((context, services) =>
                 {
-                    RegisterExperimentConfigurations(services, context.Configuration);
-                    RegisterKernelServices(services);
-                    RegisterOrchestrationServices(services);
-                    RegisterLogging(services, context.Configuration);
-                    RegisterDBContext(context, services);
+                    services.AddPersistence(context.Configuration);
+                    services.AddFrontendServices(context.Configuration);
                 });
         }
 
-        /// <summary>
-        /// Registers the Entity Framework database context in the service container.
-        /// </summary>
-        /// <param name="context">The HostBuilder context.</param>
-        /// <param name="services">The service collection to register the context.</param>
-        private static void RegisterDBContext(HostBuilderContext context, IServiceCollection services)
-        {
-            services.AddDbContext<Infrastructure.Persistence.Models.AchAIDbContext>(options =>
-                                    options.UseSqlServer(context.Configuration.GetConnectionString("AchAiDBConnection")));
-
-            // Register repositories
-            services.AddScoped<IHypothesisRepository, HypothesisRepository>();
-            services.AddScoped<IEvidenceRepository, EvidenceRepository>();
-            services.AddScoped<IEvidenceHypothesisEvaluationRepository, EvidenceHypothesisEvaluationRepository>();
-            services.AddScoped<IAgentConfigurationPersistence, AgentConfigurationPersistence>();
-            services.AddSingleton<IAgentResponsePersistence, AgentResponsePersistence>();
-            services.AddScoped<IWorkflowResultPersistence, WorkflowResultPersistence>();
-            services.AddScoped<IWorkflowPersistence, WorkflowPersistence>();
-        }
-
         #region Private Methods
+
         /// <summary>
-        /// Checks that the experiment configuration has all required fields.
+        /// Selects an experiment configuration based on arguments or defaults to the first one.
         /// </summary>
-        /// <param name="config">The experiment configuration to validate.</param>
-        private static void ValidateExperimentConfiguration(ExperimentConfiguration config)
+        private static ExperimentConfiguration? SelectExperiment(ExperimentsSettings settings, string[] args)
         {
-            if (string.IsNullOrWhiteSpace(config.Id))
+            if (settings?.Experiments == null || settings.Experiments.Length == 0)
             {
-                throw new InvalidOperationException(
-                    "Id is not configured for this experiment. Please add 'Id' to the experiment settings in appsettings.json.");
+                Console.WriteLine("Error: No experiments configured in settings.");
+                return null;
             }
 
-            if (string.IsNullOrWhiteSpace(config.Name))
+            // Default to the first experiment if no arguments provided
+            if (args == null || args.Length == 0)
             {
-                throw new InvalidOperationException(
-                    "Name is not configured for this experiment. Please add 'Name' to the experiment settings in appsettings.json.");
+                Console.WriteLine($"No experiment specified. Defaulting to Experiment 1: {settings.Experiments[0].Name}");
+                return settings.Experiments[0];
             }
 
-            if (string.IsNullOrWhiteSpace(config.Description))
+            // Attempt to parse the first argument
+            if (!int.TryParse(args[0], out int experimentNumber))
             {
-                throw new InvalidOperationException(
-                    "Description is not configured for this experiment. Please add 'Description' to the experiment settings in appsettings.json.");
+                Console.WriteLine($"Error: Invalid experiment number format '{args[0]}'. Please provide an integer.");
+                return null;
             }
 
-            if (config.ACHSteps == null || config.ACHSteps.Length == 0)
+            // Adjust for 1-based indexing (user sees 1, 2, 3...)
+            int index = experimentNumber - 1;
+
+            // Handle negative numbers, out of bounds
+            if (index < 0 || index >= settings.Experiments.Length)
             {
-                throw new InvalidOperationException(
-                    "No ACH steps are configured for this experiment. Please add at least one ACH step to the experiment settings in appsettings.json.");
+                Console.WriteLine($"Error: Experiment number {experimentNumber} is out of bounds. Valid range is 1-{settings.Experiments.Length}.");
+                return null;
             }
+
+            Console.WriteLine($"Selected Experiment {experimentNumber}: {settings.Experiments[index].Name}");
+            return settings.Experiments[index];
         }
 
         /// <summary>
         /// Runs the orchestration workflow for the specified experiment
         /// </summary>
-        /// <param name="host">The application host.</param>
-        /// <param name="experimentConfig">The configuration for the experiment.</param>
         private static async Task<ACHWorkflowResult> RunOrchestrationAsync(
             IHost host, 
-            ExperimentConfiguration experimentConfig, 
-            ConsoleResultPresenter consoleResultPresenter)
+            ExperimentConfiguration experimentConfig)
         {
             // Validate the experiment configuration
-            ValidateExperimentConfiguration(experimentConfig);
+            ExperimentConfigurationValidator.Validate(experimentConfig);
 
             // Get the workflow coordinator from DI container
             var workflowCoordinator = host.Services.GetRequiredService<IACHWorkflowCoordinator>();
@@ -183,55 +149,8 @@ namespace NIU.ACH_AI.FrontendConsole
             return workflowResult;
         }
 
-        private static void RegisterExperimentConfigurations(IServiceCollection services, IConfiguration configuration)
-        {
-            // Map the root configuration to ExperimentsSettings (which has Experiments[] property)
-            services.Configure<ExperimentsSettings>(configuration);
-
-            // Map the AIServiceSettings section - kept separate and injected where needed
-            services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
-        }
-
-        /// <summary>
-        /// Registers Semantic Kernel services and AI adapters in the container.
-        /// </summary>
-        private static void RegisterKernelServices(IServiceCollection services)
-        {
-            // KernelBuilderService builds a default kernel for orchestration (e.g., structured output)
-            services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
-        }
-
-        /// <summary>
-        /// Registers orchestration and workflow services in the container.
-        /// </summary>
-        private static void RegisterOrchestrationServices(IServiceCollection services)
-        {
-            // Register orchestration execution service
-            services.AddSingleton<IOrchestrationExecutor, OrchestrationExecutor>();
-
-            // Register factory provider for creating orchestration factories
-            services.AddSingleton<IOrchestrationFactoryProvider, OrchestrationFactoryProvider>();
-
-            // Register workflow coordinator for managing ACH workflow execution
-            services.AddScoped<IACHWorkflowCoordinator, ACHWorkflowCoordinator>();
-        }
-
-        /// <summary>
-        /// Sets up logging providers and configuration for the application.
-        /// </summary>
-        private static void RegisterLogging(IServiceCollection services, IConfiguration configuration)
-        {
-            // Configure logging to use Console and Debug providers
-            services.AddLogging(builder =>
-            {
-                builder.AddConsole();
-                builder.AddDebug();
-                builder.AddConfiguration(configuration.GetSection("Logging"));
-            });
-        }
-
         #endregion
     }
-}
 
-#pragma warning restore SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore SKEXP0110
+}
