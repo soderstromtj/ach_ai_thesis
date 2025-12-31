@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Models;
@@ -27,7 +27,6 @@ public partial class AgentResponse
 
     public DateTime CreatedAt { get; set; }
 
-    // New extended metadata fields matching DB columns
     public string? CompletionId { get; set; }
 
     public int? ReasoningTokenCount { get; set; }
@@ -41,6 +40,8 @@ public partial class AgentResponse
     public int? InputAudioTokenCount { get; set; }
 
     public int? CachedInputTokenCount { get; set; }
+
+    public DateTime FinishedAt { get; set; }
 
     public virtual AgentConfiguration AgentConfiguration { get; set; } = null!;
 

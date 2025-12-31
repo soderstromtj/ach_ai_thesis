@@ -24,5 +24,6 @@ namespace NIU.ACH_AI.Application.DTOs
         public int? RejectedPredictionTokenCount { get; init; }
         public int? InputAudioTokenCount { get; init; }
         public int? CachedInputTokenCount { get; init; }
+        public DateTime FinishedAt { get; init; }
     }
 }

@@ -487,7 +487,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 RejectedPredictionTokenCount = rejectedPredictionTokenCount,
                 InputAudioTokenCount = inputAudioTokenCount,
                 CachedInputTokenCount = cachedInputTokenCount,
-                CreatedAt = createdAt?.UtcDateTime ?? DateTime.UtcNow
+                CreatedAt = createdAt?.UtcDateTime ?? DateTime.UtcNow,
+                FinishedAt = DateTime.UtcNow
             };
 
             try
