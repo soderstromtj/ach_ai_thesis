@@ -9,6 +9,14 @@ using Xunit;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
 {
+    /// <summary>
+    /// Unit tests for the AgentResponsePersistence service.
+    /// 
+    /// Testing Strategy:
+    /// -----------------
+    /// Focuses on the core functionality of persisting agent responses, ensuring thread safety
+    /// and correct dependency interaction. Uses in-memory EF Core database for isolation.
+    /// </summary>
     public class AgentResponsePersistenceTests
     {
         private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
@@ -27,6 +35,9 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
             _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
         }
 
+        /// <summary>
+        /// Verifies that multiple threads can successfully save responses concurrently without data loss or exceptions.
+        /// </summary>
         [Fact]
         public async Task SaveAgentResponseAsync_ShouldBeThreadSafe()
         {

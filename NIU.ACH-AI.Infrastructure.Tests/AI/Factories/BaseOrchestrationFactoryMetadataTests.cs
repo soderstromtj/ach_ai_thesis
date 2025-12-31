@@ -17,6 +17,23 @@ using System.Reflection;
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 {
 #pragma warning disable SKEXP0110
+    /// <summary>
+    /// Unit tests for BaseOrchestrationFactory metadata handling.
+    ///
+    /// Testing Strategy:
+    /// -----------------
+    /// BaseOrchestrationFactoryMetadataTests focuses on verifying how the factory handles
+    /// metadata (e.g., usage statistics, completion IDs) during streaming and non-streaming callbacks.
+    /// It uses a concrete testable implementation to expose protected members.
+    ///
+    /// What We Can Test:
+    /// 1. Streaming Persistence - Verifies metadata is persisted when streaming completes
+    /// 2. Duplicate Persistence - Ensures persistence is not called twice when streaming is enabled
+    ///
+    /// Testing Challenges:
+    /// Similar to BaseOrchestrationFactoryTests, we mock persistence and token extraction dependencies
+    /// to isolate the factory logic.
+    /// </summary>
     public class BaseOrchestrationFactoryMetadataTests
     {
         private class TestableOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
@@ -56,6 +73,9 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             protected override string GetAgentSelectionReason(string? previousAgentName) => "Test";
         }
 
+        /// <summary>
+        /// Verifies that the streaming callback persists the aggregated content and metadata when the final chunk is received.
+        /// </summary>
         [Fact]
         public async Task StreamingResponseCallback_WhenFinal_PersistsDirectlyWithMetadata()
         {
@@ -130,6 +150,9 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        /// <summary>
+        /// Verifies that the standard response callback does not trigger persistence again if streaming was already handled.
+        /// </summary>
         [Fact]
         public async Task ResponseCallback_WhenStreamingEnabled_DoesNotPersistAgain()
         {

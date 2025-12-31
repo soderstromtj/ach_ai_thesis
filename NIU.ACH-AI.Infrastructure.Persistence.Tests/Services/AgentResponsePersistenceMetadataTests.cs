@@ -9,6 +9,15 @@ using Xunit;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
 {
+    /// <summary>
+    /// Unit tests for metadata persistence in AgentResponsePersistence.
+    /// 
+    /// Testing Strategy:
+    /// -----------------
+    /// Verifies that extended metadata fields (token usage, completion IDs) are correctly
+    /// persisted when saving agent responses. This is separate from the main persistence tests
+    /// to focus specifically on the metadata schema extensions.
+    /// </summary>
     public class AgentResponsePersistenceMetadataTests
     {
         private readonly Mock<IServiceScopeFactory> _mockScopeFactory;
@@ -27,6 +36,9 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Tests.Services
             _mockScope.Setup(x => x.ServiceProvider).Returns(_mockServiceProvider.Object);
         }
 
+        /// <summary>
+        /// Verifies that all extended metadata fields (tokens, completion ID) are correctly saved to the database.
+        /// </summary>
         [Fact]
         public async Task SaveAgentResponseAsync_WithExtendedMetadata_PersistsAllFields()
         {
