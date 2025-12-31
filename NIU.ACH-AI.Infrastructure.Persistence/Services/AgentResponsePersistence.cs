@@ -60,7 +60,8 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 AcceptedPredictionTokenCount = response.AcceptedPredictionTokenCount,
                 RejectedPredictionTokenCount = response.RejectedPredictionTokenCount,
                 InputAudioTokenCount = response.InputAudioTokenCount,
-                CachedInputTokenCount = response.CachedInputTokenCount
+                CachedInputTokenCount = response.CachedInputTokenCount,
+                FinishedAt = response.FinishedAt
             };
 
             try

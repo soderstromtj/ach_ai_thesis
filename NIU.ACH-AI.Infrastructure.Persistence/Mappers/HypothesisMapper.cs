@@ -18,7 +18,7 @@ public static class HypothesisMapper
     {
         return new DbModel.Hypothesis
         {
-            HypothesisId = domain.HypothesisId != Guid.Empty ? domain.HypothesisId : Guid.NewGuid(),
+            HypothesisId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             ShortTitle = domain.ShortTitle,
             HypothesisText = domain.HypothesisText,

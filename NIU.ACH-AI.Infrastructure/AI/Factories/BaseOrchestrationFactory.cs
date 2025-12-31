@@ -336,50 +336,56 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             });
         }
 
+        private readonly object _lockObject = new();
+
         protected async ValueTask ResponseCallback(ChatMessageContent response)
         {
-            _history.Add(response);
-            _currentTurn++;
-
-            var agentName = response.AuthorName ?? "Unknown";
-            var content = response.Content ?? string.Empty;
-
-            // Stop the previous response timer if it was running
-            var responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
-            _responseStopwatch.Stop();
-
-            // Log agent selection (detect handoff)
-            if (_previousAgentName != agentName)
+            // Lock to ensure thread safety when multiple agents return simultaneously
+            lock (_lockObject)
             {
-                var reason = _currentTurn == 1
-                    ? "First agent in orchestration"
-                    : GetAgentSelectionReason(_previousAgentName);
+                _history.Add(response);
+                _currentTurn++;
 
-                _previousAgentName = agentName;
-            }
+                var agentName = response.AuthorName ?? "Unknown";
+                var content = response.Content ?? string.Empty;
 
-            // Extract token count from metadata if available
-            int? tokenCount = null;
-            if (response.Metadata != null)
-            {
-                // Try to get token count from metadata dictionary directly
-                if (response.Metadata.TryGetValue("OutputTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
+                // Stop the previous response timer if it was running
+                var responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
+                _responseStopwatch.Stop();
+
+                // Log agent selection (detect handoff)
+                if (_previousAgentName != agentName)
                 {
-                    tokenCount = outputTokenCount;
+                    var reason = _currentTurn == 1
+                        ? "First agent in orchestration"
+                        : GetAgentSelectionReason(_previousAgentName);
+
+                    _previousAgentName = agentName;
                 }
+
+                // Extract token count from metadata if available
+                int? tokenCount = null;
+                if (response.Metadata != null)
+                {
+                    // Try to get token count from metadata dictionary directly
+                    if (response.Metadata.TryGetValue("OutputTokenCount", out var outputTokenCountObj) && outputTokenCountObj is int outputTokenCount)
+                    {
+                        tokenCount = outputTokenCount;
+                    }
+                }
+
+                // Start timer for next response
+                _responseStopwatch.Restart();
+
+                // Optionally write response to console
+                if (_orchestrationSettings.WriteResponses)
+                {
+                    Console.WriteLine($"\n[Turn {_currentTurn}] Agent '{agentName}' responded with {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.\n");
+                    Console.WriteLine(content);
+                }
+
+                _logger?.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
             }
-
-            // Start timer for next response
-            _responseStopwatch.Restart();
-
-            // Optionally write response to console
-            if (_orchestrationSettings.WriteResponses)
-            {
-                Console.WriteLine($"\n[Turn {_currentTurn}] Agent '{agentName}' responded with {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.\n");
-                Console.WriteLine(content);
-            }
-
-            _logger?.LogDebug($"Class: {GetType().Name}\tMessage: Received response from agent '{agentName}' on turn {_currentTurn - 1} with content length {content.Length} characters{(tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty)} in {responseDuration} ms.");
 
             return;
         }

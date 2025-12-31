@@ -164,6 +164,7 @@ public partial class AchAIDbContext : DbContext
             entity.Property(e => e.RejectedPredictionTokenCount).HasColumnName("rejected_prediction_token_count");
             entity.Property(e => e.InputAudioTokenCount).HasColumnName("input_audio_token_count");
             entity.Property(e => e.CachedInputTokenCount).HasColumnName("cached_input_token_count");
+            entity.Property(e => e.FinishedAt).HasColumnName("finished_at");
 
             entity.HasOne(d => d.AgentConfiguration).WithMany(p => p.AgentResponses)
                 .HasForeignKey(d => d.AgentConfigurationId)

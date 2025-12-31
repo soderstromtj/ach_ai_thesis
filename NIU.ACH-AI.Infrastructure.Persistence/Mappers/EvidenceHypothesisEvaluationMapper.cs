@@ -1,5 +1,6 @@
 using DomainEntity = NIU.ACH_AI.Domain.Entities;
 using DbModel = NIU.ACH_AI.Infrastructure.Persistence.Models;
+using NIU.ACH_AI.Domain.ValueObjects;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Mappers;
 
@@ -18,13 +19,29 @@ public static class EvidenceHypothesisEvaluationMapper
         Guid hypothesisId,
         Guid evidenceId)
     {
+        // Map Enum to Database ID
+        // 1	VeryConsistent	2
+        // 2	Consistent	    1
+        // 3	Neutral	        0
+        // 4	Inconsistent	-1
+        // 5	VeryInconsistent -2
+        int scoreId = domain.Score switch
+        {
+            EvaluationScore.VeryConsistent => 1,
+            EvaluationScore.Consistent => 2,
+            EvaluationScore.Neutral => 3,
+            EvaluationScore.Inconsistent => 4,
+            EvaluationScore.VeryInconsistent => 5,
+            _ => 3 // Default to Neutral if unknown
+        };
+
         return new DbModel.EvidenceHypothesisEvaluation
         {
             EvidenceHypothesisEvaluationId = Guid.NewGuid(),
             StepExecutionId = stepExecutionId,
             HypothesisId = hypothesisId,
             EvidenceId = evidenceId,
-            EvaluationScoreId = (int)domain.Score, // Enum to int
+            EvaluationScoreId = scoreId,
             Rationale = domain.ScoreRationale,
             ConfidenceScore = domain.ConfidenceLevel,
             ConfidenceRationale = domain.ConfidenceRationale,
@@ -39,11 +56,22 @@ public static class EvidenceHypothesisEvaluationMapper
     public static DomainEntity.EvidenceHypothesisEvaluation ToDomain(
         DbModel.EvidenceHypothesisEvaluation database)
     {
+        // Map Database ID back to Enum
+        EvaluationScore score = database.EvaluationScoreId switch
+        {
+            1 => EvaluationScore.VeryConsistent,
+            2 => EvaluationScore.Consistent,
+            3 => EvaluationScore.Neutral,
+            4 => EvaluationScore.Inconsistent,
+            5 => EvaluationScore.VeryInconsistent,
+            _ => EvaluationScore.Neutral
+        };
+
         return new DomainEntity.EvidenceHypothesisEvaluation
         {
             Hypothesis = HypothesisMapper.ToDomain(database.Hypothesis),
             Evidence = EvidenceMapper.ToDomain(database.Evidence),
-            Score = (NIU.ACH_AI.Domain.ValueObjects.EvaluationScore)database.EvaluationScoreId,
+            Score = score,
             ScoreRationale = database.Rationale ?? string.Empty,
             ConfidenceLevel = database.ConfidenceScore ?? 0,
             ConfidenceRationale = database.ConfidenceRationale ?? string.Empty
