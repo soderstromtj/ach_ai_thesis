@@ -1,7 +1,10 @@
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Application.Messaging.Commands;
+using NIU.ACH_AI.Application.Messaging.Events;
 using NIU.ACH_AI.Domain.Entities;
 
 namespace NIU.ACH_AI.Application.Services
@@ -17,6 +20,10 @@ namespace NIU.ACH_AI.Application.Services
         private readonly IWorkflowPersistence _workflowPersistence;
         private readonly IAgentConfigurationPersistence _agentConfigurationPersistence;
         private readonly IWorkflowResultPersistence _workflowResultPersistence;
+        private readonly IRequestClient<IBrainstormingRequested> _brainstormingClient;
+        private readonly IRequestClient<IHypothesisRefinementRequested> _refinementClient;
+        private readonly IRequestClient<IEvidenceExtractionRequested> _extractionClient;
+        private readonly IRequestClient<IEvidenceEvaluationRequested> _evaluationClient;
         private readonly ILogger<ACHWorkflowCoordinator> _logger;
 
         public ACHWorkflowCoordinator(
@@ -25,6 +32,10 @@ namespace NIU.ACH_AI.Application.Services
             IWorkflowPersistence workflowPersistence,
             IAgentConfigurationPersistence agentConfigurationPersistence,
             IWorkflowResultPersistence workflowResultPersistence,
+            IRequestClient<IBrainstormingRequested> brainstormingClient,
+            IRequestClient<IHypothesisRefinementRequested> refinementClient,
+            IRequestClient<IEvidenceExtractionRequested> extractionClient,
+            IRequestClient<IEvidenceEvaluationRequested> evaluationClient,
             ILoggerFactory loggerFactory)
         {
             // Check if dependencies are null
@@ -33,13 +44,21 @@ namespace NIU.ACH_AI.Application.Services
             ArgumentNullException.ThrowIfNull(workflowPersistence);
             ArgumentNullException.ThrowIfNull(agentConfigurationPersistence);
             ArgumentNullException.ThrowIfNull(workflowResultPersistence);
+            ArgumentNullException.ThrowIfNull(brainstormingClient);
             ArgumentNullException.ThrowIfNull(loggerFactory);
+            ArgumentNullException.ThrowIfNull(refinementClient);
+            ArgumentNullException.ThrowIfNull(extractionClient);
+            ArgumentNullException.ThrowIfNull(evaluationClient);
 
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
             _workflowPersistence = workflowPersistence;
             _agentConfigurationPersistence = agentConfigurationPersistence;
             _workflowResultPersistence = workflowResultPersistence;
+            _brainstormingClient = brainstormingClient;
+            _refinementClient = refinementClient;
+            _extractionClient = extractionClient;
+            _evaluationClient = evaluationClient;
             _logger = loggerFactory.CreateLogger<ACHWorkflowCoordinator>();
         }
 
@@ -228,6 +247,14 @@ namespace NIU.ACH_AI.Application.Services
         /// <param name="workflowResult">The workflow result to update with generated hypotheses.</param>
         /// <param name="stepExecutionContext">The step execution context.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <summary>
+        /// Executes the hypothesis brainstorming step using the configured factory.
+        /// </summary>
+        /// <param name="stepConfig">The step configuration.</param>
+        /// <param name="input">The orchestration input.</param>
+        /// <param name="workflowResult">The workflow result to update with generated hypotheses.</param>
+        /// <param name="stepExecutionContext">The step execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         private async Task ExecuteHypothesisBrainstormingAsync(
             ACHStepConfiguration stepConfig,
             OrchestrationPromptInput input,
@@ -235,24 +262,31 @@ namespace NIU.ACH_AI.Application.Services
             StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
-            var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(stepConfig);
-            var hypotheses = await _orchestrationExecutor.ExecuteAsync(
-                factory,
-                input,
-                stepExecutionContext,
-                cancellationToken);
+            // Phase 2: Use MassTransit Request/Response
+            _logger.LogInformation("Sending Brainstorming Request to Message Bus...");
 
-            var savedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
-                stepExecutionContext.StepExecutionId,
-                hypotheses,
-                isRefined: false,
-                cancellationToken: cancellationToken);
+            var response = await _brainstormingClient.GetResponse<IBrainstormingResult>(new
+                {
+                    stepExecutionContext.ExperimentId,
+                    stepExecutionContext.StepExecutionId,
+                    Input = input,
+                    Configuration = stepConfig,
+                    StepContext = stepExecutionContext,
+                    Timestamp = DateTime.UtcNow
+                }, cancellationToken, timeout: RequestTimeout.After(m: 5));
+            
+            if (!response.Message.Success)
+            {
+                throw new Exception($"Brainstorming failed: {response.Message.ErrorMessage}");
+            }
 
-            // Update workflow result and input for next step with saved entities (containing IDs)
-            workflowResult.Hypotheses = savedHypotheses;
-            input.HypothesisResult = new HypothesisResult { Hypotheses = savedHypotheses };
+            var hypotheses = response.Message.Hypotheses;
 
-            _logger.LogInformation($"Generated {hypotheses.Count} hypotheses");
+            // Update workflow result and input for next step
+            workflowResult.Hypotheses = hypotheses;
+            input.HypothesisResult = new HypothesisResult { Hypotheses = hypotheses };
+
+            _logger.LogInformation($"Received {hypotheses.Count} hypotheses from Message Bus worker.");
         }
 
         /// <summary>
@@ -270,24 +304,30 @@ namespace NIU.ACH_AI.Application.Services
             StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
-            var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(stepConfig);
-            var refinedHypotheses = await _orchestrationExecutor.ExecuteAsync(
-                factory,
-                input,
-                stepExecutionContext,
-                cancellationToken);
+            _logger.LogInformation("Sending Refinement Request to Message Bus...");
 
-            var savedRefinedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
+            var response = await _refinementClient.GetResponse<IHypothesisRefinementResult>(new
+            {
+                stepExecutionContext.ExperimentId,
                 stepExecutionContext.StepExecutionId,
-                refinedHypotheses,
-                isRefined: true,
-                cancellationToken: cancellationToken);
+                Input = input,
+                Configuration = stepConfig,
+                StepContext = stepExecutionContext,
+                Timestamp = DateTime.UtcNow
+            }, cancellationToken, timeout: RequestTimeout.After(m: 5));
+
+            if (!response.Message.Success)
+            {
+                throw new Exception($"Refinement failed: {response.Message.ErrorMessage}");
+            }
+
+            var refinedHypotheses = response.Message.RefinedHypotheses;
 
             // Update workflow result and input for next step with saved entities (containing IDs)
-            workflowResult.RefinedHypotheses = savedRefinedHypotheses;
-            input.HypothesisResult = new HypothesisResult { Hypotheses = savedRefinedHypotheses };
+            workflowResult.RefinedHypotheses = refinedHypotheses;
+            input.HypothesisResult = new HypothesisResult { Hypotheses = refinedHypotheses };
 
-            _logger.LogInformation($"Refined to {refinedHypotheses.Count} hypotheses");
+            _logger.LogInformation($"Refined to {refinedHypotheses.Count} hypotheses from Message Bus worker.");
         }
 
         /// <summary>
@@ -305,23 +345,30 @@ namespace NIU.ACH_AI.Application.Services
             StepExecutionContext stepExecutionContext,
             CancellationToken cancellationToken)
         {
-            var factory = _factoryProvider.CreateFactory<List<Evidence>>(stepConfig);
-            var evidence = await _orchestrationExecutor.ExecuteAsync(
-                factory,
-                input,
-                stepExecutionContext,
-                cancellationToken);
+            _logger.LogInformation("Sending Evidence Extraction Request to Message Bus...");
 
-            var savedEvidence = await _workflowResultPersistence.SaveEvidenceAsync(
+            var response = await _extractionClient.GetResponse<IEvidenceExtractionResult>(new
+            {
+                stepExecutionContext.ExperimentId,
                 stepExecutionContext.StepExecutionId,
-                evidence,
-                cancellationToken: cancellationToken);
+                Input = input,
+                Configuration = stepConfig,
+                StepContext = stepExecutionContext,
+                Timestamp = DateTime.UtcNow
+            }, cancellationToken, timeout: RequestTimeout.After(m: 5));
+
+            if (!response.Message.Success)
+            {
+                throw new Exception($"Evidence Extraction failed: {response.Message.ErrorMessage}");
+            }
+
+            var evidence = response.Message.Evidence;
 
             // Update workflow result and input for next step with saved entities (containing IDs)
-            workflowResult.Evidence = savedEvidence;
-            input.EvidenceResult = new EvidenceResult { Evidence = savedEvidence };
+            workflowResult.Evidence = evidence;
+            input.EvidenceResult = new EvidenceResult { Evidence = evidence };
 
-            _logger.LogInformation($"Extracted {evidence.Count} pieces of evidence");
+            _logger.LogInformation($"Extracted {evidence.Count} pieces of evidence from Message Bus worker.");
         }
 
         /// <summary>
@@ -345,76 +392,32 @@ namespace NIU.ACH_AI.Application.Services
             Guid? evidenceStepExecutionId,
             CancellationToken cancellationToken)
         {
-            var evaluations = new List<EvidenceHypothesisEvaluation>();
+            // Prepare Input with correct lists for the consumer to iterate
+            // Input already has KeyQuestion and Context. We need explicitly populate HypothesisResult/EvidenceResult if not present
+            // However, the previous steps (Extraction/Refinement) updated 'input.HypothesisResult' and 'input.EvidenceResult'
+            // So 'input' should be ready to go.
 
-            if (hypothesisStepExecutionId == null || hypothesisStepExecutionId == Guid.Empty)
+            _logger.LogInformation("Sending Evidence Evaluation Request to Message Bus...");
+
+            var response = await _evaluationClient.GetResponse<IEvidenceEvaluationResult>(new
             {
-                throw new InvalidOperationException(
-                    "Hypothesis step execution ID is required before evidence-hypothesis evaluation.");
+                stepExecutionContext.ExperimentId,
+                stepExecutionContext.StepExecutionId,
+                Input = input,
+                Configuration = stepConfig,
+                StepContext = stepExecutionContext,
+                HypothesisStepExecutionId = hypothesisStepExecutionId.Value,
+                EvidenceStepExecutionId = evidenceStepExecutionId.Value,
+                Timestamp = DateTime.UtcNow
+            }, cancellationToken, timeout: RequestTimeout.After(m: 10)); // Evaluation is long running!
+
+             if (!response.Message.Success)
+            {
+                throw new Exception($"Evidence Evaluation failed: {response.Message.ErrorMessage}");
             }
 
-            if (evidenceStepExecutionId == null || evidenceStepExecutionId == Guid.Empty)
-            {
-                throw new InvalidOperationException(
-                    "Evidence step execution ID is required before evidence-hypothesis evaluation.");
-            }
-
-            // Use refined hypotheses if available, otherwise use initial hypotheses
-            var hypothesesToEvaluate = workflowResult.RefinedHypotheses ?? workflowResult.Hypotheses ?? new List<Hypothesis>();
-            var evidenceList = workflowResult.Evidence ?? new List<Evidence>();
-
-            _logger.LogInformation(
-                $"Evaluating {evidenceList.Count} pieces of evidence against {hypothesesToEvaluate.Count} hypotheses");
-
-            // Evaluate each evidence-hypothesis pair
-            foreach (var evidence in evidenceList)
-            {
-                foreach (var hypothesis in hypothesesToEvaluate)
-                {
-                    Console.WriteLine(
-                        $"\nEvaluating Evidence vs Hypothesis:\n" +
-                        $"  Evidence: {evidence.Claim}\n" +
-                        $"  Hypothesis: {hypothesis.HypothesisText}");
-
-                    // Create input with single evidence and hypothesis
-                    var evaluationInput = new OrchestrationPromptInput
-                    {
-                        KeyQuestion = input.KeyQuestion,
-                        Context = input.Context,
-                        TaskInstructions = stepConfig.TaskInstructions,
-                        EvidenceResult = new EvidenceResult { Evidence = new List<Evidence> { evidence } },
-                        HypothesisResult = new HypothesisResult { Hypotheses = new List<Hypothesis> { hypothesis } }
-                    };
-
-                    var factory = _factoryProvider.CreateFactory<List<EvidenceHypothesisEvaluation>>(stepConfig);
-                    var evaluationResults = await _orchestrationExecutor.ExecuteAsync(
-                        factory,
-                        evaluationInput,
-                        stepExecutionContext,
-                        cancellationToken);
-
-                    foreach (var result in evaluationResults)
-                    {
-                        // Ensure the evaluation has the correct Hypothesis and Evidence objects with IDs
-                        // The LLM output might have new objects or incomplete ones, we must link to the persisted ones
-                        result.Hypothesis = hypothesis;
-                        result.Evidence = evidence;
-                    }
-
-                    // Save results immediately to prevent data loss if the long-running process is interrupted
-                    await _workflowResultPersistence.SaveEvaluationsAsync(
-                        stepExecutionContext.StepExecutionId,
-                        evaluationResults,
-                        hypothesisStepExecutionId.Value,
-                        evidenceStepExecutionId.Value,
-                        cancellationToken);
-
-                    evaluations.AddRange(evaluationResults);
-                }
-            }
-
-            workflowResult.Evaluations = evaluations;
-            _logger.LogInformation($"Completed {evaluations.Count} evidence-hypothesis evaluations");
+            workflowResult.Evaluations = response.Message.Evaluations;
+            _logger.LogInformation($"Completed {response.Message.Evaluations.Count} evidence-hypothesis evaluations from Message Bus worker.");
         }
     }
 }

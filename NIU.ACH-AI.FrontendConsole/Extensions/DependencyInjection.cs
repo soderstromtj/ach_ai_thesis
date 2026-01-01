@@ -8,6 +8,7 @@ using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
 using NIU.ACH_AI.Infrastructure.AI.Services;
 using NIU.ACH_AI.Infrastructure.Configuration;
+using NIU.ACH_AI.Infrastructure.Extensions;
 
 namespace NIU.ACH_AI.FrontendConsole.Extensions
 {
@@ -27,6 +28,9 @@ namespace NIU.ACH_AI.FrontendConsole.Extensions
             // Register Configuration
             services.Configure<ExperimentsSettings>(configuration);
             services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
+
+            // Register Message Broker
+            services.AddMessageBroker(configuration);
 
             // Register HttpClient
             services.AddHttpClient();

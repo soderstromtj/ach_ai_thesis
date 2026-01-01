@@ -1,0 +1,45 @@
+using MassTransit;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace NIU.ACH_AI.Infrastructure.Extensions
+{
+    public static class MessageBrokerExtensions
+    {
+        public static IServiceCollection AddMessageBroker(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddMassTransit(x =>
+            {
+                // Register the consumer
+                x.AddConsumer<Messaging.Consumers.HypothesisBrainstormingConsumer>();
+                x.AddConsumer<Messaging.Consumers.HypothesisRefinementConsumer>();
+                x.AddConsumer<Messaging.Consumers.EvidenceExtractionConsumer>();
+                x.AddConsumer<Messaging.Consumers.EvidenceEvaluationConsumer>();
+
+                // Register the Request Clients
+                x.AddRequestClient<Application.Messaging.Commands.IBrainstormingRequested>();
+                x.AddRequestClient<Application.Messaging.Commands.IHypothesisRefinementRequested>();
+                x.AddRequestClient<Application.Messaging.Commands.IEvidenceExtractionRequested>();
+                x.AddRequestClient<Application.Messaging.Commands.IEvidenceEvaluationRequested>();
+
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    var rabbitMqHost = configuration["RabbitMQ:Host"] ?? "localhost";
+                    var rabbitMqUser = configuration["RabbitMQ:Username"] ?? "guest";
+                    var rabbitMqPass = configuration["RabbitMQ:Password"] ?? "guest";
+
+                    cfg.Host(rabbitMqHost, "/", h =>
+                    {
+                        h.Username(rabbitMqUser);
+                        h.Password(rabbitMqPass);
+                    });
+
+                    // Configure endpoints automatically
+                    cfg.ConfigureEndpoints(context);
+                });
+            });
+
+            return services;
+        }
+    }
+}

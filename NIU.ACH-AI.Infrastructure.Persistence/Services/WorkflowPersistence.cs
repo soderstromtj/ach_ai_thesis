@@ -242,5 +242,27 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 
             return orchestrationTypeId == Guid.Empty ? null : orchestrationTypeId;
         }
+        /// <summary>
+        /// Retrieves the step execution context by ID.
+        /// </summary>
+        public async Task<StepExecutionContext?> GetStepExecutionAsync(Guid stepExecutionId, CancellationToken cancellationToken = default)
+        {
+            var step = await _context.StepExecutions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.StepExecutionId == stepExecutionId, cancellationToken);
+
+            if (step == null)
+            {
+                return null;
+            }
+
+            return new StepExecutionContext
+            {
+                ExperimentId = step.ExperimentId,
+                StepExecutionId = step.StepExecutionId,
+                AchStepId = step.AchStepId,
+                AchStepName = step.AchStepName
+            };
+        }
     }
 }

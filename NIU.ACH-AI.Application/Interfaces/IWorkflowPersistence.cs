@@ -60,5 +60,12 @@ namespace NIU.ACH_AI.Application.Interfaces
             string? errorMessage = null,
             int? retryCount = null,
             CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Retrieves the step execution context by ID.
+        /// </summary>
+        /// <param name="stepExecutionId">The ID of the step execution.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The step execution context or null if not found.</returns>
+        Task<StepExecutionContext?> GetStepExecutionAsync(Guid stepExecutionId, CancellationToken cancellationToken = default);
     }
 }

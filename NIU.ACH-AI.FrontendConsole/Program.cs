@@ -52,8 +52,14 @@ namespace NIU.ACH_AI.FrontendConsole
             // Attempt to run the orchestration workflow
             try
             {
+                // Start the host to enable hosted services (like MassTransit Bus)
+                await host.StartAsync();
+
                 var workflowResult = await RunOrchestrationAsync(host, experimentConfiguration);
                 consolePresenter.DisplayWorkflowResult(workflowResult);
+
+                // Stop the host gracefully
+                await host.StopAsync();
             }
             catch (OperationCanceledException)
             {

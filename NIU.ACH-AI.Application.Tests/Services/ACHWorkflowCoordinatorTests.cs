@@ -1,9 +1,12 @@
 using FluentAssertions;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Application.Messaging.Commands;
+using NIU.ACH_AI.Application.Messaging.Events;
 using NIU.ACH_AI.Application.Services;
 using NIU.ACH_AI.Domain.Entities;
 
@@ -42,6 +45,10 @@ public class ACHWorkflowCoordinatorTests
     private readonly Mock<IWorkflowResultPersistence> _mockWorkflowResultPersistence;
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
     private readonly Mock<ILogger<ACHWorkflowCoordinator>> _mockLogger;
+    private readonly Mock<IRequestClient<IBrainstormingRequested>> _mockBrainstormingClient;
+    private readonly Mock<IRequestClient<IHypothesisRefinementRequested>> _mockRefinementClient;
+    private readonly Mock<IRequestClient<IEvidenceExtractionRequested>> _mockExtractionClient;
+    private readonly Mock<IRequestClient<IEvidenceEvaluationRequested>> _mockEvaluationClient;
     private readonly ACHWorkflowCoordinator _coordinator;
 
     public ACHWorkflowCoordinatorTests()
@@ -51,6 +58,10 @@ public class ACHWorkflowCoordinatorTests
         _mockWorkflowPersistence = new Mock<IWorkflowPersistence>();
         _mockAgentConfigurationPersistence = new Mock<IAgentConfigurationPersistence>();
         _mockWorkflowResultPersistence = new Mock<IWorkflowResultPersistence>();
+        _mockBrainstormingClient = new Mock<IRequestClient<IBrainstormingRequested>>();
+        _mockRefinementClient = new Mock<IRequestClient<IHypothesisRefinementRequested>>();
+        _mockExtractionClient = new Mock<IRequestClient<IEvidenceExtractionRequested>>();
+        _mockEvaluationClient = new Mock<IRequestClient<IEvidenceEvaluationRequested>>();
         _mockLoggerFactory = new Mock<ILoggerFactory>();
         _mockLogger = new Mock<ILogger<ACHWorkflowCoordinator>>();
 
@@ -121,6 +132,10 @@ public class ACHWorkflowCoordinatorTests
             _mockWorkflowPersistence.Object,
             _mockAgentConfigurationPersistence.Object,
             _mockWorkflowResultPersistence.Object,
+            _mockBrainstormingClient.Object,
+            _mockRefinementClient.Object,
+            _mockExtractionClient.Object,
+            _mockEvaluationClient.Object,
             _mockLoggerFactory.Object);
     }
 
@@ -140,6 +155,10 @@ public class ACHWorkflowCoordinatorTests
                 _mockWorkflowPersistence.Object,
                 _mockAgentConfigurationPersistence.Object,
                 _mockWorkflowResultPersistence.Object,
+                _mockBrainstormingClient.Object,
+                _mockRefinementClient.Object,
+                _mockExtractionClient.Object,
+                _mockEvaluationClient.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("orchestrationExecutor");
     }
@@ -158,8 +177,34 @@ public class ACHWorkflowCoordinatorTests
                 _mockWorkflowPersistence.Object,
                 _mockAgentConfigurationPersistence.Object,
                 _mockWorkflowResultPersistence.Object,
+                _mockBrainstormingClient.Object,
+                _mockRefinementClient.Object,
+                _mockExtractionClient.Object,
+                _mockEvaluationClient.Object,
                 _mockLoggerFactory.Object));
         exception.ParamName.Should().Be("factoryProvider");
+    }
+
+    /// <summary>
+    /// Verifies that the constructor throws ArgumentNullException when passed a null request client.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithNullRequestClient_ThrowsArgumentNullException()
+    {
+        // Arrange, Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            new ACHWorkflowCoordinator(
+                _mockOrchestrationExecutor.Object,
+                _mockFactoryProvider.Object,
+                _mockWorkflowPersistence.Object,
+                _mockAgentConfigurationPersistence.Object,
+                _mockWorkflowResultPersistence.Object,
+                null!,
+                _mockRefinementClient.Object,
+                _mockExtractionClient.Object,
+                _mockEvaluationClient.Object,
+                _mockLoggerFactory.Object));
+        exception.ParamName.Should().Be("brainstormingClient");
     }
 
     /// <summary>
@@ -176,6 +221,10 @@ public class ACHWorkflowCoordinatorTests
                 _mockWorkflowPersistence.Object,
                 _mockAgentConfigurationPersistence.Object,
                 _mockWorkflowResultPersistence.Object,
+                _mockBrainstormingClient.Object,
+                _mockRefinementClient.Object,
+                _mockExtractionClient.Object,
+                _mockEvaluationClient.Object,
                 null!));
         exception.ParamName.Should().Be("loggerFactory");
     }
@@ -193,6 +242,10 @@ public class ACHWorkflowCoordinatorTests
             _mockWorkflowPersistence.Object,
             _mockAgentConfigurationPersistence.Object,
             _mockWorkflowResultPersistence.Object,
+            _mockBrainstormingClient.Object,
+            _mockRefinementClient.Object,
+            _mockExtractionClient.Object,
+            _mockEvaluationClient.Object,
             _mockLoggerFactory.Object);
 
         // Assert
@@ -225,7 +278,7 @@ public class ACHWorkflowCoordinatorTests
             new Hypothesis { ShortTitle = "H1", HypothesisText = "Hypothesis 1" }
         };
 
-        SetupMockFactory<List<Hypothesis>>(expectedHypotheses);
+        SetupMockBrainstormingResponse(expectedHypotheses);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -261,7 +314,7 @@ public class ACHWorkflowCoordinatorTests
             new Hypothesis { ShortTitle = "H1", HypothesisText = "Hypothesis 1" }
         };
 
-        SetupMockFactory<List<Hypothesis>>(expectedHypotheses);
+        SetupMockBrainstormingResponse(expectedHypotheses);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -297,7 +350,7 @@ public class ACHWorkflowCoordinatorTests
             new Hypothesis { ShortTitle = "Refined H1", HypothesisText = "Refined Hypothesis 1" }
         };
 
-        SetupMockFactory<List<Hypothesis>>(expectedRefinedHypotheses);
+        SetupMockRefinementResponse(expectedRefinedHypotheses);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -333,7 +386,7 @@ public class ACHWorkflowCoordinatorTests
             new Hypothesis { ShortTitle = "Refined", HypothesisText = "Refined" }
         };
 
-        SetupMockFactory<List<Hypothesis>>(expectedHypotheses);
+        SetupMockRefinementResponse(expectedHypotheses);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -369,7 +422,7 @@ public class ACHWorkflowCoordinatorTests
             new Evidence { Claim = "Evidence 1", ReferenceSnippet = "Source 1" }
         };
 
-        SetupMockFactory<List<Evidence>>(expectedEvidence);
+        SetupMockExtractionResponse(expectedEvidence);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -402,7 +455,7 @@ public class ACHWorkflowCoordinatorTests
             new Evidence { Claim = "Evidence", ReferenceSnippet = "Source" }
         };
 
-        SetupMockFactory<List<Evidence>>(expectedEvidence);
+        SetupMockExtractionResponse(expectedEvidence);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -455,7 +508,10 @@ public class ACHWorkflowCoordinatorTests
             }
         };
 
-        SetupMockFactorySequence(hypotheses, refinedHypotheses, evidence, evaluations);
+        SetupMockBrainstormingResponse(hypotheses);
+        SetupMockRefinementResponse(refinedHypotheses);
+        SetupMockExtractionResponse(evidence);
+        SetupMockEvaluationResponse(evaluations);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -495,7 +551,9 @@ public class ACHWorkflowCoordinatorTests
             new EvidenceHypothesisEvaluation { ScoreRationale = "Neutral assessment" }
         };
 
-        SetupMockFactorySequence(hypotheses, evidence, evaluations);
+        SetupMockBrainstormingResponse(hypotheses);
+        SetupMockExtractionResponse(evidence);
+        SetupMockEvaluationResponse(evaluations);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -531,7 +589,9 @@ public class ACHWorkflowCoordinatorTests
             new EvidenceHypothesisEvaluation { ScoreRationale = "Consistent with evidence" }
         };
 
-        SetupMockFactorySequence(hypotheses, evidence, evaluations);
+        SetupMockBrainstormingResponse(hypotheses);
+        SetupMockExtractionResponse(evidence);
+        SetupMockEvaluationResponse(evaluations);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -572,7 +632,15 @@ public class ACHWorkflowCoordinatorTests
             new EvidenceHypothesisEvaluation { ScoreRationale = "Evaluation result" }
         };
 
-        SetupMockFactorySequence(hypotheses, evidence, singleEvaluation);
+        var allEvaluations = new List<EvidenceHypothesisEvaluation>();
+        allEvaluations.AddRange(singleEvaluation);
+        allEvaluations.AddRange(singleEvaluation);
+        allEvaluations.AddRange(singleEvaluation);
+        allEvaluations.AddRange(singleEvaluation); // 4 evaluations total
+
+        SetupMockBrainstormingResponse(hypotheses);
+        SetupMockExtractionResponse(evidence);
+        SetupMockEvaluationResponse(allEvaluations);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -581,15 +649,6 @@ public class ACHWorkflowCoordinatorTests
         result.Success.Should().BeTrue();
         // 2 hypotheses * 2 evidence = 4 evaluations
         result.Evaluations.Should().HaveCount(4);
-
-        // Verify that SaveEvaluationsAsync was called 4 times (once for each evaluation pair)
-        _mockWorkflowResultPersistence.Verify(x => x.SaveEvaluationsAsync(
-                It.IsAny<Guid>(),
-                It.IsAny<IEnumerable<EvidenceHypothesisEvaluation>>(),
-                It.IsAny<Guid>(),
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()),
-            Times.Exactly(4));
     }
 
     #endregion
@@ -619,7 +678,10 @@ public class ACHWorkflowCoordinatorTests
             new EvidenceHypothesisEvaluation { ScoreRationale = "Evaluation complete" }
         };
 
-        SetupMockFactorySequence(hypotheses, refinedHypotheses, evidence, evaluations);
+        SetupMockBrainstormingResponse(hypotheses);
+        SetupMockRefinementResponse(refinedHypotheses);
+        SetupMockExtractionResponse(evidence);
+        SetupMockEvaluationResponse(evaluations);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -689,28 +751,17 @@ public class ACHWorkflowCoordinatorTests
         // Arrange
         var experimentConfig = CreateExperimentConfig(new[]
         {
-            new ACHStepConfiguration { Id = 1, Name = "Hypothesis Brainstorming" }
+            new ACHStepConfiguration { Id = 1, Name = "Hypothesis Refinement" }
         });
 
-        var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<List<Hypothesis>>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(mockFactory.Object);
-
-        var expectedException = new InvalidOperationException("Factory execution failed");
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                It.IsAny<CancellationToken>()))
-            .ThrowsAsync(expectedException);
+        // Setup the client to return a failure response
+        SetupMockRefinementResponse(null!, success: false, errorMessage: "Refinement Service Failed");
 
         // Act & Assert
         await _coordinator
             .Invoking(c => c.ExecuteWorkflowAsync(experimentConfig))
-            .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Factory execution failed");
+            .Should().ThrowAsync<Exception>()
+            .WithMessage("Refinement failed: Refinement Service Failed");
     }
 
     /// <summary>
@@ -753,35 +804,24 @@ public class ACHWorkflowCoordinatorTests
         // Arrange
         var experimentConfig = CreateExperimentConfig(new[]
         {
-            new ACHStepConfiguration { Id = 1, Name = "Hypothesis Brainstorming" }
+            new ACHStepConfiguration { Id = 1, Name = "Hypothesis Refinement" }
         });
 
-        var cancellationToken = new CancellationToken();
-        var expectedHypotheses = new List<Hypothesis> { new Hypothesis { ShortTitle = "H1" } };
-
-        var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<List<Hypothesis>>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(mockFactory.Object);
-
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                mockFactory.Object,
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                cancellationToken))
-            .ReturnsAsync(expectedHypotheses);
+        // Use a cancelable token source to ensure we have a traceable token
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
+        
+        SetupMockRefinementResponse(new List<Hypothesis> { new Hypothesis { ShortTitle = "H1" } });
 
         // Act
         await _coordinator.ExecuteWorkflowAsync(experimentConfig, cancellationToken);
 
         // Assert
-        _mockOrchestrationExecutor.Verify(
-            x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                cancellationToken),
+        _mockRefinementClient.Verify(
+            x => x.GetResponse<IHypothesisRefinementResult>(
+                It.IsAny<object>(),
+                cancellationToken,
+                It.IsAny<RequestTimeout>()),
             Times.Once);
     }
 
@@ -848,8 +888,8 @@ public class ACHWorkflowCoordinatorTests
             new ACHStepConfiguration { Id = 2, Name = "Evidence Extraction" }
         });
 
-        SetupMockFactory<List<Hypothesis>>(new List<Hypothesis> { new Hypothesis() });
-        SetupMockFactory<List<Evidence>>(new List<Evidence> { new Evidence() });
+        SetupMockBrainstormingResponse(new List<Hypothesis> { new Hypothesis() });
+        SetupMockExtractionResponse(new List<Evidence> { new Evidence() });
 
         // Act
         await _coordinator.ExecuteWorkflowAsync(experimentConfig);
@@ -882,90 +922,69 @@ public class ACHWorkflowCoordinatorTests
         };
     }
 
-    private void SetupMockFactory<T>(T returnValue)
+
+
+    private void SetupMockBrainstormingResponse(List<Hypothesis> hypotheses, bool success = true, string? errorMessage = null)
     {
-        var mockFactory = new Mock<IOrchestrationFactory<T>>();
-        mockFactory
-            .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(returnValue);
+        var resultMock = new Mock<IBrainstormingResult>();
+        resultMock.Setup(x => x.Hypotheses).Returns(hypotheses);
+        resultMock.Setup(x => x.Success).Returns(success);
+        resultMock.Setup(x => x.ErrorMessage).Returns(errorMessage);
 
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<T>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(mockFactory.Object);
+        var responseMock = new Mock<Response<IBrainstormingResult>>();
+        responseMock.Setup(x => x.Message).Returns(resultMock.Object);
 
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<T>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(returnValue);
+        _mockBrainstormingClient
+            .Setup(x => x.GetResponse<IBrainstormingResult>(It.IsAny<object>(), It.IsAny<CancellationToken>(), It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
     }
 
-    private void SetupMockFactorySequence(params object[] results)
+    private void SetupMockRefinementResponse(List<Hypothesis> hypotheses, bool success = true, string? errorMessage = null)
     {
-        var setupIndex = 0;
+        var resultMock = new Mock<IHypothesisRefinementResult>();
+        resultMock.Setup(x => x.RefinedHypotheses).Returns(hypotheses);
+        resultMock.Setup(x => x.Success).Returns(success);
+        resultMock.Setup(x => x.ErrorMessage).Returns(errorMessage);
 
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<List<Hypothesis>>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(() =>
-            {
-                var mockFactory = new Mock<IOrchestrationFactory<List<Hypothesis>>>();
-                var index = setupIndex;
-                mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((List<Hypothesis>)results[index]);
-                return mockFactory.Object;
-            });
+        var responseMock = new Mock<Response<IHypothesisRefinementResult>>();
+        responseMock.Setup(x => x.Message).Returns(resultMock.Object);
 
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<List<Evidence>>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(() =>
-            {
-                var mockFactory = new Mock<IOrchestrationFactory<List<Evidence>>>();
-                var evidenceIndex = Array.FindIndex(results, r => r is List<Evidence>);
-                mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((List<Evidence>)results[evidenceIndex]);
-                return mockFactory.Object;
-            });
-
-        _mockFactoryProvider
-            .Setup(x => x.CreateFactory<List<EvidenceHypothesisEvaluation>>(It.IsAny<ACHStepConfiguration>()))
-            .Returns(() =>
-            {
-                var mockFactory = new Mock<IOrchestrationFactory<List<EvidenceHypothesisEvaluation>>>();
-                var evalIndex = Array.FindIndex(results, r => r is List<EvidenceHypothesisEvaluation>);
-                mockFactory
-                    .Setup(x => x.ExecuteCoreAsync(It.IsAny<OrchestrationPromptInput>(), It.IsAny<StepExecutionContext?>(), It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((List<EvidenceHypothesisEvaluation>)results[evalIndex]);
-                return mockFactory.Object;
-            });
-
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<List<Hypothesis>>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => (List<Hypothesis>)results[setupIndex++]);
-
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<List<Evidence>>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() => (List<Evidence>)results[Array.FindIndex(results, r => r is List<Evidence>)]);
-
-        _mockOrchestrationExecutor
-            .Setup(x => x.ExecuteAsync(
-                It.IsAny<IOrchestrationFactory<List<EvidenceHypothesisEvaluation>>>(),
-                It.IsAny<OrchestrationPromptInput>(),
-                It.IsAny<StepExecutionContext?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((List<EvidenceHypothesisEvaluation>)results[Array.FindIndex(results, r => r is List<EvidenceHypothesisEvaluation>)]);
+        _mockRefinementClient
+            .Setup(x => x.GetResponse<IHypothesisRefinementResult>(It.IsAny<object>(), It.IsAny<CancellationToken>(), It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
     }
+
+    private void SetupMockExtractionResponse(List<Evidence> evidence, bool success = true, string? errorMessage = null)
+    {
+        var resultMock = new Mock<IEvidenceExtractionResult>();
+        resultMock.Setup(x => x.Evidence).Returns(evidence);
+        resultMock.Setup(x => x.Success).Returns(success);
+        resultMock.Setup(x => x.ErrorMessage).Returns(errorMessage);
+
+        var responseMock = new Mock<Response<IEvidenceExtractionResult>>();
+        responseMock.Setup(x => x.Message).Returns(resultMock.Object);
+
+        _mockExtractionClient
+            .Setup(x => x.GetResponse<IEvidenceExtractionResult>(It.IsAny<object>(), It.IsAny<CancellationToken>(), It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
+    }
+
+    private void SetupMockEvaluationResponse(List<EvidenceHypothesisEvaluation> evaluations, bool success = true, string? errorMessage = null)
+    {
+        var resultMock = new Mock<IEvidenceEvaluationResult>();
+        resultMock.Setup(x => x.Evaluations).Returns(evaluations);
+        resultMock.Setup(x => x.Success).Returns(success);
+        resultMock.Setup(x => x.ErrorMessage).Returns(errorMessage);
+
+        var responseMock = new Mock<Response<IEvidenceEvaluationResult>>();
+        responseMock.Setup(x => x.Message).Returns(resultMock.Object);
+
+        _mockEvaluationClient
+            .Setup(x => x.GetResponse<IEvidenceEvaluationResult>(It.IsAny<object>(), It.IsAny<CancellationToken>(), It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
+    }
+
+
 
     #endregion
 }
