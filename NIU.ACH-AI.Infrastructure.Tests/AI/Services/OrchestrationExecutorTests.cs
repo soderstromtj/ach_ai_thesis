@@ -1,3 +1,4 @@
+using System.Net.Http;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -39,6 +40,7 @@ public class OrchestrationExecutorTests
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
     private readonly Mock<ILogger<OrchestrationExecutor>> _mockLogger;
     private readonly Mock<IKernelBuilderService> _mockKernelBuilderService;
+    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly IOptions<AIServiceSettings> _aiServiceSettings;
     private readonly OrchestrationExecutor _orchestrationExecutor;
 
@@ -47,6 +49,7 @@ public class OrchestrationExecutorTests
         _mockLoggerFactory = new Mock<ILoggerFactory>();
         _mockLogger = new Mock<ILogger<OrchestrationExecutor>>();
         _mockKernelBuilderService = new Mock<IKernelBuilderService>();
+        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
 
         _mockLoggerFactory
             .Setup(x => x.CreateLogger(It.IsAny<string>()))
@@ -69,7 +72,8 @@ public class OrchestrationExecutorTests
         _orchestrationExecutor = new OrchestrationExecutor(
             _mockLoggerFactory.Object,
             _aiServiceSettings,
-            _mockKernelBuilderService.Object);
+            _mockKernelBuilderService.Object,
+            _mockHttpClientFactory.Object);
     }
 
     #region Constructor Tests
@@ -85,7 +89,8 @@ public class OrchestrationExecutorTests
             new OrchestrationExecutor(
                 null!,
                 _aiServiceSettings,
-                _mockKernelBuilderService.Object));
+                _mockKernelBuilderService.Object,
+                _mockHttpClientFactory.Object));
         exception.ParamName.Should().Be("loggerFactory");
     }
 
@@ -100,7 +105,8 @@ public class OrchestrationExecutorTests
             new OrchestrationExecutor(
                 _mockLoggerFactory.Object,
                 null!,
-                _mockKernelBuilderService.Object));
+                _mockKernelBuilderService.Object,
+                _mockHttpClientFactory.Object));
         exception.ParamName.Should().Be("aiServiceSettings");
     }
 
@@ -115,8 +121,25 @@ public class OrchestrationExecutorTests
             new OrchestrationExecutor(
                 _mockLoggerFactory.Object,
                 _aiServiceSettings,
-                null!));
+                null!,
+                _mockHttpClientFactory.Object));
         exception.ParamName.Should().Be("kernelBuilderService");
+    }
+
+    /// <summary>
+    /// Verifies that the constructor throws ArgumentNullException when passed a null http client factory.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithNullHttpClientFactory_ThrowsArgumentNullException()
+    {
+        // Arrange, Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            new OrchestrationExecutor(
+                _mockLoggerFactory.Object,
+                _aiServiceSettings,
+                _mockKernelBuilderService.Object,
+                null!));
+        exception.ParamName.Should().Be("httpClientFactory");
     }
 
     /// <summary>
@@ -129,7 +152,8 @@ public class OrchestrationExecutorTests
         var executor = new OrchestrationExecutor(
             _mockLoggerFactory.Object,
             _aiServiceSettings,
-            _mockKernelBuilderService.Object);
+            _mockKernelBuilderService.Object,
+            _mockHttpClientFactory.Object);
 
         // Assert
         executor.Should().NotBeNull();

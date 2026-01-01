@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
@@ -15,6 +16,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
     {
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         /// <inheritdoc />
         public AIServiceProvider CurrentProvider { get; private set; }
@@ -24,12 +26,15 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         /// </summary>
         /// <param name="aiServiceSettings">The AI service settings options.</param>
         /// <param name="loggerFactory">The logger factory.</param>
+        /// <param name="httpClientFactory">The http client factory.</param>
         public KernelBuilderService(
             IOptions<AIServiceSettings> aiServiceSettings,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IHttpClientFactory httpClientFactory)
         {
             _aiServiceSettings = aiServiceSettings.Value;
             _loggerFactory = loggerFactory;
+            _httpClientFactory = httpClientFactory;
         }
 
         public Kernel BuildKernel()
@@ -41,7 +46,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.OpenAI.ApiKey))
             {
                 CurrentProvider = AIServiceProvider.OpenAI;
-                var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory);
+                var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory, _httpClientFactory);
                 return adapter.BuildKernel();
             }
 
@@ -51,7 +56,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.AzureOpenAI.DeploymentName))
             {
                 CurrentProvider = AIServiceProvider.AzureOpenAI;
-                var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory);
+                var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory, _httpClientFactory);
                 return adapter.BuildKernel();
             }
 
@@ -60,7 +65,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 !string.IsNullOrWhiteSpace(_aiServiceSettings.Ollama.ModelId))
             {
                 CurrentProvider = AIServiceProvider.Ollama;
-                var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory);
+                var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory, _httpClientFactory);
                 return adapter.BuildKernel();
             }
 

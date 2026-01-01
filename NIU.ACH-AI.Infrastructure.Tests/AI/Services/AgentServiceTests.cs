@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NIU.ACH_AI.Application.Configuration;
@@ -41,10 +42,14 @@ public class AgentServiceTests
             .Setup(f => f.CreateLogger(It.IsAny<string>()))
             .Returns(loggerMock.Object);
 
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+
         var service = new AgentService(
             agentConfigurations,
             aiServiceSettings,
-            loggerFactoryMock.Object);
+            loggerFactoryMock.Object,
+            httpClientFactoryMock.Object);
 
         return (service, loggerFactoryMock, loggerMock);
     }
@@ -143,7 +148,7 @@ public class AgentServiceTests
         var settings = CreateValidOpenAISettings();
 
         // Act
-        var service = new AgentService(configs, settings, loggerFactoryMock.Object);
+        var service = new AgentService(configs, settings, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>());
 
         // Assert
         Assert.NotNull(capturedCategory);

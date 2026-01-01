@@ -23,7 +23,7 @@ public class OllamaKernelAdapterTests
 {
     #region Test Infrastructure
 
-    private static (OllamaKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock) CreateAdapter(
+    private static (OllamaKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock, Mock<IHttpClientFactory> HttpClientFactoryMock) CreateAdapter(
         OllamaSettings? ollamaSettings = null,
         AIServiceSettings? aiServiceSettings = null)
     {
@@ -31,6 +31,11 @@ public class OllamaKernelAdapterTests
         loggerFactoryMock
             .Setup(f => f.CreateLogger(It.IsAny<string>()))
             .Returns(Mock.Of<ILogger>());
+
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        httpClientFactoryMock
+            .Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient());
 
         var settings = ollamaSettings ?? new OllamaSettings
         {
@@ -43,9 +48,9 @@ public class OllamaKernelAdapterTests
             HttpTimeoutSeconds = 300
         };
 
-        var adapter = new OllamaKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object);
+        var adapter = new OllamaKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object, httpClientFactoryMock.Object);
 
-        return (adapter, loggerFactoryMock);
+        return (adapter, loggerFactoryMock, httpClientFactoryMock);
     }
 
     #endregion
@@ -59,7 +64,7 @@ public class OllamaKernelAdapterTests
     public void Constructor_WithValidSettings_CreatesInstance()
     {
         // Arrange & Act
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.NotNull(adapter);
@@ -77,7 +82,7 @@ public class OllamaKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new OllamaKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object));
+            new OllamaKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("settings", exception.ParamName);
     }
 
@@ -97,15 +102,15 @@ public class OllamaKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new OllamaKernelAdapter(ollamaSettings, null!, loggerFactoryMock.Object));
+            new OllamaKernelAdapter(ollamaSettings, null!, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("aiServiceSettings", exception.ParamName);
     }
 
     /// <summary>
-    /// WHY: Verifies adapter accepts null loggerFactory.
+    /// WHY: Verifies adapter does not accept a null loggerFactory.
     /// </summary>
     [Fact]
-    public void Constructor_WithNullLoggerFactory_DoesNotThrow()
+    public void Constructor_WithNullLoggerFactory_DoesThrow()
     {
         // Arrange
         var ollamaSettings = new OllamaSettings
@@ -117,10 +122,10 @@ public class OllamaKernelAdapterTests
 
         // Act
         var exception = Record.Exception(() =>
-            new OllamaKernelAdapter(ollamaSettings, aiServiceSettings, null!));
+            new OllamaKernelAdapter(ollamaSettings, aiServiceSettings, null!, Mock.Of<IHttpClientFactory>()));
 
         // Assert
-        Assert.Null(exception);
+        Assert.NotNull(exception);
     }
 
     #endregion
@@ -134,7 +139,7 @@ public class OllamaKernelAdapterTests
     public void SupportedProvider_Always_ReturnsOllama()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var provider = adapter.SupportedProvider;
@@ -154,7 +159,7 @@ public class OllamaKernelAdapterTests
     public void BuildKernel_WithValidSettings_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -170,7 +175,7 @@ public class OllamaKernelAdapterTests
     public void BuildKernel_WithNullModelIdOverride_UsesDefaultModel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel(null);
@@ -186,7 +191,7 @@ public class OllamaKernelAdapterTests
     public void BuildKernel_WithModelIdOverride_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel("mistral");
@@ -207,7 +212,7 @@ public class OllamaKernelAdapterTests
     public void BuildKernel_WithDifferentModelIds_ReturnsKernel(string modelId)
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel(modelId);
@@ -227,7 +232,7 @@ public class OllamaKernelAdapterTests
     public void Adapter_ImplementsIKernelBuilderAdapter()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.IsAssignableFrom<IKernelBuilderAdapter>(adapter);
@@ -253,7 +258,7 @@ public class OllamaKernelAdapterTests
             Endpoint = endpoint,
             ModelId = "llama2"
         };
-        var (adapter, _) = CreateAdapter(ollamaSettings: settings);
+        var (adapter, _, _) = CreateAdapter(ollamaSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -277,7 +282,7 @@ public class OllamaKernelAdapterTests
             Endpoint = endpoint,
             ModelId = "llama2"
         };
-        var (adapter, _) = CreateAdapter(ollamaSettings: settings);
+        var (adapter, _, _) = CreateAdapter(ollamaSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -298,7 +303,7 @@ public class OllamaKernelAdapterTests
             Endpoint = "not-a-valid-uri",
             ModelId = "llama2"
         };
-        var (adapter, _) = CreateAdapter(ollamaSettings: settings);
+        var (adapter, _, _) = CreateAdapter(ollamaSettings: settings);
 
         // Act & Assert
         Assert.Throws<UriFormatException>(() => adapter.BuildKernel());
@@ -316,7 +321,7 @@ public class OllamaKernelAdapterTests
             Endpoint = "",
             ModelId = "llama2"
         };
-        var (adapter, _) = CreateAdapter(ollamaSettings: settings);
+        var (adapter, _, _) = CreateAdapter(ollamaSettings: settings);
 
         // Act & Assert
         Assert.Throws<UriFormatException>(() => adapter.BuildKernel());
@@ -348,7 +353,7 @@ public class OllamaKernelAdapterTests
     {
         // Arrange
         var settings = new OllamaSettings(); // Uses defaults
-        var (adapter, _) = CreateAdapter(ollamaSettings: settings);
+        var (adapter, _, _) = CreateAdapter(ollamaSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();

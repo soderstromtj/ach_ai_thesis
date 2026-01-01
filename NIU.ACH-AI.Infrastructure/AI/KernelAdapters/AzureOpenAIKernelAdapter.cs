@@ -3,20 +3,19 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Infrastructure.Configuration;
+using System.Net.Http;
 
 namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
 {
     /// <summary>
     /// Adapter implementation for building Azure OpenAI Kernel instances.
     /// </summary>
-    public class AzureOpenAIKernelAdapter : IKernelBuilderAdapter
+    public class AzureOpenAIKernelAdapter : BaseKernelAdapter
     {
         private readonly AzureOpenAISettings _settings;
-        private readonly AIServiceSettings _aiServiceSettings;
-        private readonly ILoggerFactory _loggerFactory;
 
         /// <inheritdoc />
-        public AIServiceProvider SupportedProvider => AIServiceProvider.AzureOpenAI;
+        public override AIServiceProvider SupportedProvider => AIServiceProvider.AzureOpenAI;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureOpenAIKernelAdapter"/> class.
@@ -24,18 +23,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         /// <param name="settings">Specific Azure OpenAI settings.</param>
         /// <param name="aiServiceSettings">Global AI service settings.</param>
         /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="httpClientFactory">Factory for creating HttpClient instances.</param>
         public AzureOpenAIKernelAdapter(
             AzureOpenAISettings settings,
             AIServiceSettings aiServiceSettings,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IHttpClientFactory httpClientFactory)
+            : base(aiServiceSettings, loggerFactory, httpClientFactory)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _aiServiceSettings = aiServiceSettings ?? throw new ArgumentNullException(nameof(aiServiceSettings));
-            _loggerFactory = loggerFactory;
         }
 
         /// <inheritdoc />
-        public Kernel BuildKernel(string? modelIdOverride = null)
+        public override Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();
 
@@ -43,10 +43,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
             var modelId = modelIdOverride ?? _settings.ModelId ?? string.Empty;
 
             // Create custom HttpClient with extended timeout for large payloads
-            var httpClient = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(_aiServiceSettings.HttpTimeoutSeconds)
-            };
+            var httpClient = CreateHttpClient();
 
             builder.AddAzureOpenAIChatCompletion(
                 deploymentName: _settings.DeploymentName,
@@ -57,7 +54,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
                 httpClient: httpClient
             );
 
-            builder.Services.AddSingleton(_loggerFactory);
+            RegisterLogger(builder);
 
             return builder.Build();
         }

@@ -22,7 +22,7 @@ public class AzureOpenAIKernelAdapterTests
 {
     #region Test Infrastructure
 
-    private static (AzureOpenAIKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock) CreateAdapter(
+    private static (AzureOpenAIKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock, Mock<IHttpClientFactory> HttpClientFactoryMock) CreateAdapter(
         AzureOpenAISettings? azureSettings = null,
         AIServiceSettings? aiServiceSettings = null)
     {
@@ -30,6 +30,11 @@ public class AzureOpenAIKernelAdapterTests
         loggerFactoryMock
             .Setup(f => f.CreateLogger(It.IsAny<string>()))
             .Returns(Mock.Of<ILogger>());
+
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        httpClientFactoryMock
+            .Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient());
 
         var settings = azureSettings ?? new AzureOpenAISettings
         {
@@ -44,9 +49,9 @@ public class AzureOpenAIKernelAdapterTests
             HttpTimeoutSeconds = 300
         };
 
-        var adapter = new AzureOpenAIKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object);
+        var adapter = new AzureOpenAIKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object, httpClientFactoryMock.Object);
 
-        return (adapter, loggerFactoryMock);
+        return (adapter, loggerFactoryMock, httpClientFactoryMock);
     }
 
     #endregion
@@ -60,7 +65,7 @@ public class AzureOpenAIKernelAdapterTests
     public void Constructor_WithValidSettings_CreatesInstance()
     {
         // Arrange & Act
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.NotNull(adapter);
@@ -78,7 +83,7 @@ public class AzureOpenAIKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new AzureOpenAIKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object));
+            new AzureOpenAIKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("settings", exception.ParamName);
     }
 
@@ -99,15 +104,15 @@ public class AzureOpenAIKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new AzureOpenAIKernelAdapter(azureSettings, null!, loggerFactoryMock.Object));
+            new AzureOpenAIKernelAdapter(azureSettings, null!, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("aiServiceSettings", exception.ParamName);
     }
 
     /// <summary>
-    /// WHY: Verifies adapter accepts null loggerFactory.
+    /// WHY: Verifies adapter does not accept a null loggerFactory.
     /// </summary>
     [Fact]
-    public void Constructor_WithNullLoggerFactory_DoesNotThrow()
+    public void Constructor_WithNullLoggerFactory_DoesThrow()
     {
         // Arrange
         var azureSettings = new AzureOpenAISettings
@@ -120,10 +125,10 @@ public class AzureOpenAIKernelAdapterTests
 
         // Act
         var exception = Record.Exception(() =>
-            new AzureOpenAIKernelAdapter(azureSettings, aiServiceSettings, null!));
+            new AzureOpenAIKernelAdapter(azureSettings, aiServiceSettings, null!, Mock.Of<IHttpClientFactory>()));
 
         // Assert
-        Assert.Null(exception);
+        Assert.NotNull(exception);
     }
 
     #endregion
@@ -137,7 +142,7 @@ public class AzureOpenAIKernelAdapterTests
     public void SupportedProvider_Always_ReturnsAzureOpenAI()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var provider = adapter.SupportedProvider;
@@ -157,7 +162,7 @@ public class AzureOpenAIKernelAdapterTests
     public void BuildKernel_WithValidSettings_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -173,7 +178,7 @@ public class AzureOpenAIKernelAdapterTests
     public void BuildKernel_WithNullModelIdOverride_UsesDefaultModel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel(null);
@@ -189,7 +194,7 @@ public class AzureOpenAIKernelAdapterTests
     public void BuildKernel_WithModelIdOverride_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel("gpt-4-turbo");
@@ -212,7 +217,7 @@ public class AzureOpenAIKernelAdapterTests
             DeploymentName = "test-deployment",
             ModelId = null
         };
-        var (adapter, _) = CreateAdapter(azureSettings: settings);
+        var (adapter, _, _) = CreateAdapter(azureSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -229,7 +234,7 @@ public class AzureOpenAIKernelAdapterTests
     {
         // Arrange
         var settings = new AIServiceSettings { HttpTimeoutSeconds = 600 };
-        var (adapter, _) = CreateAdapter(aiServiceSettings: settings);
+        var (adapter, _, _) = CreateAdapter(aiServiceSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -249,7 +254,7 @@ public class AzureOpenAIKernelAdapterTests
     public void Adapter_ImplementsIKernelBuilderAdapter()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.IsAssignableFrom<IKernelBuilderAdapter>(adapter);
@@ -275,7 +280,7 @@ public class AzureOpenAIKernelAdapterTests
             Endpoint = endpoint,
             DeploymentName = "test-deployment"
         };
-        var (adapter, _) = CreateAdapter(azureSettings: settings);
+        var (adapter, _, _) = CreateAdapter(azureSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -300,7 +305,7 @@ public class AzureOpenAIKernelAdapterTests
             Endpoint = "https://test.openai.azure.com",
             DeploymentName = deploymentName
         };
-        var (adapter, _) = CreateAdapter(azureSettings: settings);
+        var (adapter, _, _) = CreateAdapter(azureSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();

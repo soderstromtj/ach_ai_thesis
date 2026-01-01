@@ -9,14 +9,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
     /// <summary>
     /// Adapter implementation for building Ollama (local LLM) Kernel instances.
     /// </summary>
-    public class OllamaKernelAdapter : IKernelBuilderAdapter
+    public class OllamaKernelAdapter : BaseKernelAdapter
     {
         private readonly OllamaSettings _settings;
-        private readonly AIServiceSettings _aiServiceSettings;
-        private readonly ILoggerFactory _loggerFactory;
 
         /// <inheritdoc />
-        public AIServiceProvider SupportedProvider => AIServiceProvider.Ollama;
+        public override AIServiceProvider SupportedProvider => AIServiceProvider.Ollama;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OllamaKernelAdapter"/> class.
@@ -24,18 +22,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         /// <param name="settings">Specific Ollama settings.</param>
         /// <param name="aiServiceSettings">Global AI service settings.</param>
         /// <param name="loggerFactory">Logger factory.</param>
+        /// <param name="httpClientFactory">Factory for creating HttpClient instances.</param>
         public OllamaKernelAdapter(
             OllamaSettings settings,
             AIServiceSettings aiServiceSettings,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IHttpClientFactory httpClientFactory)
+            : base(aiServiceSettings, loggerFactory, httpClientFactory)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            _aiServiceSettings = aiServiceSettings ?? throw new ArgumentNullException(nameof(aiServiceSettings));
-            _loggerFactory = loggerFactory;
         }
 
         /// <inheritdoc />
-        public Kernel BuildKernel(string? modelIdOverride = null)
+        public override Kernel BuildKernel(string? modelIdOverride = null)
         {
             var builder = Kernel.CreateBuilder();
 
@@ -48,7 +47,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
                 serviceId: "ollama"
             );
 
-            builder.Services.AddSingleton(_loggerFactory);
+            RegisterLogger(builder);
 
             return builder.Build();
         }

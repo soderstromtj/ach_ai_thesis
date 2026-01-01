@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
@@ -16,6 +17,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly IEnumerable<AgentConfiguration> _agentConfigurations;
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger _logger;
 
         /// <summary>
@@ -24,14 +26,17 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         /// <param name="agentConfigurations">Configurations for the agents to be created.</param>
         /// <param name="aiServiceSettings">Global AI service settings.</param>
         /// <param name="loggerFactory">Factory for creating loggers.</param>
+        /// <param name="httpClientFactory">Factory for creating HttpClient instances.</param>
         public AgentService(
             IEnumerable<AgentConfiguration> agentConfigurations,
             AIServiceSettings aiServiceSettings,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IHttpClientFactory httpClientFactory)
         {
             _agentConfigurations = agentConfigurations;
             _aiServiceSettings = aiServiceSettings;
             _loggerFactory = loggerFactory;
+            _httpClientFactory = httpClientFactory;
             _logger = loggerFactory.CreateLogger<AgentService>();
         }
 
@@ -93,7 +98,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                     "OpenAI service is not configured. Please ensure AIServiceSettings.OpenAI is properly configured in appsettings.");
             }
 
-            var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory);
+            var adapter = new OpenAIKernelAdapter(_aiServiceSettings.OpenAI, _aiServiceSettings, _loggerFactory, _httpClientFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: OpenAI adapter created successfully.");
 
@@ -111,7 +116,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                     "Azure OpenAI service is not configured. Please ensure AIServiceSettings.AzureOpenAI is properly configured in appsettings.");
             }
 
-            var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory);
+            var adapter = new AzureOpenAIKernelAdapter(_aiServiceSettings.AzureOpenAI, _aiServiceSettings, _loggerFactory, _httpClientFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: AzureOpenAI adapter created successfully.");
 
@@ -128,7 +133,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                     "Ollama service is not configured. Please ensure AIServiceSettings.Ollama is properly configured in appsettings.");
             }
 
-            var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory);
+            var adapter = new OllamaKernelAdapter(_aiServiceSettings.Ollama, _aiServiceSettings, _loggerFactory, _httpClientFactory);
 
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Ollama adapter created successfully.");
 

@@ -22,7 +22,7 @@ public class OpenAIKernelAdapterTests
 {
     #region Test Infrastructure
 
-    private static (OpenAIKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock) CreateAdapter(
+    private static (OpenAIKernelAdapter Adapter, Mock<ILoggerFactory> LoggerFactoryMock, Mock<IHttpClientFactory> HttpClientFactoryMock) CreateAdapter(
         OpenAISettings? openAISettings = null,
         AIServiceSettings? aiServiceSettings = null)
     {
@@ -30,6 +30,11 @@ public class OpenAIKernelAdapterTests
         loggerFactoryMock
             .Setup(f => f.CreateLogger(It.IsAny<string>()))
             .Returns(Mock.Of<ILogger>());
+
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        httpClientFactoryMock
+            .Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient());
 
         var settings = openAISettings ?? new OpenAISettings
         {
@@ -42,9 +47,9 @@ public class OpenAIKernelAdapterTests
             HttpTimeoutSeconds = 300
         };
 
-        var adapter = new OpenAIKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object);
+        var adapter = new OpenAIKernelAdapter(settings, serviceSettings, loggerFactoryMock.Object, httpClientFactoryMock.Object);
 
-        return (adapter, loggerFactoryMock);
+        return (adapter, loggerFactoryMock, httpClientFactoryMock);
     }
 
     #endregion
@@ -58,7 +63,7 @@ public class OpenAIKernelAdapterTests
     public void Constructor_WithValidSettings_CreatesInstance()
     {
         // Arrange & Act
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.NotNull(adapter);
@@ -76,7 +81,7 @@ public class OpenAIKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new OpenAIKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object));
+            new OpenAIKernelAdapter(null!, aiServiceSettings, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("settings", exception.ParamName);
     }
 
@@ -92,15 +97,15 @@ public class OpenAIKernelAdapterTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            new OpenAIKernelAdapter(openAISettings, null!, loggerFactoryMock.Object));
+            new OpenAIKernelAdapter(openAISettings, null!, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>()));
         Assert.Equal("aiServiceSettings", exception.ParamName);
     }
 
     /// <summary>
-    /// WHY: Verifies adapter accepts null loggerFactory (optional dependency).
+    /// WHY: Verifies adapter does not accept a null loggerFactory.
     /// </summary>
     [Fact]
-    public void Constructor_WithNullLoggerFactory_DoesNotThrow()
+    public void Constructor_WithNullLoggerFactory_DoesThrow()
     {
         // Arrange
         var openAISettings = new OpenAISettings { ApiKey = "test" };
@@ -108,12 +113,10 @@ public class OpenAIKernelAdapterTests
 
         // Act
         var exception = Record.Exception(() =>
-            new OpenAIKernelAdapter(openAISettings, aiServiceSettings, null!));
+            new OpenAIKernelAdapter(openAISettings, aiServiceSettings, null!, Mock.Of<IHttpClientFactory>()));
 
-        // Assert - LoggerFactory may be optional
-        // If it throws, it's expected; if not, that's also valid
-        // The implementation doesn't validate loggerFactory
-        Assert.Null(exception);
+        // Assert - LoggerFactory not optional
+        Assert.NotNull(exception);
     }
 
     #endregion
@@ -127,7 +130,7 @@ public class OpenAIKernelAdapterTests
     public void SupportedProvider_Always_ReturnsOpenAI()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var provider = adapter.SupportedProvider;
@@ -147,7 +150,7 @@ public class OpenAIKernelAdapterTests
     public void BuildKernel_WithValidSettings_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -163,7 +166,7 @@ public class OpenAIKernelAdapterTests
     public void BuildKernel_WithNullModelIdOverride_UsesDefaultModel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel(null);
@@ -179,7 +182,7 @@ public class OpenAIKernelAdapterTests
     public void BuildKernel_WithModelIdOverride_ReturnsKernel()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel("gpt-3.5-turbo");
@@ -199,7 +202,7 @@ public class OpenAIKernelAdapterTests
     public void BuildKernel_WithDifferentModelIds_ReturnsKernel(string modelId)
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Act
         var kernel = adapter.BuildKernel(modelId);
@@ -216,7 +219,7 @@ public class OpenAIKernelAdapterTests
     {
         // Arrange
         var settings = new AIServiceSettings { HttpTimeoutSeconds = 600 };
-        var (adapter, _) = CreateAdapter(aiServiceSettings: settings);
+        var (adapter, _, _) = CreateAdapter(aiServiceSettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -236,7 +239,7 @@ public class OpenAIKernelAdapterTests
     public void Adapter_ImplementsIKernelBuilderAdapter()
     {
         // Arrange
-        var (adapter, _) = CreateAdapter();
+        var (adapter, _, _) = CreateAdapter();
 
         // Assert
         Assert.IsAssignableFrom<IKernelBuilderAdapter>(adapter);
@@ -259,7 +262,7 @@ public class OpenAIKernelAdapterTests
             ModelId = "gpt-4o",
             OrganizationId = "org-123456"
         };
-        var (adapter, _) = CreateAdapter(openAISettings: settings);
+        var (adapter, _, _) = CreateAdapter(openAISettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();
@@ -281,7 +284,7 @@ public class OpenAIKernelAdapterTests
             ModelId = "gpt-4o",
             OrganizationId = null
         };
-        var (adapter, _) = CreateAdapter(openAISettings: settings);
+        var (adapter, _, _) = CreateAdapter(openAISettings: settings);
 
         // Act
         var kernel = adapter.BuildKernel();

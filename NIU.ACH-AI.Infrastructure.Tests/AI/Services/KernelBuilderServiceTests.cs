@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -36,10 +37,13 @@ public class KernelBuilderServiceTests
             .Setup(f => f.CreateLogger(It.IsAny<string>()))
             .Returns(loggerMock.Object);
 
+        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
+        httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
+
         var optionsMock = new Mock<IOptions<AIServiceSettings>>();
         optionsMock.Setup(o => o.Value).Returns(settings);
 
-        var service = new KernelBuilderService(optionsMock.Object, loggerFactoryMock.Object);
+        var service = new KernelBuilderService(optionsMock.Object, loggerFactoryMock.Object, httpClientFactoryMock.Object);
 
         return (service, loggerFactoryMock);
     }

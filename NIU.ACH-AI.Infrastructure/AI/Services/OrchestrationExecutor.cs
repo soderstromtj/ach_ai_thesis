@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NIU.ACH_AI.Application.Configuration;
@@ -11,15 +12,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
     /// Service responsible for executing orchestration factories.
     /// Encapsulates the common pattern of service resolution and factory execution.
     /// </summary>
-    /// <summary>
-    /// Service responsible for executing orchestration factories.
-    /// Encapsulates the common pattern of service resolution and factory execution.
-    /// </summary>
     public class OrchestrationExecutor : IOrchestrationExecutor
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly IKernelBuilderService _kernelBuilderService;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<OrchestrationExecutor> _logger;
 
         /// <summary>
@@ -28,19 +26,23 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="aiServiceSettings">AI service settings options.</param>
         /// <param name="kernelBuilderService">Kernel builder service.</param>
+        /// <param name="httpClientFactory">HTTP client factory.</param>
         public OrchestrationExecutor(
             ILoggerFactory loggerFactory,
             IOptions<AIServiceSettings> aiServiceSettings,
-            IKernelBuilderService kernelBuilderService)
+            IKernelBuilderService kernelBuilderService,
+            IHttpClientFactory httpClientFactory)
         {
             // Throw ArgumentNullException if any dependency is null
             ArgumentNullException.ThrowIfNull(loggerFactory, nameof(loggerFactory));
             ArgumentNullException.ThrowIfNull(aiServiceSettings, nameof(aiServiceSettings));
             ArgumentNullException.ThrowIfNull(kernelBuilderService, nameof(kernelBuilderService));
+            ArgumentNullException.ThrowIfNull(httpClientFactory, nameof(httpClientFactory));
 
             _loggerFactory = loggerFactory;
             _aiServiceSettings = aiServiceSettings.Value;
             _kernelBuilderService = kernelBuilderService;
+            _httpClientFactory = httpClientFactory;
             _logger = loggerFactory.CreateLogger<OrchestrationExecutor>();
         }
 
@@ -80,7 +82,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
             return new AgentService(
                 stepConfiguration.AgentConfigurations,
                 _aiServiceSettings,
-                _loggerFactory);
+                _loggerFactory,
+                _httpClientFactory);
         }
 
         /// <summary>

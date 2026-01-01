@@ -28,6 +28,9 @@ namespace NIU.ACH_AI.FrontendConsole.Extensions
             services.Configure<ExperimentsSettings>(configuration);
             services.Configure<AIServiceSettings>(configuration.GetSection("AIServiceSettings"));
 
+            // Register HttpClient
+            services.AddHttpClient();
+
             // Register Services
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
             services.AddSingleton<IOrchestrationExecutor, OrchestrationExecutor>();
