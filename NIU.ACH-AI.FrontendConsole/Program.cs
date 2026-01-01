@@ -96,6 +96,20 @@ namespace NIU.ACH_AI.FrontendConsole
                 {
                     services.AddPersistence(context.Configuration);
                     services.AddFrontendServices(context.Configuration);
+
+                    // =========================================================================================
+                    // DECOUPLED PERSISTENCE OVERRIDE
+                    // =========================================================================================
+                    // 1. Register the Adapter that speaks to the Bus (publishes events)
+                    services.AddScoped<NIU.ACH_AI.Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>();
+
+                    // 2. Override IAgentResponsePersistence to use the Adapter instead of the SQL implementation.
+                    //    The SQL implementation (AgentResponsePersistence) is still available via its concrete type 
+                    //    for the PersistenceConsumer to use.
+                    services.AddScoped<IAgentResponsePersistence>(sp => 
+                        sp.GetRequiredService<NIU.ACH_AI.Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>());
+                    
+                    // Note: OrchestrationFactoryProvider will now receive this Adapter.
                 });
         }
 

@@ -34,6 +34,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence
             services.AddScoped<IWorkflowPersistence, WorkflowPersistence>();
             
             // Register Singletons
+            services.AddSingleton<AgentResponsePersistence>();
             services.AddSingleton<IAgentResponsePersistence, AgentResponsePersistence>();
 
             return services;

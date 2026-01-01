@@ -6,7 +6,9 @@ namespace NIU.ACH_AI.Application.Messaging.Events
     /// </summary>
     public interface IAgentResponseReceived
     {
+        Guid ExperimentId { get; }
         Guid StepExecutionId { get; }
+        Guid AgentConfigurationId { get; }
         string AgentName { get; }
         string Content { get; }
         IReadOnlyDictionary<string, object?>? Metadata { get; }

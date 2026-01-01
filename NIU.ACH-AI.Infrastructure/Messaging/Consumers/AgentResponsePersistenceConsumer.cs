@@ -1,0 +1,53 @@
+using System.Threading.Tasks;
+using MassTransit;
+using Microsoft.Extensions.Logging;
+using NIU.ACH_AI.Application.Messaging.Events;
+using NIU.ACH_AI.Infrastructure.Persistence.Services;
+
+namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
+{
+    /// <summary>
+    /// Consumer that listens for agent response events and persists them to the database.
+    /// This effectively decouples the workflow execution from the database write operations.
+    /// </summary>
+    public class AgentResponsePersistenceConsumer : IConsumer<IAgentResponseReceived>
+    {
+        private readonly AgentResponsePersistence _persistenceService;
+        private readonly ILogger<AgentResponsePersistenceConsumer> _logger;
+
+        public AgentResponsePersistenceConsumer(
+            AgentResponsePersistence persistenceService,
+            ILogger<AgentResponsePersistenceConsumer> logger)
+        {
+            _persistenceService = persistenceService;
+            _logger = logger;
+        }
+
+        public async Task Consume(ConsumeContext<IAgentResponseReceived> context)
+        {
+            var message = context.Message;
+            _logger.LogDebug("Persisting Agent Response from Message Bus: {AgentName} (Turn {Turn})", message.AgentName, message.TurnNumber);
+
+            try
+            {
+                // We use the concrete service directly (AgentResponsePersistence) to ensure we are calling the SQL implementation,
+                // not the Messaging adapter (which would cause an infinite loop).
+                await _persistenceService.SaveAgentResponseAsync(
+                    message.Content,
+                    message.Metadata,
+                    message.AgentName,
+                    message.StepExecutionId,
+                    message.AgentConfigurationId,
+                    message.TurnNumber,
+                    message.ResponseDurationMs,
+                    context.CancellationToken);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist agent response for {AgentName}", message.AgentName);
+                // In a real scenario, we might want to retry. MassTransit handles retries by default.
+                throw; 
+            }
+        }
+    }
+}

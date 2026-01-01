@@ -15,6 +15,7 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                 x.AddConsumer<Messaging.Consumers.HypothesisRefinementConsumer>();
                 x.AddConsumer<Messaging.Consumers.EvidenceExtractionConsumer>();
                 x.AddConsumer<Messaging.Consumers.EvidenceEvaluationConsumer>();
+                x.AddConsumer<Messaging.Consumers.AgentResponsePersistenceConsumer>();
 
                 // Register the Request Clients
                 x.AddRequestClient<Application.Messaging.Commands.IBrainstormingRequested>();
@@ -34,7 +35,13 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                         h.Password(rabbitMqPass);
                     });
 
-                    // Configure endpoints automatically
+                    // Explicitly configure the persistence queue
+                    cfg.ReceiveEndpoint("q.ach.persistence", e =>
+                    {
+                        e.ConfigureConsumer<Messaging.Consumers.AgentResponsePersistenceConsumer>(context);
+                    });
+
+                    // Configure endpoints automatically for the rest
                     cfg.ConfigureEndpoints(context);
                 });
             });
