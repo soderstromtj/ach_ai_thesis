@@ -26,6 +26,9 @@ namespace NIU.ACH_AI.Infrastructure.Tests.Extensions
             // Setup configuration to return nulls (defaults) or specific values
             configurationMock.Setup(c => c["RabbitMQ:Host"]).Returns("localhost");
             
+            // Add logging services to resolve ILogger dependencies
+            services.AddLogging();
+            
             // Act
             services.AddMessageBroker(configurationMock.Object);
             var provider = services.BuildServiceProvider();

@@ -314,7 +314,7 @@ public partial class AchAiContext : DbContext
             entity.Property(e => e.ExperimentName)
                 .HasMaxLength(50)
                 .HasColumnName("experiment_name");
-            entity.Property(e => e.Kiq)
+            entity.Property(e => e.KeyQuestion)
                 .HasMaxLength(255)
                 .HasColumnName("kiq");
             entity.Property(e => e.ScenarioId).HasColumnName("scenario_id");

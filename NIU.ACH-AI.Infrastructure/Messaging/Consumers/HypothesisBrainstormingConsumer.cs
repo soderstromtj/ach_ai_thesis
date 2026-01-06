@@ -66,13 +66,19 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     isRefined: false, // Brainstorming is usually initial
                     cancellationToken: context.CancellationToken);
 
-                await context.RespondAsync<IBrainstormingResult>(new
+                var resultMessage = new
                 {
                     command.ExperimentId,
                     command.StepExecutionId,
                     Hypotheses = savedHypotheses,
                     Success = true
-                });
+                };
+
+                // Publish as Event for Saga
+                await context.Publish<IBrainstormingResult>(resultMessage);
+
+                // Respond for RequestClient (Backward Compatibility)
+                await context.RespondAsync<IBrainstormingResult>(resultMessage);
 
                 _logger.LogInformation("Brainstorming completed successfully. Generated {Count} hypotheses.", savedHypotheses.Count);
             }

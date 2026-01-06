@@ -23,6 +23,14 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                 x.AddRequestClient<Application.Messaging.Commands.IEvidenceExtractionRequested>();
                 x.AddRequestClient<Application.Messaging.Commands.IEvidenceEvaluationRequested>();
 
+                // Register Saga
+                x.AddSagaStateMachine<StateMachines.ACHWorkflowStateMachine, Persistence.Models.ExperimentState>()
+                    .EntityFrameworkRepository(r =>
+                    {
+                        r.ExistingDbContext<Persistence.Models.ACHSagaDbContext>();
+                        r.UseSqlServer();
+                    });
+
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     var rabbitMqHost = configuration["RabbitMQ:Host"] ?? "localhost";

@@ -52,13 +52,16 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     isRefined: true,
                     cancellationToken: context.CancellationToken);
 
-                await context.RespondAsync<IHypothesisRefinementResult>(new
+                var resultMessage = new
                 {
                     command.ExperimentId,
                     command.StepExecutionId,
                     RefinedHypotheses = savedHypotheses,
                     Success = true
-                });
+                };
+
+                await context.Publish<IHypothesisRefinementResult>(resultMessage);
+                await context.RespondAsync<IHypothesisRefinementResult>(resultMessage);
 
                 _logger.LogInformation("Refinement completed. Generated {Count} hypotheses.", savedHypotheses.Count);
             }

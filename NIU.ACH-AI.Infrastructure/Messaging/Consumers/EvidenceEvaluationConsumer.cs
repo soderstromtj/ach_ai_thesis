@@ -87,13 +87,16 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     }
                 }
 
-                await context.RespondAsync<IEvidenceEvaluationResult>(new
+                var resultMessage = new
                 {
                     command.ExperimentId,
                     command.StepExecutionId,
                     Evaluations = evaluations,
                     Success = true
-                });
+                };
+
+                await context.Publish<IEvidenceEvaluationResult>(resultMessage);
+                await context.RespondAsync<IEvidenceEvaluationResult>(resultMessage);
 
                 _logger.LogInformation("Evaluation completed. Generated {Count} evaluations.", evaluations.Count);
             }

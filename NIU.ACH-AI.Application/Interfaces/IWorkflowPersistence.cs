@@ -67,5 +67,13 @@ namespace NIU.ACH_AI.Application.Interfaces
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The step execution context or null if not found.</returns>
         Task<StepExecutionContext?> GetStepExecutionAsync(Guid stepExecutionId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Retrieves the experimental result from the saga state.
+        /// </summary>
+        /// <param name="experimentId">The experiment ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The result or null if incomplete.</returns>
+        Task<ACHWorkflowResult?> GetSagaResultAsync(Guid experimentId, CancellationToken cancellationToken = default);
     }
 }

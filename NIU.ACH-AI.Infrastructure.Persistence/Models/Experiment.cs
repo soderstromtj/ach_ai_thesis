@@ -27,7 +27,7 @@ public partial class Experiment
     /// <summary>
     /// Gets or sets the Key Intelligence Question (KIQ) for this experiment.
     /// </summary>
-    public string Kiq { get; set; } = null!;
+    public string KeyQuestion { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the identifier of the scenario this experiment belongs to.

@@ -14,14 +14,17 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     public class WorkflowPersistence : IWorkflowPersistence
     {
         private readonly DbModel.AchAIDbContext _context;
+        private readonly DbModel.ACHSagaDbContext _sagaContext;
 
         /// <summary>
         /// Creates a persistence service using the ACH AI database context.
         /// </summary>
         /// <param name="context">The ACH AI database context.</param>
-        public WorkflowPersistence(DbModel.AchAIDbContext context)
+        /// <param name="sagaContext">The ACH Saga database context.</param>
+        public WorkflowPersistence(DbModel.AchAIDbContext context, DbModel.ACHSagaDbContext sagaContext)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _sagaContext = sagaContext ?? throw new ArgumentNullException(nameof(sagaContext));
         }
 
         /// <summary>
@@ -77,7 +80,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 ExperimentId = Guid.NewGuid(),
                 ExperimentName = configuration.Name,
                 Description = configuration.Description,
-                Kiq = configuration.KeyQuestion,
+                KeyQuestion = configuration.KeyQuestion,
                 ScenarioId = scenarioId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -263,6 +266,64 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 AchStepId = step.AchStepId,
                 AchStepName = step.AchStepName
             };
+        }
+        /// <summary>
+        /// Retrieves the experimental result from the saga state.
+        /// </summary>
+        /// <param name="experimentId">The experiment ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The result or null if incomplete.</returns>
+        public async Task<ACHWorkflowResult?> GetSagaResultAsync(Guid experimentId, CancellationToken cancellationToken = default)
+        {
+            // Query the Saga table
+            var sagaState = await _sagaContext.Set<DbModel.ExperimentState>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.CorrelationId == experimentId, cancellationToken);
+             
+            if (sagaState == null)
+            {
+                return null;
+            }
+
+            // Check if completed
+            // CurrentState acts as string in EF Core map
+            // Assuming "Final" or "Completed" or "Failed"
+            // MassTransit convention: "Final" state means instance is removed?
+            // Unless configured to keep. We configured to Keep? 
+            // Default: Completed instances are removed if Finalize is called.
+            // In our StateMachine: .TransitionTo(Completed)
+            // We defined Completed as a State. Not Final.
+            
+            if (sagaState.CurrentState != "Completed" && sagaState.CurrentState != "Failed")
+            {
+                return null;
+            }
+
+            // Deserialize result if available
+            if (string.IsNullOrWhiteSpace(sagaState.SerializedResult))
+            {
+                // Can happen if Failed early?
+                if (sagaState.CurrentState == "Failed")
+                {
+                     // Return a failed result wrapper
+                     return new ACHWorkflowResult 
+                     { 
+                        Success = false, 
+                        ErrorMessage = "Saga failed (No result details persisted)." 
+                     };
+                }
+                return null; 
+            }
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<ACHWorkflowResult>(sagaState.SerializedResult);
+            }
+            catch
+            {
+                // Fallback
+                return null;
+            }
         }
     }
 }

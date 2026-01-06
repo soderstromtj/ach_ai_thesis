@@ -51,13 +51,16 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     evidence,
                     cancellationToken: context.CancellationToken);
 
-                await context.RespondAsync<IEvidenceExtractionResult>(new
+                var resultMessage = new
                 {
                     command.ExperimentId,
                     command.StepExecutionId,
                     Evidence = savedEvidence,
                     Success = true
-                });
+                };
+
+                await context.Publish<IEvidenceExtractionResult>(resultMessage);
+                await context.RespondAsync<IEvidenceExtractionResult>(resultMessage);
 
                 _logger.LogInformation("Evidence Extraction completed. Extracted {Count} items.", savedEvidence.Count);
             }
