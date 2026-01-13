@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: true, reloadOnChange: true);
 
 var rabbitUserValue = builder.Configuration["RabbitMQ:User"] ?? "guest";
-var rabbitPassValue = builder.Configuration["RabbitMQ:Pass"] ?? "guest";
+var rabbitPassValue = builder.Configuration["RabbitMQ:Password"] ?? "guest";
 
 // Create the user parameters for RabbitMQ
 var rabbitUserParam = builder.AddParameter("rabbit-user", rabbitUserValue);
