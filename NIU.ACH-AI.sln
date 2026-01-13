@@ -37,6 +37,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.Infrastructure.P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.Infrastructure.Persistence.Tests", "NIU.ACH-AI.Infrastructure.Persistence.Tests\NIU.ACH-AI.Infrastructure.Persistence.Tests.csproj", "{2A1CCADF-5A05-4A6E-BF31-64D59A369C15}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.AppHost", "NIU.ACH-AI.AppHost\NIU.ACH-AI.AppHost.csproj", "{FCF85CF3-251F-45B4-88E8-D20E6BB852F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NIU.ACH-AI.ServiceDefaults", "NIU.ACH-AI.ServiceDefaults\NIU.ACH-AI.ServiceDefaults.csproj", "{4DE42C9E-A025-E1CD-B320-DC5D22524E43}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -89,6 +93,14 @@ Global
 		{2A1CCADF-5A05-4A6E-BF31-64D59A369C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A1CCADF-5A05-4A6E-BF31-64D59A369C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A1CCADF-5A05-4A6E-BF31-64D59A369C15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCF85CF3-251F-45B4-88E8-D20E6BB852F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCF85CF3-251F-45B4-88E8-D20E6BB852F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCF85CF3-251F-45B4-88E8-D20E6BB852F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCF85CF3-251F-45B4-88E8-D20E6BB852F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DE42C9E-A025-E1CD-B320-DC5D22524E43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DE42C9E-A025-E1CD-B320-DC5D22524E43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DE42C9E-A025-E1CD-B320-DC5D22524E43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DE42C9E-A025-E1CD-B320-DC5D22524E43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

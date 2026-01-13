@@ -10,6 +10,7 @@ using NIU.ACH_AI.FrontendConsole.Extensions;
 using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure;
 using NIU.ACH_AI.Infrastructure.Persistence;
+using Aspire.RabbitMQ.Client;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -82,35 +83,28 @@ namespace NIU.ACH_AI.FrontendConsole
         /// <summary>
         /// Creates and configures the application host with services and configuration.
         /// </summary>
-        public static IHostBuilder CreateHostBuilder(string[] args)
+        public static HostApplicationBuilder CreateHostBuilder(string[] args)
         {
-            return Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, config) =>
-                {
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
-                    config.AddJsonFile("appsettings.secrets.json", optional: false, reloadOnChange: true);
-                    config.AddEnvironmentVariables();
-                })
-                .ConfigureServices((context, services) =>
-                {
-                    services.AddPersistence(context.Configuration);
-                    services.AddFrontendServices(context.Configuration);
+            // 1. Create Host Builder
+            var builder = Host.CreateApplicationBuilder(args);
 
-                    // =========================================================================================
-                    // DECOUPLED PERSISTENCE OVERRIDE
-                    // =========================================================================================
-                    // 1. Register the Adapter that speaks to the Bus (publishes events)
-                    services.AddScoped<Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>();
+            // 2. Configure app settings
+            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+            builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: false, reloadOnChange: true);
+            builder.Configuration.AddEnvironmentVariables();
 
-                    // 2. Override IAgentResponsePersistence to use the Adapter instead of the SQL implementation.
-                    //    The SQL implementation (AgentResponsePersistence) is still available via its concrete type 
-                    //    for the PersistenceConsumer to use.
-                    services.AddScoped<IAgentResponsePersistence>(sp => 
-                        sp.GetRequiredService<Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>());
-                    
-                    // Note: OrchestrationFactoryProvider will now receive this Adapter.
-                });
+            // 3. Add RabbitMQ client for Aspire Messaging
+            builder.AddRabbitMQClient("messaging");
+
+            // 4. Register application services
+            Infrastructure.Persistence.DependencyInjection.AddPersistence(builder.Services, builder.Configuration);
+            Extensions.DependencyInjection.AddFrontendServices(builder.Services, builder.Configuration);
+
+            builder.Services.AddScoped<Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>();
+            builder.Services.AddScoped<IAgentResponsePersistence>(sp => sp.GetRequiredService<Infrastructure.Messaging.Adapters.MessagingAgentResponsePersistence>());
+
+            return builder;
         }
 
         #region Private Methods
