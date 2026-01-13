@@ -33,17 +33,11 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
 
                 x.UsingRabbitMq((context, cfg) =>
                 {
-                    /*
-                    var rabbitMqHost = configuration["RabbitMQ:Host"] ?? "localhost";
-                    var rabbitMqUser = configuration["RabbitMQ:Username"] ?? "guest";
-                    var rabbitMqPass = configuration["RabbitMQ:Password"] ?? "guest";
-
-                    cfg.Host(rabbitMqHost, "/", h =>
+                    var connectionString = configuration.GetConnectionString("messaging");
+                    if (!string.IsNullOrEmpty(connectionString))
                     {
-                        h.Username(rabbitMqUser);
-                        h.Password(rabbitMqPass);
-                    });
-                    */
+                        cfg.Host(new Uri(connectionString));
+                    }
 
                     // Explicitly configure the persistence queue
                     cfg.ReceiveEndpoint("q.ach.persistence", e =>

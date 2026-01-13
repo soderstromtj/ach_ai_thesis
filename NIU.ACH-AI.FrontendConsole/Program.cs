@@ -10,7 +10,6 @@ using NIU.ACH_AI.FrontendConsole.Extensions;
 using NIU.ACH_AI.FrontendConsole.Presentation;
 using NIU.ACH_AI.Infrastructure;
 using NIU.ACH_AI.Infrastructure.Persistence;
-using Aspire.RabbitMQ.Client;
 
 namespace NIU.ACH_AI.FrontendConsole
 {
@@ -94,10 +93,7 @@ namespace NIU.ACH_AI.FrontendConsole
             builder.Configuration.AddJsonFile("appsettings.secrets.json", optional: false, reloadOnChange: true);
             builder.Configuration.AddEnvironmentVariables();
 
-            // 3. Add RabbitMQ client for Aspire Messaging
-            builder.AddRabbitMQClient("messaging");
-
-            // 4. Register application services
+            // 3. Register application services
             Infrastructure.Persistence.DependencyInjection.AddPersistence(builder.Services, builder.Configuration);
             Extensions.DependencyInjection.AddFrontendServices(builder.Services, builder.Configuration);
 
