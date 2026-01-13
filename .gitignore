@@ -366,3 +366,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /SemanticKernelPractice/appsettings.Development.json
+/NIU.ACH-AI.AppHost/appsettings.secrets.json
