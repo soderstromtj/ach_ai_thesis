@@ -44,13 +44,8 @@ public partial class AchAIDbContext : DbContext
     public virtual DbSet<StepExecution> StepExecutions { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            // Only configure SqlServer if no provider is already set (e.g., in tests or DI)
-            optionsBuilder.UseSqlServer("Name=AchAiDBConnection");
-        }
-    }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=TIM-DESKTOP-W11;Database=ach-ai;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -140,31 +135,32 @@ public partial class AchAIDbContext : DbContext
             entity.Property(e => e.AgentResponseId)
                 .ValueGeneratedNever()
                 .HasColumnName("agent_response_id");
+            entity.Property(e => e.AcceptedPredictionTokenCount).HasColumnName("accepted_prediction_token_count");
             entity.Property(e => e.AgentConfigurationId).HasColumnName("agent_configuration_id");
             entity.Property(e => e.AgentName)
                 .HasMaxLength(50)
                 .HasColumnName("agent_name");
+            entity.Property(e => e.CachedInputTokenCount).HasColumnName("cached_input_token_count");
+            entity.Property(e => e.CompletionId)
+                .HasMaxLength(100)
+                .HasColumnName("completion_id");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.ContentLength).HasColumnName("content_length");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysutcdatetime())")
                 .HasColumnName("created_at");
+            entity.Property(e => e.FinishedAt)
+                .HasDefaultValueSql("(getutcdate())")
+                .HasColumnName("finished_at");
+            entity.Property(e => e.InputAudioTokenCount).HasColumnName("input_audio_token_count");
             entity.Property(e => e.InputTokenCount).HasColumnName("input_token_count");
+            entity.Property(e => e.OutputAudioTokenCount).HasColumnName("output_audio_token_count");
             entity.Property(e => e.OutputTokenCount).HasColumnName("output_token_count");
+            entity.Property(e => e.ReasoningTokenCount).HasColumnName("reasoning_token_count");
+            entity.Property(e => e.RejectedPredictionTokenCount).HasColumnName("rejected_prediction_token_count");
             entity.Property(e => e.ResponseDuration).HasColumnName("response_duration");
             entity.Property(e => e.StepExecutionId).HasColumnName("step_execution_id");
             entity.Property(e => e.TurnNumber).HasColumnName("turn_number");
-
-            entity.Property(e => e.CompletionId)
-                .HasMaxLength(100)
-                .HasColumnName("completion_id");
-            entity.Property(e => e.ReasoningTokenCount).HasColumnName("reasoning_token_count");
-            entity.Property(e => e.OutputAudioTokenCount).HasColumnName("output_audio_token_count");
-            entity.Property(e => e.AcceptedPredictionTokenCount).HasColumnName("accepted_prediction_token_count");
-            entity.Property(e => e.RejectedPredictionTokenCount).HasColumnName("rejected_prediction_token_count");
-            entity.Property(e => e.InputAudioTokenCount).HasColumnName("input_audio_token_count");
-            entity.Property(e => e.CachedInputTokenCount).HasColumnName("cached_input_token_count");
-            entity.Property(e => e.FinishedAt).HasColumnName("finished_at");
 
             entity.HasOne(d => d.AgentConfiguration).WithMany(p => p.AgentResponses)
                 .HasForeignKey(d => d.AgentConfigurationId)
@@ -320,7 +316,7 @@ public partial class AchAIDbContext : DbContext
                 .HasColumnName("experiment_name");
             entity.Property(e => e.KeyQuestion)
                 .HasMaxLength(255)
-                .HasColumnName("kiq");
+                .HasColumnName("key_question");
             entity.Property(e => e.ScenarioId).HasColumnName("scenario_id");
 
             entity.HasOne(d => d.Scenario).WithMany(p => p.Experiments)
@@ -347,9 +343,7 @@ public partial class AchAIDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.HypothesisText).HasColumnName("hypothesis_text");
             entity.Property(e => e.IsRefined).HasColumnName("is_refined");
-            entity.Property(e => e.ShortTitle)
-                .HasMaxLength(200)
-                .HasColumnName("short_title");
+            entity.Property(e => e.ShortTitle).HasColumnName("short_title");
             entity.Property(e => e.StepExecutionId).HasColumnName("step_execution_id");
 
             entity.HasOne(d => d.StepExecution).WithMany(p => p.Hypotheses)
@@ -374,16 +368,16 @@ public partial class AchAIDbContext : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("model_id");
             entity.Property(e => e.CachedInputTokenCost)
-                .HasColumnType("decimal(10, 8)")
+                .HasColumnType("decimal(12, 8)")
                 .HasColumnName("cached_input_token_cost");
             entity.Property(e => e.InputTokenCost)
-                .HasColumnType("decimal(10, 8)")
+                .HasColumnType("decimal(12, 8)")
                 .HasColumnName("input_token_cost");
             entity.Property(e => e.ModelName)
                 .HasMaxLength(50)
                 .HasColumnName("model_name");
             entity.Property(e => e.OutputTokenCost)
-                .HasColumnType("decimal(10, 8)")
+                .HasColumnType("decimal(12, 8)")
                 .HasColumnName("output_token_cost");
             entity.Property(e => e.ProviderId).HasColumnName("provider_id");
 
