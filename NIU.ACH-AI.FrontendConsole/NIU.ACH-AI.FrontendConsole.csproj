@@ -13,6 +13,7 @@
     <ProjectReference Include="..\NIU.ACH-AI.Domain\NIU.ACH-AI.Domain.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Infrastructure.Persistence\NIU.ACH-AI.Infrastructure.Persistence.csproj" />
     <ProjectReference Include="..\NIU.ACH-AI.Infrastructure\NIU.ACH-AI.Infrastructure.csproj" />
+    <ProjectReference Include="..\NIU.ACH-AI.ServiceDefaults\NIU.ACH-AI.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "NIU.ACH-AI.FrontendConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "1",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

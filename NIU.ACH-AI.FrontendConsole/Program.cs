@@ -75,8 +75,11 @@ namespace NIU.ACH_AI.FrontendConsole
             }
             finally
             {
-                Console.WriteLine("\nPress any key to exit...");
-                Console.ReadKey();
+                if (!Console.IsInputRedirected)
+                {
+                    Console.WriteLine("\nPress any key to exit...");
+                    Console.ReadKey();
+                }
             }
         }
 
@@ -97,7 +100,10 @@ namespace NIU.ACH_AI.FrontendConsole
             // 3. Add RabbitMQ client for Aspire Messaging
             builder.AddRabbitMQClient("messaging");
 
-            // 4. Register application services
+            // 4. Add Service Defaults (OpenTelemetry, etc.)
+            builder.AddServiceDefaults();
+
+            // 5. Register application services
             Infrastructure.Persistence.DependencyInjection.AddPersistence(builder.Services, builder.Configuration);
             Extensions.DependencyInjection.AddFrontendServices(builder.Services, builder.Configuration);
 

@@ -221,7 +221,7 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                             x => x.ThenAsync(ctx => ctx.Publish<IEvidenceExtractionRequested>(CreateCommand(ctx.Saga, GetCurrentStep(ctx.Saga))))
                                   .TransitionTo(Extracting))
                         .If(ctx => IsStepType(ctx.Saga, "evaluation"),
-                            e => e.ThenAsync(ctx => ctx.Publish<IEvidenceEvaluationRequested>(CreateCommand(ctx.Saga, GetCurrentStep(ctx.Instance))))
+                            e => e.ThenAsync(ctx => ctx.Publish<IEvidenceEvaluationRequested>(CreateCommand(ctx.Saga, GetCurrentStep(ctx.Saga))))
                                   .TransitionTo(Evaluating))
                 );
         }
