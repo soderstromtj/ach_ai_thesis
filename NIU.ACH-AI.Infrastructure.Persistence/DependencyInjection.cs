@@ -26,7 +26,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence
                 options.UseSqlServer(configuration.GetConnectionString("AchAiDBConnection")));
 
             services.AddDbContext<ACHSagaDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("AchAiDBConnection")));
+                options.UseSqlServer(configuration.GetConnectionString("AchAiStateDbConnection")));
 
             // Register Repositories
             services.AddScoped<IHypothesisRepository, HypothesisRepository>();

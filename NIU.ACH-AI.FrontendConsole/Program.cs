@@ -164,13 +164,17 @@ namespace NIU.ACH_AI.FrontendConsole
             // Validate the experiment configuration
             ExperimentConfigurationValidator.Validate(experimentConfig);
 
-            // Get the workflow coordinator from DI container
-            var workflowCoordinator = host.Services.GetRequiredService<IACHWorkflowCoordinator>();
+            // Create a scope to resolve scoped services
+            using (var scope = host.Services.CreateScope())
+            {
+                // Get the workflow coordinator from the scope
+                var workflowCoordinator = scope.ServiceProvider.GetRequiredService<IACHWorkflowCoordinator>();
 
-            // Execute the complete workflow
-            var workflowResult = await workflowCoordinator.ExecuteWorkflowAsync(experimentConfig);
+                // Execute the complete workflow
+                var workflowResult = await workflowCoordinator.ExecuteWorkflowAsync(experimentConfig);
 
-            return workflowResult;
+                return workflowResult;
+            }
         }
 
         #endregion

@@ -38,7 +38,7 @@ namespace NIU.ACH_AI.FrontendConsole.Extensions
             // Register Services
             services.AddSingleton<IKernelBuilderService, KernelBuilderService>();
             services.AddSingleton<IOrchestrationExecutor, OrchestrationExecutor>();
-            services.AddSingleton<IOrchestrationFactoryProvider, OrchestrationFactoryProvider>();
+            services.AddScoped<IOrchestrationFactoryProvider, OrchestrationFactoryProvider>();
             services.AddSingleton<ITokenUsageExtractor, TokenUsageExtractor>();
             services.AddScoped<IACHWorkflowCoordinator, ACHWorkflowCoordinator>();
             services.AddTransient<ConsoleResultPresenter>();

@@ -44,7 +44,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         /// <returns>A configured HttpClient.</returns>
         protected HttpClient CreateHttpClient()
         {
-            var client = HttpClientFactory.CreateClient();
+            // Bypass IHttpClientFactory to prevent global Polly policies (e.g. 30s timeout) from automatically attaching.
+            // Create a pristine client for long-running AI requests.
+            var handler = new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(15)
+            };
+            
+            var client = new HttpClient(handler);
             client.Timeout = TimeSpan.FromSeconds(AiServiceSettings.HttpTimeoutSeconds);
             return client;
         }
