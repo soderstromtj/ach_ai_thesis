@@ -15,17 +15,20 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IOrchestrationFactoryProvider _factoryProvider;
+        private readonly IWorkflowPersistence _workflowPersistence;
         private readonly IWorkflowResultPersistence _workflowResultPersistence;
         private readonly ILogger<EvidenceExtractionConsumer> _logger;
 
         public EvidenceExtractionConsumer(
             IOrchestrationExecutor orchestrationExecutor,
             IOrchestrationFactoryProvider factoryProvider,
+            IWorkflowPersistence workflowPersistence,
             IWorkflowResultPersistence workflowResultPersistence,
             ILogger<EvidenceExtractionConsumer> logger)
         {
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
+            _workflowPersistence = workflowPersistence;
             _workflowResultPersistence = workflowResultPersistence;
             _logger = logger;
         }
@@ -37,7 +40,14 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
             try
             {
+                var createdStepContext = await _workflowPersistence.CreateStepExecutionAsync(
+                    command.ExperimentId,
+                    command.Configuration,
+                    context.CancellationToken);
+
                 var stepExecutionContext = command.StepContext;
+                stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
+
                 var factory = _factoryProvider.CreateFactory<List<Evidence>>(command.Configuration);
                 
                 var evidence = await _orchestrationExecutor.ExecuteAsync(
@@ -47,14 +57,20 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     context.CancellationToken);
 
                 var savedEvidence = await _workflowResultPersistence.SaveEvidenceAsync(
-                    command.StepExecutionId,
+                    stepExecutionContext.StepExecutionId,
                     evidence,
+                    cancellationToken: context.CancellationToken);
+
+                await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                    stepExecutionContext.StepExecutionId,
+                    "Completed",
+                    end: DateTime.UtcNow,
                     cancellationToken: context.CancellationToken);
 
                 var resultMessage = new
                 {
                     command.ExperimentId,
-                    command.StepExecutionId,
+                    StepExecutionId = stepExecutionContext.StepExecutionId,
                     Evidence = savedEvidence,
                     Success = true
                 };

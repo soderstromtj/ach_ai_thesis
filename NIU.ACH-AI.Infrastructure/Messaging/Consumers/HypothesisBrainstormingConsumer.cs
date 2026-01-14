@@ -42,10 +42,17 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
             try
             {
-                // Use the StepExecutionContext passed directly from the Coordinator.
-                // This contains all necessary IDs (Experiment, Step, AgentConfigs) to execute the step
-                // without needing to reload from the database.
+                // Create the StepExecution record
+                // We use the ID returned by CreateStepExecutionAsync and update the command.StepContext with it.
+                // This effectively overrides the Saga's pre-generated ID with the one actually persisted.
+                var createdStepContext = await _workflowPersistence.CreateStepExecutionAsync(
+                    command.ExperimentId,
+                    command.Configuration,
+                    context.CancellationToken);
+
+                // Use the persisted ID for subsequent operations
                 var stepExecutionContext = command.StepContext;
+                stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
 
                 var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(command.Configuration);
                 
@@ -55,21 +62,23 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     stepExecutionContext,
                     context.CancellationToken);
 
-                // We also need to save the results to the specialized table (Hypotheses table)
-                // The Coordinator used to do this. We should do it here or let the Coordinator do it?
-                // The principle of the Worker is to do the unit of work.
-                // Saving the RESULT of the unit of work seems appropriate here.
-                
+                // We also need to save the results
                 var savedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
-                    command.StepExecutionId,
+                    stepExecutionContext.StepExecutionId,
                     hypotheses,
-                    isRefined: false, // Brainstorming is usually initial
+                    isRefined: false, 
+                    cancellationToken: context.CancellationToken);
+
+                await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                    stepExecutionContext.StepExecutionId,
+                    "Completed",
+                    end: DateTime.UtcNow,
                     cancellationToken: context.CancellationToken);
 
                 var resultMessage = new
                 {
                     command.ExperimentId,
-                    command.StepExecutionId,
+                    StepExecutionId = stepExecutionContext.StepExecutionId, // Return the valid one
                     Hypotheses = savedHypotheses,
                     Success = true
                 };
@@ -86,13 +95,17 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
             {
                 _logger.LogError(ex, "Error processing brainstorming request");
                 
+                var errorMessage = ex.InnerException != null 
+                    ? $"{ex.Message} Inner: {ex.InnerException.Message}" 
+                    : ex.Message;
+
                 await context.RespondAsync<IBrainstormingResult>(new
                 {
                     command.ExperimentId,
                     command.StepExecutionId,
                     Hypotheses = new List<Hypothesis>(),
                     Success = false,
-                    ErrorMessage = ex.Message
+                    ErrorMessage = errorMessage
                 });
             }
         }

@@ -15,17 +15,20 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IOrchestrationFactoryProvider _factoryProvider;
+        private readonly IWorkflowPersistence _workflowPersistence;
         private readonly IWorkflowResultPersistence _workflowResultPersistence;
         private readonly ILogger<EvidenceEvaluationConsumer> _logger;
 
         public EvidenceEvaluationConsumer(
             IOrchestrationExecutor orchestrationExecutor,
             IOrchestrationFactoryProvider factoryProvider,
+            IWorkflowPersistence workflowPersistence,
             IWorkflowResultPersistence workflowResultPersistence,
             ILogger<EvidenceEvaluationConsumer> logger)
         {
             _orchestrationExecutor = orchestrationExecutor;
             _factoryProvider = factoryProvider;
+            _workflowPersistence = workflowPersistence;
             _workflowResultPersistence = workflowResultPersistence;
             _logger = logger;
         }
@@ -38,6 +41,14 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
             try
             {
                 var stepExecutionContext = command.StepContext;
+                
+                var createdStepContext = await _workflowPersistence.CreateStepExecutionAsync(
+                    command.ExperimentId,
+                    command.Configuration,
+                    context.CancellationToken);
+
+                // Use the persisted ID
+                stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
                 
                 // Extract lists from Input (replaces previous Coordinator logic)
                 var hypothesesToEvaluate = command.Input.HypothesisResult?.Hypotheses ?? new List<Hypothesis>();
@@ -87,10 +98,16 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     }
                 }
 
+                await _workflowPersistence.UpdateStepExecutionStatusAsync(
+                    stepExecutionContext.StepExecutionId,
+                    "Completed",
+                    end: DateTime.UtcNow,
+                    cancellationToken: context.CancellationToken);
+
                 var resultMessage = new
                 {
                     command.ExperimentId,
-                    command.StepExecutionId,
+                    StepExecutionId = stepExecutionContext.StepExecutionId,
                     Evaluations = evaluations,
                     Success = true
                 };
