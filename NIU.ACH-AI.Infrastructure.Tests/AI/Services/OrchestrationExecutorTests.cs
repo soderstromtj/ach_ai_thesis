@@ -41,6 +41,7 @@ public class OrchestrationExecutorTests
     private readonly Mock<ILogger<OrchestrationExecutor>> _mockLogger;
     private readonly Mock<IKernelBuilderService> _mockKernelBuilderService;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+    private readonly Mock<IAgentConfigurationPersistence> _mockAgentConfigurationPersistence;
     private readonly IOptions<AIServiceSettings> _aiServiceSettings;
     private readonly OrchestrationExecutor _orchestrationExecutor;
 
@@ -50,6 +51,7 @@ public class OrchestrationExecutorTests
         _mockLogger = new Mock<ILogger<OrchestrationExecutor>>();
         _mockKernelBuilderService = new Mock<IKernelBuilderService>();
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        _mockAgentConfigurationPersistence = new Mock<IAgentConfigurationPersistence>();
 
         _mockLoggerFactory
             .Setup(x => x.CreateLogger(It.IsAny<string>()))
@@ -73,7 +75,8 @@ public class OrchestrationExecutorTests
             _mockLoggerFactory.Object,
             _aiServiceSettings,
             _mockKernelBuilderService.Object,
-            _mockHttpClientFactory.Object);
+            _mockHttpClientFactory.Object,
+            _mockAgentConfigurationPersistence.Object);
     }
 
     #region Constructor Tests
@@ -90,7 +93,8 @@ public class OrchestrationExecutorTests
                 null!,
                 _aiServiceSettings,
                 _mockKernelBuilderService.Object,
-                _mockHttpClientFactory.Object));
+                _mockHttpClientFactory.Object,
+                _mockAgentConfigurationPersistence.Object));
         exception.ParamName.Should().Be("loggerFactory");
     }
 
@@ -106,7 +110,8 @@ public class OrchestrationExecutorTests
                 _mockLoggerFactory.Object,
                 null!,
                 _mockKernelBuilderService.Object,
-                _mockHttpClientFactory.Object));
+                _mockHttpClientFactory.Object,
+                _mockAgentConfigurationPersistence.Object));
         exception.ParamName.Should().Be("aiServiceSettings");
     }
 
@@ -122,7 +127,8 @@ public class OrchestrationExecutorTests
                 _mockLoggerFactory.Object,
                 _aiServiceSettings,
                 null!,
-                _mockHttpClientFactory.Object));
+                _mockHttpClientFactory.Object,
+                _mockAgentConfigurationPersistence.Object));
         exception.ParamName.Should().Be("kernelBuilderService");
     }
 
@@ -138,8 +144,26 @@ public class OrchestrationExecutorTests
                 _mockLoggerFactory.Object,
                 _aiServiceSettings,
                 _mockKernelBuilderService.Object,
-                null!));
+                null!,
+                _mockAgentConfigurationPersistence.Object));
         exception.ParamName.Should().Be("httpClientFactory");
+    }
+    
+    /// <summary>
+    /// Verifies that the constructor throws ArgumentNullException when passed a null agent configuration persistence service.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithNullAgentConfigurationPersistence_ThrowsArgumentNullException()
+    {
+        // Arrange, Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            new OrchestrationExecutor(
+                _mockLoggerFactory.Object,
+                _aiServiceSettings,
+                _mockKernelBuilderService.Object,
+                _mockHttpClientFactory.Object,
+                null!));
+        exception.ParamName.Should().Be("agentConfigurationPersistence");
     }
 
     /// <summary>
@@ -153,7 +177,8 @@ public class OrchestrationExecutorTests
             _mockLoggerFactory.Object,
             _aiServiceSettings,
             _mockKernelBuilderService.Object,
-            _mockHttpClientFactory.Object);
+            _mockHttpClientFactory.Object,
+            _mockAgentConfigurationPersistence.Object);
 
         // Assert
         executor.Should().NotBeNull();
@@ -639,6 +664,7 @@ public class OrchestrationExecutorTests
         };
 
         // Act
+        // Note: CreateAgentService now uses the IAgentConfigurationPersistence mock injected in setup
         var agentService = _orchestrationExecutor.CreateAgentService(stepConfiguration);
         var kernelBuilder = _orchestrationExecutor.GetKernelBuilderService();
         var options = _orchestrationExecutor.CreateOrchestrationOptions(stepConfiguration);

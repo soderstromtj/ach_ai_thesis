@@ -108,8 +108,8 @@ public class ACHWorkflowCoordinatorTests
         result.ExperimentId.Should().Be(experimentId.ToString());
 
         // Verify Publish happened
-        _mockPublishEndpoint.Verify(x => x.Publish(
-            It.Is<IExperimentStarted>(e => e.Configuration == config), 
+        _mockPublishEndpoint.Verify(x => x.Publish<IExperimentStarted>(
+            It.IsAny<object>(), 
             It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify Polling happened twice

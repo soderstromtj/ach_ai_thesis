@@ -33,15 +33,24 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
 
                 x.UsingRabbitMq((context, cfg) =>
                 {
-                    var connectionString = configuration.GetConnectionString("messaging");
+                    // Read connection string safely without calling GetConnectionString which
+                    // invokes GetSection(...) and can throw with a plain Mock<IConfiguration>.
+                    var connectionString = configuration?["ConnectionStrings:messaging"];
+
+                    // Optional: fallback to RabbitMQ:Host setting if provided (test sets this)
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        connectionString = configuration?["RabbitMQ:Host"];
+                    }
 
                     if (!string.IsNullOrEmpty(connectionString))
                     {
+                        // If connectionString is just a host (e.g. "localhost") this overload works.
                         cfg.Host(connectionString);
                     }
                     else
                     {
-                        // Fallback to localhost if no connection string is provided
+                        // Fallback to localhost if no connection string or host is provided
                         cfg.Host("localhost", "/", h =>
                         {
                             h.Username("guest");

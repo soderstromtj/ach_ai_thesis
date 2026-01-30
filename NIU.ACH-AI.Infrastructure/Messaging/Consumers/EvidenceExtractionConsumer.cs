@@ -76,7 +76,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                 };
 
                 await context.Publish<IEvidenceExtractionResult>(resultMessage);
-                await context.RespondAsync<IEvidenceExtractionResult>(resultMessage);
+                // REMOVED: await context.RespondAsync<IEvidenceExtractionResult>(resultMessage);
 
                 _logger.LogInformation("Evidence Extraction completed. Extracted {Count} items.", savedEvidence.Count);
             }
@@ -84,14 +84,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
             {
                 _logger.LogError(ex, "Error processing evidence extraction request");
                 
-                await context.RespondAsync<IEvidenceExtractionResult>(new
-                {
-                    command.ExperimentId,
-                    command.StepExecutionId,
-                    Evidence = new List<Evidence>(),
-                    Success = false,
-                    ErrorMessage = ex.Message
-                });
+                // REMOVED: await context.RespondAsync<IEvidenceExtractionResult>(...);
             }
         }
     }

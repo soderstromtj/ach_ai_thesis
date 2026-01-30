@@ -3,6 +3,7 @@ using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
@@ -33,50 +34,79 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 if (createdAtObj is DateTimeOffset dto) info.CreatedAt = dto;
                 else if (createdAtObj is DateTime dt) info.CreatedAt = new DateTimeOffset(dt);
                 else if (createdAtObj is string dateStr && DateTimeOffset.TryParse(dateStr, out var parsedDto)) info.CreatedAt = parsedDto;
+                else if (createdAtObj is JsonElement je && je.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(je.GetString(), out var jeDto)) info.CreatedAt = jeDto;
             }
 
             if (metadata.TryGetValue("Usage", out var usageObj) && usageObj != null)
             {
                 try
                 {
-                    // OpenAI.Chat.ChatTokenUsage via dynamic
-                    dynamic dUsage = usageObj;
-                   
-                    // Extract top-level counts
-                    try { info.OutputTokenCount = (int?)dUsage.OutputTokenCount; } catch { }
-                    try { info.InputTokenCount = (int?)dUsage.InputTokenCount; } catch { }
-
-                    dynamic? dOutputDetails = null;
-                    dynamic? dInputDetails = null;
-
-                    try { dOutputDetails = dUsage.OutputTokenDetails; } catch { }
-                    try { dInputDetails = dUsage.InputTokenDetails; } catch { }
-
-                    if (dOutputDetails != null)
+                    if (usageObj is JsonElement usageElement)
                     {
-                        try { info.ReasoningTokenCount = (int?)dOutputDetails.ReasoningTokenCount; } catch { }
-                        try { info.OutputAudioTokenCount = (int?)dOutputDetails.AudioTokenCount; } catch { }
-                        try { info.AcceptedPredictionTokenCount = (int?)dOutputDetails.AcceptedPredictionTokenCount; } catch { }
-                        try { info.RejectedPredictionTokenCount = (int?)dOutputDetails.RejectedPredictionTokenCount; } catch { }
+                        info.OutputTokenCount = GetIntProperty(usageElement, "outputTokenCount", "OutputTokenCount");
+                        info.InputTokenCount = GetIntProperty(usageElement, "inputTokenCount", "InputTokenCount");
+
+                        if (usageElement.TryGetProperty("outputTokenDetails", out var outputDetails) || 
+                            usageElement.TryGetProperty("OutputTokenDetails", out outputDetails))
+                        {
+                            info.ReasoningTokenCount = GetIntProperty(outputDetails, "reasoningTokenCount", "ReasoningTokenCount");
+                            info.OutputAudioTokenCount = GetIntProperty(outputDetails, "audioTokenCount", "AudioTokenCount");
+                            info.AcceptedPredictionTokenCount = GetIntProperty(outputDetails, "acceptedPredictionTokenCount", "AcceptedPredictionTokenCount");
+                            info.RejectedPredictionTokenCount = GetIntProperty(outputDetails, "rejectedPredictionTokenCount", "RejectedPredictionTokenCount");
+                        }
+
+                        if (usageElement.TryGetProperty("inputTokenDetails", out var inputDetails) || 
+                            usageElement.TryGetProperty("InputTokenDetails", out inputDetails))
+                        {
+                            info.InputAudioTokenCount = GetIntProperty(inputDetails, "audioTokenCount", "AudioTokenCount");
+                            info.CachedInputTokenCount = GetIntProperty(inputDetails, "cachedTokenCount", "CachedTokenCount");
+                        }
                     }
-
-                    if (dInputDetails != null)
+                    else
                     {
-                        try { info.InputAudioTokenCount = (int?)dInputDetails.AudioTokenCount; } catch { }
-                        try { info.CachedInputTokenCount = (int?)dInputDetails.CachedTokenCount; } catch { }
+                        // Dynamic fallback for non-JsonElement types (reflection based for anonymous types or other objects)
+                        dynamic dUsage = usageObj;
+                        // Try dictionary access first (common for metadata dictionaries)
+                        try { info.OutputTokenCount = ToInt(dUsage["outputTokenCount"]); } catch { }
+                        if (info.OutputTokenCount == null) { try { info.OutputTokenCount = ToInt(dUsage["OutputTokenCount"]); } catch { } }
+
+                        // Fallback to property access (for objects with properties)
+                        if (info.OutputTokenCount == null) { try { info.OutputTokenCount = dUsage.OutputTokenCount; } catch { } }
+                        if (info.OutputTokenCount == null) { try { info.OutputTokenCount = dUsage.outputTokenCount; } catch { } }
+
+                        try { info.InputTokenCount = ToInt(dUsage["inputTokenCount"]); } catch { }
+                        if (info.InputTokenCount == null) { try { info.InputTokenCount = ToInt(dUsage["InputTokenCount"]); } catch { } }
+                        if (info.InputTokenCount == null) { try { info.InputTokenCount = dUsage.InputTokenCount; } catch { } }
+                        if (info.InputTokenCount == null) { try { info.InputTokenCount = dUsage.inputTokenCount; } catch { } }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to extract metadata using dynamic/reflection strategy for type {Type}.", usageObj.GetType().FullName);
+                    _logger.LogWarning(ex, "Failed to extract metadata for type {Type}.", usageObj.GetType().FullName);
                 }
             }
 
-            // Fallback: Try top-level keys
-            if (info.OutputTokenCount == null && metadata.TryGetValue("OutputTokenCount", out var outTokenObj) && outTokenObj is int outCount) info.OutputTokenCount = outCount;
-            if (info.InputTokenCount == null && metadata.TryGetValue("InputTokenCount", out var inTokenObj) && inTokenObj is int inCount) info.InputTokenCount = inCount;
-
             return info;
+        }
+
+        private int? GetIntProperty(JsonElement element, params string[] propertyNames)
+        {
+            foreach (var name in propertyNames)
+            {
+                if (element.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var val))
+                {
+                    return val;
+                }
+            }
+            return null;
+        }
+
+        private int? ToInt(object? obj)
+        {
+            if (obj is int i) return i;
+            if (obj is long l && l >= int.MinValue && l <= int.MaxValue) return (int)l;
+            if (obj is JsonElement je && je.ValueKind == JsonValueKind.Number && je.TryGetInt32(out var val)) return val;
+            return null;
         }
     }
 }

@@ -10,26 +10,26 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
     /// Factory provider that creates the appropriate orchestration factory based on ACH step configuration.
     /// Uses a mapping strategy to determine which factory to instantiate.
     /// </summary>
+    /// <summary>
+    /// Factory provider that creates the appropriate orchestration factory based on ACH step configuration.
+    /// Uses a mapping strategy to determine which factory to instantiate.
+    /// </summary>
     public class OrchestrationFactoryProvider : IOrchestrationFactoryProvider
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
         private readonly IAgentResponsePersistence _agentResponsePersistence;
-        private readonly ITokenUsageExtractor _tokenUsageExtractor;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrchestrationFactoryProvider"/> class.
         /// </summary>
         /// <param name="orchestrationExecutor">The executor service for orchestration.</param>
         /// <param name="agentResponsePersistence">Service for persisting agent responses.</param>
-        /// <param name="tokenUsageExtractor">Service for extracting token usage.</param>
         public OrchestrationFactoryProvider(
             IOrchestrationExecutor orchestrationExecutor,
-            IAgentResponsePersistence agentResponsePersistence,
-            ITokenUsageExtractor tokenUsageExtractor)
+            IAgentResponsePersistence agentResponsePersistence)
         {
             _orchestrationExecutor = orchestrationExecutor;
             _agentResponsePersistence = agentResponsePersistence ?? throw new ArgumentNullException(nameof(agentResponsePersistence));
-            _tokenUsageExtractor = tokenUsageExtractor ?? throw new ArgumentNullException(nameof(tokenUsageExtractor));
         }
 
         /// <summary>
@@ -54,19 +54,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             {
                 "hypothesis brainstorming" or "hypothesisbrainstorming"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisBrainstormingOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 "hypothesis evaluation" or "hypothesisevaluation" or "hypothesis refinement" or "hypothesisrefinement"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisRefinementOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 "evidence extraction" or "evidenceextraction"
                     => CreateTypedFactory<TResult, List<Evidence>, EvidenceExtractionOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation"
                     => CreateTypedFactory<TResult, List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence, _tokenUsageExtractor),
+                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 _ => throw new InvalidOperationException(
                     $"Unknown ACH step name: '{stepConfiguration.Name}'. " +
@@ -84,8 +84,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationOptions,
             ILoggerFactory loggerFactory,
-            IAgentResponsePersistence agentResponsePersistence,
-            ITokenUsageExtractor tokenUsageExtractor)
+            IAgentResponsePersistence agentResponsePersistence)
             where TFactory : IOrchestrationFactory<TExpectedResult>
         {
             // Verify that TResult matches TExpectedResult
@@ -104,8 +103,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 kernelBuilderService,
                 orchestrationOptions,
                 loggerFactory,
-                agentResponsePersistence,
-                tokenUsageExtractor)!;
+                agentResponsePersistence)!;
 
             // Cast to the requested interface type
             return (IOrchestrationFactory<TResult>)factory;

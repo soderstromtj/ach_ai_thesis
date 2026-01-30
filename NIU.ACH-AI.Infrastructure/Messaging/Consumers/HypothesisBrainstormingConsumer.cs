@@ -87,7 +87,8 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                 await context.Publish<IBrainstormingResult>(resultMessage);
 
                 // Respond for RequestClient (Backward Compatibility)
-                await context.RespondAsync<IBrainstormingResult>(resultMessage);
+                // Respond for RequestClient (Backward Compatibility)
+                // REMOVED: await context.RespondAsync<IBrainstormingResult>(resultMessage);
 
                 _logger.LogInformation("Brainstorming completed successfully. Generated {Count} hypotheses.", savedHypotheses.Count);
             }
@@ -99,14 +100,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     ? $"{ex.Message} Inner: {ex.InnerException.Message}" 
                     : ex.Message;
 
-                await context.RespondAsync<IBrainstormingResult>(new
-                {
-                    command.ExperimentId,
-                    command.StepExecutionId,
-                    Hypotheses = new List<Hypothesis>(),
-                    Success = false,
-                    ErrorMessage = errorMessage
-                });
+                // REMOVED: await context.RespondAsync<IBrainstormingResult>(...)
             }
         }
     }

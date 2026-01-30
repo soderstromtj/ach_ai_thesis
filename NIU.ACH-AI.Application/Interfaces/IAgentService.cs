@@ -8,9 +8,10 @@ namespace NIU.ACH_AI.Application.Interfaces
     public interface IAgentService
     {
         /// <summary>
-        /// Creates the collection of agents configured for the service.
+        /// Creates the collection of agents configured for the service and optionally persists their configuration.
         /// </summary>
-        /// <returns>An enumerable collection of <see cref="Agent"/> instances.</returns>
-        IEnumerable<Agent> CreateAgents();
+        /// <param name="stepExecutionId">Optional. If provided, persists agent configurations for this step execution.</param>
+        /// <returns>A tuple containing the agents and a dictionary of their configuration IDs.</returns>
+        (IEnumerable<Agent> Agents, Dictionary<string, Guid> ConfigurationIds) CreateAgents(Guid? stepExecutionId = null);
     }
 }

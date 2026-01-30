@@ -482,39 +482,7 @@ public class BaseOrchestrationFactoryTests
         }
     }
 
-    /// <summary>
-    /// WHY: Response metadata may contain token counts for usage tracking.
-    /// The callback should extract and handle this metadata correctly.
-    /// </summary>
-    [Fact]
-    public async Task ResponseCallback_WithMetadataContainingTokenCount_HandlesGracefully()
-    {
-        // Arrange
-        var settings = new OrchestrationSettings { WriteResponses = true };
-        var (factory, _, _, _, _) = CreateFactory(settings);
-        var metadata = new Dictionary<string, object?>
-        {
-            { "OutputTokenCount", 150 }
-        };
-        var response = new ChatMessageContent
-        {
-            AuthorName = "TestAgent",
-            Content = "Response with tokens",
-            Metadata = metadata
-        };
-        var loggerMock = Mock.Get(factory.ExposedLogger);
 
-        // Act
-        await factory.InvokeResponseCallback(response);
-
-        // Assert - Token count should appear in logs
-        loggerMock.Verify(l => l.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("150 tokens")),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
-    }
 
     /// <summary>
     /// WHY: When agent changes between responses, it represents a "handoff".

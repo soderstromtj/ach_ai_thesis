@@ -2,10 +2,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Infrastructure.Persistence.Mappers;
 using NIU.ACH_AI.Infrastructure.Persistence.Models;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 {
+    /// <summary>
+    /// Persists agent response telemetry for a step execution.
+    /// </summary>
     /// <summary>
     /// Persists agent response telemetry for a step execution.
     /// </summary>
@@ -55,30 +59,8 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Agent name must be provided.", nameof(response));
             }
 
-            var entity = new AgentResponse
-            {
-                AgentResponseId = Guid.NewGuid(),
-                StepExecutionId = response.StepExecutionId,
-                AgentConfigurationId = response.AgentConfigurationId,
-                AgentName = response.AgentName,
-                InputTokenCount = response.InputTokenCount,
-                OutputTokenCount = response.OutputTokenCount,
-                ContentLength = response.ContentLength,
-                Content = response.Content,
-                TurnNumber = response.TurnNumber,
-                ResponseDuration = response.ResponseDuration,
-                CreatedAt = response.CreatedAt,
-
-                // Map extended metadata
-                CompletionId = response.CompletionId,
-                ReasoningTokenCount = response.ReasoningTokenCount,
-                OutputAudioTokenCount = response.OutputAudioTokenCount,
-                AcceptedPredictionTokenCount = response.AcceptedPredictionTokenCount,
-                RejectedPredictionTokenCount = response.RejectedPredictionTokenCount,
-                InputAudioTokenCount = response.InputAudioTokenCount,
-                CachedInputTokenCount = response.CachedInputTokenCount,
-                FinishedAt = response.FinishedAt
-            };
+            // Use Mapper to create entity
+            var entity = AgentResponseMapper.ToEntity(response);
 
             await SaveEntityAsync(entity, cancellationToken);
         }
@@ -109,43 +91,18 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             if (stepExecutionId == Guid.Empty) throw new ArgumentException("StepExecutionId cannot be empty", nameof(stepExecutionId));
             if (agentConfigurationId == Guid.Empty) throw new ArgumentException("AgentConfigurationId cannot be empty", nameof(agentConfigurationId));
 
-            // Extract usage info
-            var usageInfo = _tokenUsageExtractor.ExtractTokenUsage(metadata);
-            
-            // Extract CompletionId from metadata if available
-            string? completionId = null;
-            if (metadata != null && metadata.TryGetValue("CompletionId", out var completionIdObj))
-            {
-                completionId = completionIdObj?.ToString();
-            }
+            // Use Mapper to create record
+            var record = AgentResponseMapper.ToRecord(
+                content,
+                agentName,
+                stepExecutionId,
+                agentConfigurationId,
+                turnNumber,
+                responseDuration,
+                _tokenUsageExtractor,
+                metadata);
 
-            var entity = new AgentResponse
-            {
-                AgentResponseId = Guid.NewGuid(),
-                StepExecutionId = stepExecutionId,
-                AgentConfigurationId = agentConfigurationId,
-                AgentName = agentName,
-                Content = content,
-                ContentLength = content?.Length ?? 0,
-                ResponseDuration = responseDuration,
-                
-                // Map from usage info
-                InputTokenCount = usageInfo.InputTokenCount,
-                OutputTokenCount = usageInfo.OutputTokenCount,
-                ReasoningTokenCount = usageInfo.ReasoningTokenCount,
-                OutputAudioTokenCount = usageInfo.OutputAudioTokenCount,
-                AcceptedPredictionTokenCount = usageInfo.AcceptedPredictionTokenCount,
-                RejectedPredictionTokenCount = usageInfo.RejectedPredictionTokenCount,
-                InputAudioTokenCount = usageInfo.InputAudioTokenCount,
-                CachedInputTokenCount = usageInfo.CachedInputTokenCount,
-                CreatedAt = usageInfo.CreatedAt?.UtcDateTime ?? DateTime.UtcNow,
-                
-                CompletionId = completionId,
-                FinishedAt = DateTime.UtcNow,
-                TurnNumber = turnNumber
-            };
-
-            await SaveEntityAsync(entity, cancellationToken);
+            await SaveAgentResponseAsync(record, cancellationToken);
         }
 
         private async Task SaveEntityAsync(AgentResponse entity, CancellationToken cancellationToken)

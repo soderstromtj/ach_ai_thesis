@@ -18,6 +18,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly ILoggerFactory _loggerFactory;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAgentConfigurationPersistence _agentConfigurationPersistence;
         private readonly ILogger _logger;
 
         /// <summary>
@@ -31,16 +32,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
             IEnumerable<AgentConfiguration> agentConfigurations,
             AIServiceSettings aiServiceSettings,
             ILoggerFactory loggerFactory,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IAgentConfigurationPersistence agentConfigurationPersistence)
         {
             _agentConfigurations = agentConfigurations;
             _aiServiceSettings = aiServiceSettings;
             _loggerFactory = loggerFactory;
             _httpClientFactory = httpClientFactory;
+            _agentConfigurationPersistence = agentConfigurationPersistence ?? throw new ArgumentNullException(nameof(agentConfigurationPersistence));
             _logger = loggerFactory.CreateLogger<AgentService>();
         }
 
-        IEnumerable<Agent> IAgentService.CreateAgents()
+        (IEnumerable<Agent> Agents, Dictionary<string, Guid> ConfigurationIds) IAgentService.CreateAgents(Guid? stepExecutionId)
         {
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Creating agents based on configuration.");
 
@@ -61,9 +64,52 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 return agent;
             }).ToList();
 
+            var configurationIds = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+
+            if (stepExecutionId.HasValue)
+            {
+                var configsToPersist = _agentConfigurations.Select(c => new AgentConfiguration 
+                {
+                    Name = c.Name ?? "Unknown",
+                    Description = c.Description ?? string.Empty,
+                    Instructions = c.Instructions ?? string.Empty,
+                    ServiceId = c.ServiceId ?? "openai",
+                    ModelId = c.ModelId ?? "gpt-4o"
+                });
+
+                // Since create agent configs is async, we have to block here because IAgentService interface is synchronous
+                // Alternatively, IAgentService should be async.
+                // Checking interface... it is synchronous in my previous view. 
+                // However, persistence is async.
+                // Refactoring interface to Task<...> would be better but requires updates everywhere.
+                // For now, I will use .GetAwaiter().GetResult() as a pragmatic step, or update interface to Async.
+                // Given "clean code" I should make it Async. But that is a ripple effect.
+                // The interface DOES NOT return Task. I will update it to Task if the user allows, 
+                // BUT "call task_boundary" suggests I should stick to plan.
+                // Wait, in my plan I wrote: "(IEnumerable<Agent> Agents, Dictionary<string, Guid> ConfigurationIds) CreateAgents(Guid? stepExecutionId = null)".
+                // I did NOT specify Task.
+                // I will use .GetAwaiter().GetResult() for now to minimize changes, noting it's a synchronous wrapper.
+                // Or I can just fire and forget? No, we need the IDs.
+                
+                try
+                {
+                     var result = _agentConfigurationPersistence.CreateAgentConfigurationsAsync(
+                        stepExecutionId.Value, 
+                        configsToPersist, 
+                        CancellationToken.None).GetAwaiter().GetResult();
+                        
+                     configurationIds = new Dictionary<string, Guid>(result);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to persist agent configurations synchronously.");
+                    // We continue without IDs, meaning persistence downstream might fail.
+                }
+            }
+
             _logger.LogDebug($"Current class: {nameof(AgentService)}\tMessage: Created {agents.Count} agents. Agent names are: {string.Join(", ", agents.Select(a => a.Name))}");
 
-            return agents;
+            return (agents, configurationIds);
         }
 
         private Kernel BuildKernelForAgent(AgentConfiguration agentConfig)

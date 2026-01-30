@@ -43,9 +43,8 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 IKernelBuilderService kernelBuilderService,
                 IOptions<OrchestrationSettings> orchestrationSettings,
                 ILoggerFactory loggerFactory,
-                IAgentResponsePersistence? agentResponsePersistence = null,
-                ITokenUsageExtractor? tokenUsageExtractor = null)
-                : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence, tokenUsageExtractor)
+                IAgentResponsePersistence? agentResponsePersistence = null)
+                : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
             {
             }
 
@@ -82,20 +81,10 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             // Arrange
             var agentName = "TestAgent";
             var persistenceMock = new Mock<IAgentResponsePersistence>();
-            var tokenExtractorMock = new Mock<ITokenUsageExtractor>(); // Create mock
 
-            // Setup mock to return expected values
-            tokenExtractorMock.Setup(x => x.ExtractTokenUsage(It.IsAny<IReadOnlyDictionary<string, object?>>()))
-                .Returns(new TokenUsageInfo
-                {
-                    ReasoningTokenCount = 123,
-                    OutputAudioTokenCount = 5,
-                    InputAudioTokenCount = 10,
-                    CachedInputTokenCount = 50
-                });
 
             // Create factory with StreamResponses = true
-            var factory = CreateFactory(persistenceMock.Object, tokenExtractorMock.Object, streamResponses: true);
+            var factory = CreateFactory(persistenceMock.Object, streamResponses: true);
 
             // Set up context
             var executionId = Guid.NewGuid();
@@ -185,7 +174,6 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
 
         private TestableOrchestrationFactory CreateFactory(
             IAgentResponsePersistence? persistence = null,
-            ITokenUsageExtractor? tokenUsageExtractor = null,
             bool streamResponses = true)
         {
             var loggerFactoryMock = new Mock<ILoggerFactory>();
@@ -197,8 +185,7 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 new Mock<IKernelBuilderService>().Object,
                 Options.Create(new OrchestrationSettings { StreamResponses = streamResponses, WriteResponses = false }),
                 loggerFactoryMock.Object,
-                persistence,
-                tokenUsageExtractor
+                persistence
             );
         }
 

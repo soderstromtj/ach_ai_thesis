@@ -11,7 +11,7 @@ using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using System.Collections.Concurrent;
-using System.Diagnostics;
+
 using System.Text;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
@@ -34,10 +34,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         protected readonly ILogger _logger;
         protected readonly ILoggerFactory _loggerFactory;
         private readonly IAgentResponsePersistence? _agentResponsePersistence;
-        private readonly ITokenUsageExtractor? _tokenUsageExtractor;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
-        private readonly Stopwatch _responseStopwatch = new Stopwatch();
+
         private StepExecutionContext? _stepExecutionContext;
 
         // Buffer streaming chunks per agent to allow assembling partials before final arrives.
@@ -51,14 +50,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
-        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         protected BaseOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
             ILoggerFactory loggerFactory,
-            IAgentResponsePersistence? agentResponsePersistence = null,
-            ITokenUsageExtractor? tokenUsageExtractor = null)
+            IAgentResponsePersistence? agentResponsePersistence = null)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
@@ -67,7 +64,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger(GetType());
             _agentResponsePersistence = agentResponsePersistence;
-            _tokenUsageExtractor = tokenUsageExtractor;
         }
 
         /// <summary>
@@ -83,6 +79,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             CancellationToken cancellationToken = default)
         {
             _stepExecutionContext = stepExecutionContext;
+            _history.Clear(); // Ensure fresh history for this execution
             if (_stepExecutionContext != null)
             {
                 _logger.LogDebug(
@@ -91,11 +88,20 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _stepExecutionContext.StepExecutionId);
             }
 
-            // Create agents to be used in orchestration
-            IEnumerable<Agent> agents = _agentService.CreateAgents();
+            // Create agents and optional persist configuration
+            var (agentListEnumerable, configIds) = _agentService.CreateAgents(_stepExecutionContext?.StepExecutionId);
+            var agentList = agentListEnumerable.ToList();
 
-            // Filter out null names and ensure unique list
-            var agentNames = agents
+             // Update context with configuration IDs returned by service
+             if (_stepExecutionContext != null && configIds.Count > 0)
+             {
+                 foreach(var kvp in configIds)
+                 {
+                     _stepExecutionContext.AgentConfigurationIds[kvp.Key] = kvp.Value;
+                 }
+             }
+
+            var agentNames = agentList
                 .Select(a => a.Name)
                 .OfType<string>()
                 .ToList();
@@ -108,7 +114,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 GetType().Name,
                 GetResultTypeName());
 
-            // Create structured output transform
+
             var outputTransform = new StructuredOutputTransform<TWrapper>(
                 kernel.GetRequiredService<IChatCompletionService>(),
                 new OpenAIPromptExecutionSettings
@@ -119,10 +125,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             _logger.LogDebug(
                 "Class: {ClassName}\tMessage: Creating orchestration object with {AgentCount} agents.",
                 GetType().Name,
-                agents.Count());
+                agentList.Count);
 
             // Allow derived classes to create their specific orchestration type
-            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, agentNames, kernel, agents.ToArray(), outputTransform);
+            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, agentNames, kernel, agentList.ToArray(), outputTransform);
 
             _logger.LogDebug("Class: {ClassName}\tMessage: Starting in-process runtime that will execute the orchestration and manage state", GetType().Name);
             var runtime = new InProcessRuntime();
@@ -130,7 +136,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             try
             {
-                // Invoke orchestration with input and runtime context
+
                 _logger.LogDebug("Class: {ClassName}\tMessage: Invoking orchestration with input.", GetType().Name);
                 var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
@@ -141,7 +147,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
                 try
                 {
-                    // Attempt to get structured output with timeout
+
                     _logger.LogDebug("Class: {ClassName}\tMessage: Attempting to retrieve structured output from orchestration result.", GetType().Name);
                     var wrappedResult = await result.GetValueAsync(
                         TimeSpan.FromMinutes(_orchestrationSettings.TimeoutInMinutes),
@@ -154,7 +160,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     }
                     else
                     {
-                        // Unwrap the result wrapper to get the actual result list
                         output = UnwrapResult(wrappedResult);
                         var itemCount = GetItemCount(output);
                         _logger.LogDebug(
@@ -174,7 +179,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _logger.LogError(ex, "Class: {ClassName}\tMessage: {FailureReason}", GetType().Name, transformFailureReason);
                 }
 
-                // Return output with null safety
+
                 if (output == null)
                 {
                     return CreateEmptyResult();
@@ -219,20 +224,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                _logger.LogTrace("Agent: {AgentName} Chunk: {Chunk}", agentName, chunk);
             }
 
-            // When the orchestrator indicates final chunk
             if (isFinal)
             {
-                // 1. Get full content
                 string fullContent;
                 lock (buffer)
                 {
                     fullContent = buffer.ToString();
                 }
 
-                // 2. Persist response directly here, where metadata is available
+                // Persist response directly here since metadata is available in the streaming callback
                 if (_agentResponsePersistence != null && _stepExecutionContext != null && response.Metadata != null)
                 {
-                    await PersistFromStreamingAsync(response, agentName, fullContent);
+                    await PersistAgentResponseInternalAsync(agentName, fullContent, response.Metadata);
                 }
 
                 // Clean up buffer to free memory; final insertion into history is handled by ResponseCallback
@@ -242,19 +245,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             await ValueTask.CompletedTask;
         }
 
-        private async Task PersistFromStreamingAsync(StreamingChatMessageContent response, string agentName, string content)
-        {
-             // We need response duration. StreamingResponseCallback doesn't track it cleanly per-turn like ResponseCallback.
-            // We rely on the _responseStopwatch which is running.
-            long responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
-            
-            await PersistAgentResponseInternalAsync(
-                agentName,
-                content,
-                response.Metadata,
-                responseDuration
-            );
-        }
+
 
         protected async ValueTask<ChatMessageContent> InteractiveCallback()
         {
@@ -278,10 +269,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 var agentName = response.AuthorName ?? "Unknown";
                 var content = response.Content ?? string.Empty;
 
-                // Stop the previous response timer if it was running
-                var responseDuration = _responseStopwatch.IsRunning ? _responseStopwatch.ElapsedMilliseconds : 0;
-                _responseStopwatch.Stop();
-
                 // Log agent selection (detect handoff)
                 if (_previousAgentName != agentName)
                 {
@@ -292,42 +279,22 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _previousAgentName = agentName;
                 }
 
-                // Extract token count from metadata if available for logging
-                int? tokenCount = null;
-                if (_tokenUsageExtractor != null)
-                {
-                    var usage = _tokenUsageExtractor.ExtractTokenUsage(response.Metadata);
-                    tokenCount = usage.OutputTokenCount;
-                }
-                else if (response.Metadata?.TryGetValue("OutputTokenCount", out var outputTokenCountObj) == true && outputTokenCountObj is int outputTokenCount)
-                {
-                     // Fallback if extractor not provided
-                    tokenCount = outputTokenCount;
-                }
-
-                // Start timer for next response
-                _responseStopwatch.Restart();
-
                 if (_orchestrationSettings.WriteResponses)
                 {
                     _logger.LogInformation(
-                        "\n[Turn {Turn}] Agent '{AgentName}' responded with {ContentLength} characters{TokenCountInfo} in {ResponseDuration} ms.\nContent: {Content}",
+                        "\n[Turn {Turn}] Agent '{AgentName}' responded with {ContentLength} characters.\nContent: {Content}",
                         _currentTurn,
                         agentName,
                         content.Length,
-                        tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty,
-                        responseDuration,
                         content);
                 }
 
                 _logger?.LogDebug(
-                    "Class: {ClassName}\tMessage: Received response from agent '{AgentName}' on turn {Turn} with content length {ContentLength} characters{TokenCountInfo} in {ResponseDuration} ms.",
+                    "Class: {ClassName}\tMessage: Received response from agent '{AgentName}' on turn {Turn} with content length {ContentLength} characters.",
                     GetType().Name,
                     agentName,
                     _currentTurn - 1,
-                    content.Length,
-                    tokenCount.HasValue ? $", {tokenCount.Value} tokens" : string.Empty,
-                    responseDuration);
+                    content.Length);
             }
 
             return;
@@ -389,8 +356,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         private async Task PersistAgentResponseInternalAsync(
             string agentName,
             string content,
-            IReadOnlyDictionary<string, object?>? metadata,
-            long responseDuration)
+            IReadOnlyDictionary<string, object?>? metadata)
         {
             if (_stepExecutionContext == null || _agentResponsePersistence == null)
             {
@@ -416,7 +382,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                     _stepExecutionContext.StepExecutionId,
                     agentConfigurationId,
                     _currentTurn,
-                    responseDuration,
+                    0, // Response duration not tracked
                     CancellationToken.None);
             }
             catch (Exception ex)

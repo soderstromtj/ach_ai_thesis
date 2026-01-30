@@ -45,11 +45,14 @@ public class AgentServiceTests
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
+        var agentConfigurationPersistenceMock = new Mock<IAgentConfigurationPersistence>();
+
         var service = new AgentService(
             agentConfigurations,
             aiServiceSettings,
             loggerFactoryMock.Object,
-            httpClientFactoryMock.Object);
+            httpClientFactoryMock.Object,
+            agentConfigurationPersistenceMock.Object);
 
         return (service, loggerFactoryMock, loggerMock);
     }
@@ -148,7 +151,12 @@ public class AgentServiceTests
         var settings = CreateValidOpenAISettings();
 
         // Act
-        var service = new AgentService(configs, settings, loggerFactoryMock.Object, Mock.Of<IHttpClientFactory>());
+        var service = new AgentService(
+            configs, 
+            settings, 
+            loggerFactoryMock.Object, 
+            Mock.Of<IHttpClientFactory>(),
+            Mock.Of<IAgentConfigurationPersistence>());
 
         // Assert
         Assert.NotNull(capturedCategory);
@@ -176,7 +184,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(configs, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Equal(3, agents.Count());
@@ -194,7 +202,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(configs, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Empty(agents);
@@ -216,7 +224,8 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(configs, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents().ToList();
+        var (agentsEnumerable, _) = ((IAgentService)service).CreateAgents();
+        var agents = agentsEnumerable.ToList();
 
         // Assert
         Assert.Contains(agents, a => a.Name == "AlphaAgent");
@@ -240,7 +249,8 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents().ToList();
+        var (agentsEnumerable, _) = ((IAgentService)service).CreateAgents();
+        var agents = agentsEnumerable.ToList();
 
         // Assert
         Assert.Single(agents);
@@ -264,7 +274,8 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents().ToList();
+        var (agentsEnumerable, _) = ((IAgentService)service).CreateAgents();
+        var agents = agentsEnumerable.ToList();
 
         // Assert
         Assert.Single(agents);
@@ -287,7 +298,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act - Should not throw since OpenAI is configured
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -305,7 +316,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -323,7 +334,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -341,7 +352,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -362,7 +373,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -384,7 +395,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -405,7 +416,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -427,7 +438,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -448,7 +459,7 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(new[] { config }, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents();
+        var (agents, _) = ((IAgentService)service).CreateAgents();
 
         // Assert
         Assert.Single(agents);
@@ -471,7 +482,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("Unsupported ServiceId", exception.Message);
         Assert.Contains("unsupported", exception.Message);
     }
@@ -489,7 +500,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("openai", exception.Message);
         Assert.Contains("azure", exception.Message);
         Assert.Contains("ollama", exception.Message);
@@ -512,7 +523,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("OpenAI", exception.Message);
         Assert.Contains("not configured", exception.Message);
     }
@@ -533,7 +544,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("OpenAI", exception.Message);
     }
 
@@ -553,7 +564,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     #endregion
@@ -573,7 +584,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("Azure OpenAI", exception.Message);
     }
 
@@ -598,7 +609,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     /// <summary>
@@ -622,7 +633,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     /// <summary>
@@ -646,7 +657,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     #endregion
@@ -666,7 +677,7 @@ public class AgentServiceTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
         Assert.Contains("Ollama", exception.Message);
     }
 
@@ -690,7 +701,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     /// <summary>
@@ -713,7 +724,7 @@ public class AgentServiceTests
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() =>
-            ((IAgentService)service).CreateAgents().ToList());
+            ((IAgentService)service).CreateAgents());
     }
 
     #endregion
@@ -751,7 +762,8 @@ public class AgentServiceTests
         var (service, _, _) = CreateService(configs, settings);
 
         // Act
-        var agents = ((IAgentService)service).CreateAgents().ToList();
+        var (agentsEnumerable, _) = ((IAgentService)service).CreateAgents();
+        var agents = agentsEnumerable.ToList();
 
         // Assert
         Assert.Equal(3, agents.Count);

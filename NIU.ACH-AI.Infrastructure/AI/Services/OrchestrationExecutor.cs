@@ -18,6 +18,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly AIServiceSettings _aiServiceSettings;
         private readonly IKernelBuilderService _kernelBuilderService;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAgentConfigurationPersistence _agentConfigurationPersistence;
         private readonly ILogger<OrchestrationExecutor> _logger;
 
         /// <summary>
@@ -27,24 +28,30 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         /// <param name="aiServiceSettings">AI service settings options.</param>
         /// <param name="kernelBuilderService">Kernel builder service.</param>
         /// <param name="httpClientFactory">HTTP client factory.</param>
+        /// <param name="agentConfigurationPersistence">Persistence service for agent configurations.</param>
         public OrchestrationExecutor(
             ILoggerFactory loggerFactory,
             IOptions<AIServiceSettings> aiServiceSettings,
             IKernelBuilderService kernelBuilderService,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IAgentConfigurationPersistence agentConfigurationPersistence)
         {
             // Throw ArgumentNullException if any dependency is null
             ArgumentNullException.ThrowIfNull(loggerFactory, nameof(loggerFactory));
             ArgumentNullException.ThrowIfNull(aiServiceSettings, nameof(aiServiceSettings));
             ArgumentNullException.ThrowIfNull(kernelBuilderService, nameof(kernelBuilderService));
             ArgumentNullException.ThrowIfNull(httpClientFactory, nameof(httpClientFactory));
+            ArgumentNullException.ThrowIfNull(agentConfigurationPersistence, nameof(agentConfigurationPersistence));
 
             _loggerFactory = loggerFactory;
             _aiServiceSettings = aiServiceSettings.Value;
             _kernelBuilderService = kernelBuilderService;
             _httpClientFactory = httpClientFactory;
+            _agentConfigurationPersistence = agentConfigurationPersistence;
             _logger = loggerFactory.CreateLogger<OrchestrationExecutor>();
         }
+
+        // ... ExecuteAsync ...
 
         /// <summary>
         /// Executes an orchestration factory with the provided configuration and input.
@@ -52,6 +59,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         /// <typeparam name="TResult">The result type returned by the factory</typeparam>
         /// <param name="factory">The orchestration factory to execute</param>
         /// <param name="input">The input for the orchestration</param>
+        /// <param name="stepExecutionContext">The execution context</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The result of the orchestration execution</returns>
         public async Task<TResult> ExecuteAsync<TResult>(
@@ -83,7 +91,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                 stepConfiguration.AgentConfigurations,
                 _aiServiceSettings,
                 _loggerFactory,
-                _httpClientFactory);
+                _httpClientFactory,
+                _agentConfigurationPersistence);
         }
 
         /// <summary>

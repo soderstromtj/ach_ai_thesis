@@ -28,7 +28,7 @@ namespace NIU.ACH_AI.Application.DTOs
         /// <summary>
         /// Gets or sets the dictionary mapping agent role names to their configuration IDs.
         /// </summary>
-        public IReadOnlyDictionary<string, Guid> AgentConfigurationIds { get; set; }
+        public Dictionary<string, Guid> AgentConfigurationIds { get; set; }
             = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
     }
 }

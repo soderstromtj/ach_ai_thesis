@@ -77,7 +77,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                 };
 
                 await context.Publish<IHypothesisRefinementResult>(resultMessage);
-                await context.RespondAsync<IHypothesisRefinementResult>(resultMessage);
+                // REMOVED: await context.RespondAsync<IHypothesisRefinementResult>(resultMessage);
 
                 _logger.LogInformation("Refinement completed. Generated {Count} hypotheses.", savedHypotheses.Count);
             }
@@ -85,14 +85,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
             {
                 _logger.LogError(ex, "Error processing refinement request");
                 
-                await context.RespondAsync<IHypothesisRefinementResult>(new
-                {
-                    command.ExperimentId,
-                    command.StepExecutionId,
-                    RefinedHypotheses = new List<Hypothesis>(),
-                    Success = false,
-                    ErrorMessage = ex.Message
-                });
+                // REMOVED: await context.RespondAsync<IHypothesisRefinementResult>(...);
             }
         }
     }

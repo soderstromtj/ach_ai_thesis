@@ -113,7 +113,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                 };
 
                 await context.Publish<IEvidenceEvaluationResult>(resultMessage);
-                await context.RespondAsync<IEvidenceEvaluationResult>(resultMessage);
+                // REMOVED: await context.RespondAsync<IEvidenceEvaluationResult>(resultMessage);
 
                 _logger.LogInformation("Evaluation completed. Generated {Count} evaluations.", evaluations.Count);
             }
@@ -121,14 +121,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
             {
                 _logger.LogError(ex, "Error processing evaluation request");
                 
-                await context.RespondAsync<IEvidenceEvaluationResult>(new
-                {
-                    command.ExperimentId,
-                    command.StepExecutionId,
-                    Evaluations = new List<EvidenceHypothesisEvaluation>(),
-                    Success = false,
-                    ErrorMessage = ex.Message
-                });
+                // REMOVED: await context.RespondAsync<IEvidenceEvaluationResult>(...);
             }
         }
     }
