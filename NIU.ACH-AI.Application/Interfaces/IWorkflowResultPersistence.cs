@@ -37,13 +37,13 @@ namespace NIU.ACH_AI.Application.Interfaces
         /// Persists a collection of evidence-hypothesis evaluations.
         /// </summary>
         /// <param name="stepExecutionId">The ID of the current evaluation step execution.</param>
-        /// <param name="evaluations">The collection of evaluations to save.</param>
+        /// <param name="evaluation">The collection of evaluations to save.</param>
         /// <param name="hypothesisStepExecutionId">The ID of the step execution that produced the hypotheses being evaluated.</param>
         /// <param name="evidenceStepExecutionId">The ID of the step execution that produced the evidence being evaluated.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        Task SaveEvaluationsAsync(
+        Task SaveEvaluationAsync(
             Guid stepExecutionId,
-            IEnumerable<EvidenceHypothesisEvaluation> evaluations,
+            EvidenceHypothesisEvaluation evaluation,
             Guid hypothesisStepExecutionId,
             Guid evidenceStepExecutionId,
             CancellationToken cancellationToken = default);

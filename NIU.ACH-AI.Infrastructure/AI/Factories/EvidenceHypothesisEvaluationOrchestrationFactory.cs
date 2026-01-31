@@ -4,11 +4,14 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
+using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
+using Microsoft.SemanticKernel.ChatCompletion;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
+using NIU.ACH_AI.Infrastructure.AI.Managers;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
@@ -17,7 +20,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
     /// Factory for creating evidence-hypothesis evaluation orchestrations.
     /// Uses concurrent execution to evaluate evidence against hypotheses.
     /// </summary>
-    public class EvidenceHypothesisEvaluationOrchestrationFactory : BaseOrchestrationFactory<List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationResult>
+    public class EvidenceHypothesisEvaluationOrchestrationFactory : BaseOrchestrationFactory<EvidenceHypothesisEvaluation, EvidenceHypothesisEvaluation>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EvidenceHypothesisEvaluationOrchestrationFactory"/> class.
@@ -39,15 +42,27 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         }
 
 
-        protected override AgentOrchestration<string, EvidenceHypothesisEvaluationResult> CreateOrchestration(
+        protected override AgentOrchestration<string, EvidenceHypothesisEvaluation> CreateOrchestration(
             OrchestrationPromptInput input,
             List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
-            StructuredOutputTransform<EvidenceHypothesisEvaluationResult> outputTransform)
+            StructuredOutputTransform<EvidenceHypothesisEvaluation> outputTransform)
         {
-            // Create the ConcurrentOrchestration instance
-            var orchestration = new ConcurrentOrchestration<string, EvidenceHypothesisEvaluationResult>(agents)
+            // Retrieve IChatCompletionService from the kernel's services
+            var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
+
+            EvaluationGroupChatManager groupChatManager =
+                new EvaluationGroupChatManager(
+                    input,
+                    agentNames,
+                    chatCompletion,
+                    new EvaluationPromptStrategy(),
+                    new AgentParticipationTracker(),
+                    this._loggerFactory.CreateLogger<EvaluationGroupChatManager>());
+
+            // Create the GroupChatOrchestration instance
+            var orchestration = new GroupChatOrchestration<string, EvidenceHypothesisEvaluation>(groupChatManager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -62,24 +77,24 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             return nameof(EvidenceHypothesisEvaluationResult);
         }
 
-        protected override List<EvidenceHypothesisEvaluation> UnwrapResult(EvidenceHypothesisEvaluationResult wrapper)
+        protected override EvidenceHypothesisEvaluation UnwrapResult(EvidenceHypothesisEvaluation wrapper)
         {
-            return wrapper.Evaluations;
+            return wrapper;
         }
 
-        protected override int GetItemCount(List<EvidenceHypothesisEvaluation> result)
+        protected override int GetItemCount(EvidenceHypothesisEvaluation result)
         {
-            return result.Count;
+            return 1;
         }
 
-        protected override List<EvidenceHypothesisEvaluation> CreateEmptyResult()
+        protected override EvidenceHypothesisEvaluation CreateEmptyResult()
         {
-            return new List<EvidenceHypothesisEvaluation>();
+            return new EvidenceHypothesisEvaluation();
         }
 
-        protected override List<EvidenceHypothesisEvaluation> CreateErrorResult()
+        protected override EvidenceHypothesisEvaluation CreateErrorResult()
         {
-            return new List<EvidenceHypothesisEvaluation>();
+            return new EvidenceHypothesisEvaluation();
         }
 
         protected override string GetAgentSelectionReason(string? previousAgentName)

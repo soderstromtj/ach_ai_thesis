@@ -16,49 +16,47 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
     /// Group chat manager for hypothesis generation workflows using the Analysis of Competing Hypotheses (ACH) framework.
     /// Orchestrates a team of agents to collaboratively generate hypotheses for a given key question.
     /// </summary>
-    public class HypothesisGenerationGroupChatManager : GroupChatManager
+    public class EvaluationGroupChatManager : GroupChatManager
     {
         private readonly OrchestrationPromptInput _input;
-        private readonly List<string> _agentNames;
-        private readonly Dictionary<string, List<string>> _agentTags; // Map of AgentName -> Tags
+        private readonly IEnumerable<string> _agentNames;
         private readonly IChatCompletionService _chatCompletion;
         private readonly IGroupChatPromptStrategy _promptStrategy;
         private readonly AgentParticipationTracker _participationTracker;
-        private readonly ILogger<HypothesisGenerationGroupChatManager> _logger;
+        private readonly ILogger<EvaluationGroupChatManager> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="HypothesisGenerationGroupChatManager"/> class.
+        /// Initializes a new instance of the <see cref="EvaluationGroupChatManager"/> class.
         /// </summary>
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
-        /// <param name="agentConfigs">The configurations of all agents participating in the group chat.</param>
+        /// <param name="agentNames">The configurations of all agents participating in the group chat.</param>
         /// <param name="chatCompletion">The chat completion service for LLM interactions.</param>
         /// <param name="promptStrategy">The strategy for generating prompts.</param>
         /// <param name="participationTracker">The tracker for monitoring agent participation.</param>
         /// <param name="logger">The logger for diagnostic information.</param>
-        public HypothesisGenerationGroupChatManager(
+        public EvaluationGroupChatManager(
             OrchestrationPromptInput input,
-            IEnumerable<AgentConfiguration> agentConfigs,
+            IEnumerable<string> agentNames,
             IChatCompletionService chatCompletion,
             IGroupChatPromptStrategy promptStrategy,
             AgentParticipationTracker participationTracker,
-            ILogger<HypothesisGenerationGroupChatManager> logger)
+            ILogger<EvaluationGroupChatManager> logger)
         {
             ArgumentNullException.ThrowIfNull(input);
-            ArgumentNullException.ThrowIfNull(agentConfigs);
+            ArgumentNullException.ThrowIfNull(agentNames);
             ArgumentNullException.ThrowIfNull(chatCompletion);
             ArgumentNullException.ThrowIfNull(promptStrategy);
             ArgumentNullException.ThrowIfNull(participationTracker);
             ArgumentNullException.ThrowIfNull(logger);
 
-            var configsList = agentConfigs.ToList();
+            var configsList = agentNames.ToList();
             if (configsList.Count == 0)
             {
-                throw new ArgumentException("At least one agent configuration is required", nameof(agentConfigs));
+                throw new ArgumentException("At least one agent configuration is required", nameof(agentNames));
             }
 
             _input = input;
-            _agentNames = configsList.Select(c => c.Name).ToList();
-            _agentTags = configsList.ToDictionary(c => c.Name, c => c.Tags ?? new List<string>());
+            _agentNames = agentNames;
             _chatCompletion = chatCompletion;
             _promptStrategy = promptStrategy;
             _participationTracker = participationTracker;
@@ -66,7 +64,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 
             _logger.LogInformation(
                 "HypothesisGenerationGroupChatManager created with {AgentCount} agents and max limit of {MaxLimit}",
-                _agentNames.Count,
+                _agentNames.Count(),
                 MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
         }
 
@@ -99,50 +97,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         {
             int turnCount = GetTurnCount(history);
 
-            // Phase 1: Brainstorming Agents
-            // Identify agents with the "Brainstorming" tag
-            // Fallback: If no tags, use the old hardcoded list logic as a detailed fallback or just error?
-            // For now, let's assume we use tags. If no tags, default to all agents? 
-            // Better to stick to the plan: use tags.
-            var phaseOneAgents = GetAgentsByTag("Brainstorming");
-            
-            // Should prompt contain only phase one agents?
-            // The prompt strategy currently takes a list of candidate agents.
-            
-            string prompt;
-            if (turnCount < phaseOneAgents.Count)
-            {
-                _logger.LogDebug("Selecting next Phase 1 (brainstorming) agent.");
-                prompt = _promptStrategy.GetSelectionPrompt(_input, phaseOneAgents);
-                return await GetResponseAsync<string>(history, prompt, cancellationToken);
-            }
-
-            if (turnCount == phaseOneAgents.Count)
-            {
-                _logger.LogDebug("Selecting Hypothesis Screening Agent after Phase 1 completion");
-                var screeningAgents = GetAgentsByTag("Screening");
-                prompt = _promptStrategy.GetSelectionPrompt(_input, screeningAgents);
-                return await GetResponseAsync<string>(history, prompt, cancellationToken);
-            }
-            
-            _logger.LogDebug("Selecting Summarizing Agent after Hypothesis Screening completion");
-            var summarizingAgents = GetAgentsByTag("Summarizing");
-            prompt = _promptStrategy.GetSelectionPrompt(_input, summarizingAgents);
+            string prompt = "";
 
             return await GetResponseAsync<string>(history, prompt, cancellationToken);
-        }
-
-        /// <summary>
-        /// Retrieves a list of agent names that have the specified tag.
-        /// </summary>
-        /// <param name="tag">The tag to filter agents by.</param>
-        /// <returns>A list of agent names matching the tag.</returns>
-        private List<string> GetAgentsByTag(string tag)
-        {
-            return _agentTags
-                .Where(kvp => kvp.Value.Contains(tag, StringComparer.OrdinalIgnoreCase))
-                .Select(kvp => kvp.Key)
-                .ToList();
         }
 
         /// <summary>

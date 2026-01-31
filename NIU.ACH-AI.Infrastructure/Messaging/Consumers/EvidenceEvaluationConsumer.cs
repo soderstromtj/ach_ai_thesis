@@ -58,7 +58,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     evidenceList.Count, hypothesesToEvaluate.Count);
 
                 var evaluations = new List<EvidenceHypothesisEvaluation>();
-                var factory = _factoryProvider.CreateFactory<List<EvidenceHypothesisEvaluation>>(command.Configuration);
+                var factory = _factoryProvider.CreateFactory<EvidenceHypothesisEvaluation>(command.Configuration);
 
                 foreach (var evidence in evidenceList)
                 {
@@ -74,27 +74,25 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                             HypothesisResult = new HypothesisResult { Hypotheses = new List<Hypothesis> { hypothesis } }
                         };
 
-                        var evaluationResults = await _orchestrationExecutor.ExecuteAsync(
+                        var evaluationResult = await _orchestrationExecutor.ExecuteAsync(
                             factory,
                             evaluationInput,
                             stepExecutionContext,
                             context.CancellationToken);
 
-                        foreach (var result in evaluationResults)
-                        {
-                            result.Hypothesis = hypothesis;
-                            result.Evidence = evidence;
-                        }
+                        // Reassign Hypothesis and Evidence because LLM response can't guarantee they remain unchanged
+                        evaluationResult.Hypothesis = hypothesis;
+                        evaluationResult.Evidence = evidence;
 
                         // Persist incrementally (optional but good for safety)
-                         await _workflowResultPersistence.SaveEvaluationsAsync(
+                         await _workflowResultPersistence.SaveEvaluationAsync(
                             stepExecutionContext.StepExecutionId,
-                            evaluationResults,
+                            evaluationResult,
                             command.HypothesisStepExecutionId,
                             command.EvidenceStepExecutionId,
                             context.CancellationToken);
 
-                        evaluations.AddRange(evaluationResults);
+                        evaluations.AddRange(evaluationResult);
                     }
                 }
 

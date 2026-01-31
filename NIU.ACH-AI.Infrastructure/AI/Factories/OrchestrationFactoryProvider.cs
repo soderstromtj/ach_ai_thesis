@@ -65,7 +65,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                         agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation"
-                    => CreateTypedFactory<TResult, List<EvidenceHypothesisEvaluation>, EvidenceHypothesisEvaluationOrchestrationFactory>(
+                    => CreateTypedFactory<TResult, EvidenceHypothesisEvaluation, EvidenceHypothesisEvaluationOrchestrationFactory>(
                         agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
 
                 _ => throw new InvalidOperationException(

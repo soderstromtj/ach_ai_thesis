@@ -13,7 +13,7 @@ namespace NIU.ACH_AI.Application.Interfaces
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
         /// <param name="agentNames">The names of all agents participating in the chat.</param>
         /// <returns>A prompt string for the termination decision.</returns>
-        string GetTerminationPrompt(OrchestrationPromptInput input, List<string> agentNames);
+        string GetTerminationPrompt(OrchestrationPromptInput input, IEnumerable<string> agentNames);
 
         /// <summary>
         /// Generates a prompt to select the next agent to contribute.
@@ -21,7 +21,7 @@ namespace NIU.ACH_AI.Application.Interfaces
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
         /// <param name="agentNames">The names of all agents participating in the chat.</param>
         /// <returns>A prompt string for agent selection.</returns>
-        string GetSelectionPrompt(OrchestrationPromptInput input, List<string> agentNames);
+        string GetSelectionPrompt(OrchestrationPromptInput input, IEnumerable<string> agentNames);
 
         /// <summary>
         /// Generates a prompt to filter and format the results from the group chat.

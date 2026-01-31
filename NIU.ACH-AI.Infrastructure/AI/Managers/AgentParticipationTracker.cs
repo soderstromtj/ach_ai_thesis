@@ -13,7 +13,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         /// <param name="history">The chat history to analyze.</param>
         /// <param name="expectedAgentNames">The list of expected agent names.</param>
         /// <returns>True if all agents have participated; otherwise, false.</returns>
-        public bool HaveAllAgentsParticipated(ChatHistory history, List<string> expectedAgentNames)
+        public bool HaveAllAgentsParticipated(ChatHistory history, IEnumerable<string> expectedAgentNames)
         {
             ArgumentNullException.ThrowIfNull(history);
             ArgumentNullException.ThrowIfNull(expectedAgentNames);
@@ -44,7 +44,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         /// <param name="history">The chat history to analyze.</param>
         /// <param name="expectedAgentNames">The list of expected agent names.</param>
         /// <returns>A list of agent names that have not yet contributed.</returns>
-        public List<string> GetNonParticipatingAgents(ChatHistory history, List<string> expectedAgentNames)
+        public List<string> GetNonParticipatingAgents(ChatHistory history, IEnumerable<string> expectedAgentNames)
         {
             ArgumentNullException.ThrowIfNull(history);
             ArgumentNullException.ThrowIfNull(expectedAgentNames);
