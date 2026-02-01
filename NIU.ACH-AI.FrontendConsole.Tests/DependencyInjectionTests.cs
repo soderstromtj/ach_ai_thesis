@@ -81,8 +81,8 @@ public class DependencyInjectionTests
 
         // Assert - Check ServiceCollection directly to avoid resolving complex dependencies
         Assert.Contains(services, s => s.ServiceType == typeof(IKernelBuilderService) && s.Lifetime == ServiceLifetime.Singleton);
-        Assert.Contains(services, s => s.ServiceType == typeof(IOrchestrationExecutor) && s.Lifetime == ServiceLifetime.Singleton);
-        Assert.Contains(services, s => s.ServiceType == typeof(IOrchestrationFactoryProvider) && s.Lifetime == ServiceLifetime.Singleton);
+        Assert.Contains(services, s => s.ServiceType == typeof(IOrchestrationExecutor) && s.Lifetime == ServiceLifetime.Scoped);
+        Assert.Contains(services, s => s.ServiceType == typeof(IOrchestrationFactoryProvider) && s.Lifetime == ServiceLifetime.Scoped);
         Assert.Contains(services, s => s.ServiceType == typeof(ITokenUsageExtractor) && s.Lifetime == ServiceLifetime.Singleton);
         Assert.Contains(services, s => s.ServiceType == typeof(IACHWorkflowCoordinator) && s.Lifetime == ServiceLifetime.Scoped);
     }

@@ -27,9 +27,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             You are the group chat manager for a team of expert analysts tasked with evaluating evidence against a hypothesis, which is part of step 3 of the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
 
             This discussion has 3 phases:
-            - Phase 1: Ensure all DIME (Diplomatic, Information, Military, and Economic) agents and the Deception agent have contributed at least once.
-            - Phase 2: Once all DIME agents and Deception agent has contributed, the next agent must be the Reviewer agent.
-            - Phase 3: After the Reviewer agent has contributed, The Summarizer agent must consolidate the DIME and Deception agents' evaluations into one, coherent analysis.
+            - Phase 1: Ensure all DIME (Diplomatic, Information, Military, and Economic) agents have contributed at least once.
+            - Phase 2: Once all DIME agents have contributed, the next agent must be the Reviewer agent.
+            - Phase 3: After the Reviewer agent has contributed, the Summarizer agent must consolidate the DIME and Deception agents' evaluations into one, coherent analysis.
 
             Please select the next agent to contribute, and respond with only the name of the selected agent. For example, if you select "{agentNames.First()}", respond only with: {agentNames.First()}.
 
@@ -45,7 +45,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 
             {{
               "Score": "Consistent",
-              "ScoreRationale": "A comprehensive and consolidated analysis of the evaluations from all of the DIME and Deception agents' evaluations",
+              "ScoreRationale": "A comprehensive and consolidated analysis of the evaluations from all of the DIME agents' evaluations",
               "ConfidenceLevel": 0.85,
               "ConfidenceRationale": "A comprehensive and well-reasoned rationale of the confidence based on the evaluations"
             }}
