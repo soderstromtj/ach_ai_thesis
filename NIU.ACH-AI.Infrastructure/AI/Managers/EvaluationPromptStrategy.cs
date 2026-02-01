@@ -31,8 +31,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 
             This discussion has 3 phases:
             - Phase 1: Ensure all DIME (Diplomatic, Information, Military, and Economic) agents have contributed at least once.
-            - Phase 2: Once all DIME agents have contributed, the next agent must be the Reviewer agent.
-            - Phase 3: After the Reviewer agent has contributed, the Summarizer agent must consolidate the DIME and Deception agents' evaluations into one, coherent analysis.
+            - Phase 2: Once all DIME agents have contributed, the next agent must be the Reviewer agent. The Reviewer agent should only contribute once.
+            - Phase 3: After the Reviewer agent has contributed, the EvidenceDuplication agent must consolidate the DIME and Deception agents' evaluations into one, coherent analysis.
 
             Please select the next agent to contribute, and respond with only the name of the selected agent. For example, if you select "{agentNames.First()}", respond only with: {agentNames.First()}.
 

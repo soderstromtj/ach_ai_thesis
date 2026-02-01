@@ -3,19 +3,21 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
-using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
+using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
+using Microsoft.SemanticKernel.ChatCompletion;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
+using NIU.ACH_AI.Infrastructure.AI.Managers;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
     /// Factory for creating evidence extraction orchestrations.
-    /// Uses concurrent execution to extract evidence from multiple sources/agents simultaneously.
+    /// Uses group chat execution to extract evidence from multiple sources/agents collaboratively.
     /// </summary>
     public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
     {
@@ -45,8 +47,20 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
         {
-            // Create the ConcurrentOrchestration instance
-            var orchestration = new ConcurrentOrchestration<string, EvidenceResult>(agents)
+            // Retrieve IChatCompletionService from the kernel's services
+            var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
+
+            EvidenceExtractionGroupChatManager groupChatManager =
+                new EvidenceExtractionGroupChatManager(
+                    input,
+                    agentNames,
+                    chatCompletion,
+                    new EvidenceExtractionPromptStrategy(),
+                    new AgentParticipationTracker(),
+                    this._loggerFactory.CreateLogger<EvidenceExtractionGroupChatManager>());
+
+            // Create the GroupChatOrchestration instance
+            var orchestration = new GroupChatOrchestration<string, EvidenceResult>(groupChatManager, agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,
@@ -83,7 +97,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override string GetAgentSelectionReason(string? previousAgentName)
         {
-            return "Concurrent execution - all agents run simultaneously";
+            return "Group chat execution - agents selected by manager";
         }
     }
 }
