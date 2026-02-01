@@ -134,32 +134,6 @@ public class EvaluationGroupChatManagerTests
     }
 
     [Fact]
-    public async Task ShouldTerminate_WhenUnderLimit_DelegatesToLLM_True()
-    {
-        // Arrange
-        var manager = CreateManager(); 
-        var history = new ChatHistory();
-        _promptStrategyMock.Setup(s => s.GetTerminationPrompt(It.IsAny<OrchestrationPromptInput>(), It.IsAny<IEnumerable<string>>()))
-            .Returns("TermPrompt");
-
-        // Setup Mock LLM Response
-        var llmResponse = JsonSerializer.Serialize(new GroupChatManagerResult<bool>(true) { Reason = "Done" });
-        SetupChatCompletionResponse(llmResponse);
-
-        // Act
-        var result = await manager.ShouldTerminate(history);
-
-        // Assert
-        Assert.True(result.Value);
-        Assert.Contains("prompt response", result.Reason); 
-        _chatCompletionMock.Verify(x => x.GetChatMessageContentsAsync(
-            It.IsAny<ChatHistory>(),
-            It.IsAny<PromptExecutionSettings>(),
-            null,
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task ShouldTerminate_WhenUnderLimit_DelegatesToLLM_False()
     {
         // Arrange
@@ -178,6 +152,36 @@ public class EvaluationGroupChatManagerTests
 
         // Assert
         Assert.False(result.Value);
+    }
+
+    [Fact]
+    public async Task ShouldTerminate_WhenUnderLimitAndAllAgentsParticipated_DelegatesToLLM_True()
+    {
+        // Arrange
+        var manager = CreateManager(); 
+        var history = new ChatHistory();
+        // Ensure all agents have participated to pass the new check
+        history.Add(new ChatMessageContent(AuthorRole.Assistant, "Message from AgentA") { AuthorName = "AgentA" });
+        history.Add(new ChatMessageContent(AuthorRole.Assistant, "Message from AgentB") { AuthorName = "AgentB" });
+        
+        _promptStrategyMock.Setup(s => s.GetTerminationPrompt(It.IsAny<OrchestrationPromptInput>(), It.IsAny<IEnumerable<string>>()))
+            .Returns("TermPrompt");
+
+        // Setup Mock LLM Response
+        var llmResponse = JsonSerializer.Serialize(new GroupChatManagerResult<bool>(true) { Reason = "Done" });
+        SetupChatCompletionResponse(llmResponse);
+
+        // Act
+        var result = await manager.ShouldTerminate(history);
+
+        // Assert
+        Assert.True(result.Value);
+        Assert.Contains("prompt response", result.Reason); 
+        _chatCompletionMock.Verify(x => x.GetChatMessageContentsAsync(
+            It.IsAny<ChatHistory>(),
+            It.IsAny<PromptExecutionSettings>(),
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion
@@ -228,6 +232,10 @@ public class EvaluationGroupChatManagerTests
         // Arrange
         var manager = CreateManager();
         var history = new ChatHistory();
+
+        _promptStrategyMock
+            .Setup(x => x.GetFilterPrompt(It.IsAny<OrchestrationPromptInput>()))
+            .Returns("Filter prompt");
 
         SetupChatCompletionResponse(""); // Empty response
 

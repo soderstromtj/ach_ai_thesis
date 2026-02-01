@@ -8,6 +8,7 @@ using NIU.ACH_AI.Application.Exceptions;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Application.Configuration;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace NIU.ACH_AI.Infrastructure.AI.Managers
 {
@@ -78,11 +79,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             ChatHistory history,
             CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Filtering results from chat history with {MessageCount} messages", history.Count);
+            _logger.LogInformation("Filtering results from chat history with {MessageCount} messages", history.Count);
 
             string prompt = _promptStrategy.GetFilterPrompt(_input);
+            _logger.LogDebug("Filter prompt generated. Length: {Length}", prompt.Length);
 
+            var stopwatch = Stopwatch.StartNew();
             var response = await GetResponseAsync<string>(history, prompt, cancellationToken);
+            stopwatch.Stop();
+
+            _logger.LogInformation("FilterResults completed in {Elapsed}ms. Result length: {Length}", 
+                stopwatch.ElapsedMilliseconds, 
+                response.Value?.Length ?? 0);
 
             return response;
         }
@@ -96,10 +104,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             CancellationToken cancellationToken = default)
         {
             int turnCount = GetTurnCount(history);
+            _logger.LogInformation("Selecting next agent. Turn count: {TurnCount}", turnCount);
 
-            string prompt = "";
+            string prompt = _promptStrategy.GetSelectionPrompt(_input, team.Keys);
 
-            return await GetResponseAsync<string>(history, prompt, cancellationToken);
+            var stopwatch = Stopwatch.StartNew();
+            var result = await GetResponseAsync<string>(history, prompt, cancellationToken);
+            stopwatch.Stop();
+
+            _logger.LogInformation("SelectNextAgent completed in {Elapsed}ms. Selected: {Agent}", 
+                stopwatch.ElapsedMilliseconds, 
+                result.Value);
+
+            return result;
         }
 
         /// <summary>
@@ -133,7 +150,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         {
             int turnCount = GetTurnCount(history);
 
-            _logger.LogDebug(
+            _logger.LogInformation(
                 "Evaluating termination. Turn count: {TurnCount}, Max: {MaxLimit}",
                 turnCount,
                 MaximumInvocationCount > 0 ? MaximumInvocationCount.ToString() : "unlimited");
@@ -148,6 +165,20 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
                 return new GroupChatManagerResult<bool>(true)
                 {
                     Reason = $"Maximum invocation limit of {MaximumInvocationCount} reached."
+                };
+            }
+
+            // Check if all agents have participated
+            if (HaveAllAgentsParticipated(history))
+            {
+                _logger.LogInformation("All agents have participated at least once");
+            }
+            else
+            {
+                _logger.LogInformation("Not all agents have participated yet; continuing the chat");
+                return new GroupChatManagerResult<bool>(false)
+                {
+                    Reason = "Not all agents have participated yet."
                 };
             }
 
@@ -236,13 +267,18 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 
                 ChatHistory request = [.. history, new ChatMessageContent(AuthorRole.System, prompt)];
 
-                _logger.LogTrace("Sending request to LLM with {HistoryCount} history messages", history.Count);
+                _logger.LogInformation("Sending request to LLM. History: {HistoryCount}, Prompt: {PromptLength}", 
+                    history.Count, prompt.Length);
 
+                var sw = Stopwatch.StartNew();
                 var response = await _chatCompletion.GetChatMessageContentsAsync(
                     request,
                     executionSettings,
                     kernel: null,
                     cancellationToken);
+                sw.Stop();
+
+                _logger.LogInformation("LLM request received in {Elapsed}ms", sw.ElapsedMilliseconds);
 
                 string responseText = response.FirstOrDefault()?.ToString() ?? string.Empty;
 
@@ -260,7 +296,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
                     throw new ChatManagerException("Failed to deserialize LLM response to expected format");
                 }
 
-                _logger.LogTrace("Successfully parsed LLM response to {Type}", typeof(TValue).Name);
+                _logger.LogInformation("Successfully parsed LLM response. Raw Response: {Value}", responseText);
+                _logger.LogInformation("Deserialized Result: {Result}", result.Value);
 
                 return result;
             }

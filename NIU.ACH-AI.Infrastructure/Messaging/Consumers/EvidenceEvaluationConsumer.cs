@@ -49,6 +49,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
                 // Use the persisted ID
                 stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
+                _logger.LogInformation("Step Execution Created with ID: {StepExecutionId}", stepExecutionContext.StepExecutionId);
                 
                 // Extract lists from Input (replaces previous Coordinator logic)
                 var hypothesesToEvaluate = command.Input.HypothesisResult?.Hypotheses ?? new List<Hypothesis>();
@@ -59,6 +60,8 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
                 var evaluations = new List<EvidenceHypothesisEvaluation>();
                 var factory = _factoryProvider.CreateFactory<EvidenceHypothesisEvaluation>(command.Configuration);
+
+                _logger.LogInformation("Starting evaluation loop for {EvidenceCount} evidence items x {HypothesisCount} hypotheses", evidenceList.Count, hypothesesToEvaluate.Count);
 
                 foreach (var evidence in evidenceList)
                 {
@@ -80,6 +83,8 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                             stepExecutionContext,
                             context.CancellationToken);
 
+                        _logger.LogInformation("Executed evaluation. Score: {Score}", evaluationResult.Score);
+
                         // Reassign Hypothesis and Evidence because LLM response can't guarantee they remain unchanged
                         evaluationResult.Hypothesis = hypothesis;
                         evaluationResult.Evidence = evidence;
@@ -95,12 +100,15 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                         evaluations.AddRange(evaluationResult);
                     }
                 }
+                _logger.LogInformation("Finished evaluation loop. Total evaluations generated: {Count}", evaluations.Count);
 
                 await _workflowPersistence.UpdateStepExecutionStatusAsync(
                     stepExecutionContext.StepExecutionId,
                     "Completed",
                     end: DateTime.UtcNow,
                     cancellationToken: context.CancellationToken);
+
+                _logger.LogInformation("Updated StepExecution status to Completed.");
 
                 var resultMessage = new
                 {

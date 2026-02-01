@@ -47,6 +47,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
                 var stepExecutionContext = command.StepContext;
                 stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
+                _logger.LogInformation("Step Execution Created with ID: {StepExecutionId}", stepExecutionContext.StepExecutionId);
 
                 var factory = _factoryProvider.CreateFactory<List<Hypothesis>>(command.Configuration);
                 
@@ -56,17 +57,23 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     stepExecutionContext,
                     context.CancellationToken);
 
+                _logger.LogInformation("Execution finished. Generated {Count} refined hypotheses.", hypotheses.Count);
+
                 var savedHypotheses = await _workflowResultPersistence.SaveHypothesesAsync(
                     stepExecutionContext.StepExecutionId,
                     hypotheses,
                     isRefined: true,
                     cancellationToken: context.CancellationToken);
 
+                _logger.LogInformation("Persisted {Count} refined hypotheses to database.", savedHypotheses.Count);
+
                 await _workflowPersistence.UpdateStepExecutionStatusAsync(
                     stepExecutionContext.StepExecutionId,
                     "Completed",
                     end: DateTime.UtcNow,
                     cancellationToken: context.CancellationToken);
+
+                _logger.LogInformation("Updated StepExecution status to Completed.");
 
                 var resultMessage = new
                 {

@@ -47,6 +47,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 
                 var stepExecutionContext = command.StepContext;
                 stepExecutionContext.StepExecutionId = createdStepContext.StepExecutionId;
+                _logger.LogInformation("Step Execution Created with ID: {StepExecutionId}", stepExecutionContext.StepExecutionId);
 
                 var factory = _factoryProvider.CreateFactory<List<Evidence>>(command.Configuration);
                 
@@ -55,17 +56,23 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     command.Input,
                     stepExecutionContext,
                     context.CancellationToken);
+                
+                _logger.LogInformation("Execution finished. Extracted {Count} evidence items.", evidence.Count);
 
                 var savedEvidence = await _workflowResultPersistence.SaveEvidenceAsync(
                     stepExecutionContext.StepExecutionId,
                     evidence,
                     cancellationToken: context.CancellationToken);
 
+                _logger.LogInformation("Persisted {Count} evidence items to database.", savedEvidence.Count);
+
                 await _workflowPersistence.UpdateStepExecutionStatusAsync(
                     stepExecutionContext.StepExecutionId,
                     "Completed",
                     end: DateTime.UtcNow,
                     cancellationToken: context.CancellationToken);
+
+                _logger.LogInformation("Updated StepExecution status to Completed.");
 
                 var resultMessage = new
                 {

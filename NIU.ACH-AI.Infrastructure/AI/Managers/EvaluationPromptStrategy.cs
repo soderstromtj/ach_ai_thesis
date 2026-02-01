@@ -26,6 +26,9 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
             $"""
             You are the group chat manager for a team of expert analysts tasked with evaluating evidence against a hypothesis, which is part of step 3 of the Analysis of Competing Hypotheses (ACH) framework developed by Richards Heuer.
 
+            The available agents are:
+            {string.Join("\n- ", agentNames)}
+
             This discussion has 3 phases:
             - Phase 1: Ensure all DIME (Diplomatic, Information, Military, and Economic) agents have contributed at least once.
             - Phase 2: Once all DIME agents have contributed, the next agent must be the Reviewer agent.

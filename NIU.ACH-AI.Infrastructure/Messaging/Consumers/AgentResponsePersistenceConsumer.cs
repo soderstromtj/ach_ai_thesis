@@ -26,7 +26,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
         public async Task Consume(ConsumeContext<IAgentResponseReceived> context)
         {
             var message = context.Message;
-            _logger.LogDebug("Persisting Agent Response from Message Bus: {AgentName} (Turn {Turn})", message.AgentName, message.TurnNumber);
+            _logger.LogInformation("Creating Agent Response Persistence for Agent {AgentName} (Turn {Turn})", message.AgentName, message.TurnNumber);
 
             try
             {
@@ -41,6 +41,8 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                     message.TurnNumber,
                     message.ResponseDurationMs,
                     context.CancellationToken);
+
+                _logger.LogInformation("Successfully persisted agent response for {AgentName}", message.AgentName);
             }
             catch (System.Exception ex)
             {
