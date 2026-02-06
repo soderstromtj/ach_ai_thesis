@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection; // Added
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
@@ -11,8 +12,9 @@ using Moq;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
-using NIU.ACH_AI.Infrastructure.AI.Managers;
+using System.Reflection;
 
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories;
 
@@ -27,99 +29,227 @@ public class EvidenceExtractionOrchestrationFactoryTests
     private readonly Mock<IKernelBuilderService> _kernelBuilderServiceMock;
     private readonly Mock<IOptions<OrchestrationSettings>> _optionsMock;
     private readonly Mock<ILoggerFactory> _loggerFactoryMock;
-    private readonly Mock<IChatCompletionService> _chatCompletionMock;
-    private readonly Mock<IServiceProvider> _serviceProviderMock;
-
+    private readonly Mock<IAgentResponsePersistence> _agentResponsePersistenceMock;
+    
     public EvidenceExtractionOrchestrationFactoryTests()
     {
         _agentServiceMock = new Mock<IAgentService>();
         _kernelBuilderServiceMock = new Mock<IKernelBuilderService>();
+        _optionsMock = new Mock<IOptions<OrchestrationSettings>>();
         _loggerFactoryMock = new Mock<ILoggerFactory>();
-        _chatCompletionMock = new Mock<IChatCompletionService>();
-        _serviceProviderMock = new Mock<IServiceProvider>();
-
-        // Setup Logger
+        _agentResponsePersistenceMock = new Mock<IAgentResponsePersistence>();
+        
+        // Setup default options
+        _optionsMock.Setup(o => o.Value).Returns(new OrchestrationSettings());
+        
+        // Setup default logger
         _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>()))
             .Returns(new Mock<ILogger>().Object);
-
-        // Setup Options
-        _optionsMock = new Mock<IOptions<OrchestrationSettings>>();
-        _optionsMock.Setup(o => o.Value).Returns(new OrchestrationSettings());
-
-        // Setup Kernel Service Provider to return ChatCompletion
-        _serviceProviderMock.Setup(sp => sp.GetService(typeof(IChatCompletionService)))
-            .Returns(_chatCompletionMock.Object);
     }
 
-    [Fact]
-    public void CreateOrchestration_ReturnsGroupChatOrchestration()
+    private TestableEvidenceExtractionOrchestrationFactory CreateFactory(bool includePersistence = false)
     {
-        // Arrange
-        var factory = new EvidenceExtractionOrchestrationFactory(
+        return new TestableEvidenceExtractionOrchestrationFactory(
             _agentServiceMock.Object,
             _kernelBuilderServiceMock.Object,
             _optionsMock.Object,
-            _loggerFactoryMock.Object);
+            _loggerFactoryMock.Object,
+            includePersistence ? _agentResponsePersistenceMock.Object : null
+        );
+    }
 
-        var kernel = new Kernel(_serviceProviderMock.Object);
-        var input = new OrchestrationPromptInput { KeyQuestion = "Q" };
-        var agents = new Agent[] {  }; // No agents needed for this test as we don't start the chat
-        var agentNames = new List<string> { "Agent1" };
-        
-        /*
-        // Mock output transform
-        var transform = new StructuredOutputTransform<EvidenceResult>(
-            _chatCompletionMock.Object, 
-            new OpenAIPromptExecutionSettings 
-            {
-                ResponseFormat = typeof(EvidenceResult)
-            });
+    #region Constructor Tests
 
-        // Act
-        var exposer = new EvidenceExtractionOrchestrationFactoryExposer(
+    [Fact]
+    public void Constructor_WithValidArguments_CreatesInstance()
+    {
+        var factory = CreateFactory();
+        Assert.NotNull(factory);
+    }
+
+    [Fact]
+    public void Constructor_NullArguments_ThrowsException()
+    {
+        var factory = new EvidenceExtractionOrchestrationFactory(
              _agentServiceMock.Object,
             _kernelBuilderServiceMock.Object,
             _optionsMock.Object,
-            _loggerFactoryMock.Object);
+            _loggerFactoryMock.Object,
+            null);
+            
+        Assert.NotNull(factory);
+    }
 
-        var orchestration = exposer.ExposedCreateOrchestration(
+    #endregion
+
+    #region Protected Method Tests (via Testable Wrapper)
+
+    [Fact]
+    public void GetResultTypeName_ReturnsCorrectName()
+    {
+        var factory = CreateFactory();
+        var result = factory.TestGetResultTypeName();
+        Assert.Equal("EvidenceResult", result);
+    }
+
+    [Fact]
+    public void UnwrapResult_ReturnsEvidenceList()
+    {
+        var factory = CreateFactory();
+        var expectedEvidence = new List<Evidence> { new Evidence { Claim = "Test" } };
+        var wrapper = new EvidenceResult { Evidence = expectedEvidence };
+
+        var result = factory.TestUnwrapResult(wrapper);
+
+        Assert.Same(expectedEvidence, result);
+    }
+    
+    [Fact]
+    public void UnwrapResult_WithEmptyList_ReturnsEmptyList()
+    {
+        var factory = CreateFactory();
+        var wrapper = new EvidenceResult { Evidence = new List<Evidence>() };
+
+        var result = factory.TestUnwrapResult(wrapper);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetItemCount_ReturnsCorrectCount()
+    {
+        var factory = CreateFactory();
+        var list = new List<Evidence> { new Evidence(), new Evidence() };
+
+        var count = factory.TestGetItemCount(list);
+
+        Assert.Equal(2, count);
+    }
+    
+    [Fact]
+    public void GetItemCount_WithEmptyList_ReturnsZero()
+    {
+        var factory = CreateFactory();
+        var list = new List<Evidence>();
+
+        var count = factory.TestGetItemCount(list);
+
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public void CreateEmptyResult_ReturnsEmptyList()
+    {
+        var factory = CreateFactory();
+        var result = factory.TestCreateEmptyResult();
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void CreateErrorResult_ReturnsEmptyList()
+    {
+        var factory = CreateFactory();
+        var result = factory.TestCreateErrorResult();
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetAgentSelectionReason_ReturnsStaticString()
+    {
+        var factory = CreateFactory();
+        var reason = factory.TestGetAgentSelectionReason("AnyAgent");
+        Assert.Equal("Group chat execution - agents selected by manager", reason);
+    }
+
+    #endregion
+
+    #region CreateOrchestration Tests
+
+    [Fact]
+    public void CreateOrchestration_ConfiguresCorrectly()
+    {
+        // Arrange
+        var factory = CreateFactory();
+        var input = new OrchestrationPromptInput { KeyQuestion = "Test" };
+        var agentNames = new List<string> { "AgentA" };
+        var agents = new Agent[] { new Mock<Agent>().Object };
+        
+        // Kernel setup using real ServiceProvider locally
+        var chatCompletionMock = new Mock<IChatCompletionService>();
+        
+        var services = new ServiceCollection();
+        services.AddSingleton(chatCompletionMock.Object);
+        
+        // Register mock filters to satisfy Kernel dependencies
+        var functionFilterMock = new Mock<IFunctionInvocationFilter>();
+        services.AddSingleton(functionFilterMock.Object);
+        
+        var promptFilterMock = new Mock<IPromptRenderFilter>();
+        services.AddSingleton(promptFilterMock.Object);
+        
+        // Also register KernelPluginCollection if needed, or rely on default
+        services.AddSingleton(new KernelPluginCollection());
+
+        var provider = services.BuildServiceProvider();
+        
+        var kernel = new Kernel(provider);
+        
+        // Setup OutputTransform mock
+        var outputTransform = new StructuredOutputTransform<EvidenceResult>(
+            chatCompletionMock.Object, 
+            new OpenAIPromptExecutionSettings());
+
+        // Act
+        var result = factory.TestCreateOrchestration(
             input,
             agentNames,
             kernel,
             agents,
-            transform);
+            outputTransform
+        );
 
         // Assert
-        Assert.NotNull(orchestration);
-        Assert.IsAssignableFrom<AgentOrchestration<string, EvidenceResult>>(orchestration);
-        Assert.IsType<GroupChatOrchestration<string, EvidenceResult>>(orchestration);
-        */
-        Assert.True(true); // Placeholder until StructuredOutputTransform mocking is resolved
+        Assert.NotNull(result);
+        Assert.IsType<GroupChatOrchestration<string, EvidenceResult>>(result);
     }
 
-    /*
-    // Helper class to expose protected method
-    private class EvidenceExtractionOrchestrationFactoryExposer : EvidenceExtractionOrchestrationFactory
+    #endregion
+
+    // Testable Wrapper
+    public class TestableEvidenceExtractionOrchestrationFactory : EvidenceExtractionOrchestrationFactory
     {
-        public EvidenceExtractionOrchestrationFactoryExposer(
-            IAgentService agentService, 
-            IKernelBuilderService kernelBuilderService, 
-            IOptions<OrchestrationSettings> orchestrationSettings, 
-            ILoggerFactory loggerFactory) 
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
+        public TestableEvidenceExtractionOrchestrationFactory(
+            IAgentService agentService,
+            IKernelBuilderService kernelBuilderService,
+            IOptions<OrchestrationSettings> orchestrationSettings,
+            ILoggerFactory loggerFactory,
+            IAgentResponsePersistence? agentResponsePersistence = null)
+            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
         {
         }
 
-        public AgentOrchestration<string, EvidenceResult> ExposedCreateOrchestration(
-            OrchestrationPromptInput input, 
-            List<string> agentNames, 
-            Kernel kernel, 
-            Agent[] agents, 
+        public AgentOrchestration<string, EvidenceResult> TestCreateOrchestration(
+            OrchestrationPromptInput input,
+            List<string> agentNames,
+            Kernel kernel,
+            Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
         {
             return base.CreateOrchestration(input, agentNames, kernel, agents, outputTransform);
         }
+
+        public string TestGetResultTypeName() => base.GetResultTypeName();
+
+        public List<Evidence> TestUnwrapResult(EvidenceResult wrapper) => base.UnwrapResult(wrapper);
+
+        public int TestGetItemCount(List<Evidence> result) => base.GetItemCount(result);
+
+        public List<Evidence> TestCreateEmptyResult() => base.CreateEmptyResult();
+
+        public List<Evidence> TestCreateErrorResult() => base.CreateErrorResult();
+
+        public string TestGetAgentSelectionReason(string? previousAgentName) => base.GetAgentSelectionReason(previousAgentName);
     }
-    */
 }
-#pragma warning restore SKEXP0110
