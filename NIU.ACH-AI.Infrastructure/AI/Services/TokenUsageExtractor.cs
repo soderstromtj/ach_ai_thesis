@@ -74,10 +74,31 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                         if (info.OutputTokenCount == null) { try { info.OutputTokenCount = dUsage.OutputTokenCount; } catch { } }
                         if (info.OutputTokenCount == null) { try { info.OutputTokenCount = dUsage.outputTokenCount; } catch { } }
 
+                        // Repeat for InputTokenCount
                         try { info.InputTokenCount = ToInt(dUsage["inputTokenCount"]); } catch { }
                         if (info.InputTokenCount == null) { try { info.InputTokenCount = ToInt(dUsage["InputTokenCount"]); } catch { } }
                         if (info.InputTokenCount == null) { try { info.InputTokenCount = dUsage.InputTokenCount; } catch { } }
                         if (info.InputTokenCount == null) { try { info.InputTokenCount = dUsage.inputTokenCount; } catch { } }
+
+                        try { info.ReasoningTokenCount = ToInt(dUsage["reasoningTokenCount"]); } catch { }
+                        if (info.ReasoningTokenCount == null) { try { info.ReasoningTokenCount = ToInt(dUsage["ReasoningTokenCount"]); } catch { } }
+                        if (info.ReasoningTokenCount == null) { try { info.ReasoningTokenCount = dUsage.ReasoningTokenCount; } catch { } }
+                        if (info.ReasoningTokenCount == null) { try { info.ReasoningTokenCount = dUsage.reasoningTokenCount; } catch { } }
+
+                        try { info.OutputAudioTokenCount = ToInt(dUsage["audioTokenCount"]); } catch { }
+                        if (info.OutputAudioTokenCount == null) { try { info.OutputAudioTokenCount = ToInt(dUsage["AudioTokenCount"]); } catch { } }
+                        if (info.OutputAudioTokenCount == null) { try { info.OutputAudioTokenCount = dUsage.AudioTokenCount; } catch { } }
+                        if (info.OutputAudioTokenCount == null) { try { info.OutputAudioTokenCount = dUsage.audioTokenCount; } catch { } }
+
+                        try { info.AcceptedPredictionTokenCount = ToInt(dUsage["acceptedPredictionTokenCount"]); } catch { }
+                        if (info.AcceptedPredictionTokenCount == null) { try { info.AcceptedPredictionTokenCount = ToInt(dUsage["AcceptedPredictionTokenCount"]); } catch { } }
+                        if (info.AcceptedPredictionTokenCount == null) { try { info.AcceptedPredictionTokenCount = dUsage.AcceptedPredictionTokenCount; } catch { } }
+                        if (info.AcceptedPredictionTokenCount == null) { try { info.AcceptedPredictionTokenCount = ToInt(dUsage.acceptedPredictionTokenCount); } catch { } }
+
+                        try { info.RejectedPredictionTokenCount = ToInt(dUsage["rejectedPredictionTokenCount"]); } catch { }
+                        if (info.RejectedPredictionTokenCount == null) { try { info.RejectedPredictionTokenCount = ToInt(dUsage["RejectedPredictionTokenCount"]); } catch { } }
+                        if (info.RejectedPredictionTokenCount == null) { try { info.RejectedPredictionTokenCount = dUsage.RejectedPredictionTokenCount; } catch { } }
+                        if (info.RejectedPredictionTokenCount == null) { try { info.RejectedPredictionTokenCount = ToInt(dUsage.rejectedPredictionTokenCount); } catch { } }
                     }
                 }
                 catch (Exception ex)
