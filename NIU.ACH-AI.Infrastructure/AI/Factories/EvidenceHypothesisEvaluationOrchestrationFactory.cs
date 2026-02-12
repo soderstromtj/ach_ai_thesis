@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.Concurrent;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.ChatCompletion;
 using NIU.ACH_AI.Application.Configuration;
@@ -52,17 +53,8 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             // Retrieve IChatCompletionService from the kernel's services
             var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
 
-            EvaluationGroupChatManager groupChatManager =
-                new EvaluationGroupChatManager(
-                    input,
-                    agentNames,
-                    chatCompletion,
-                    new EvaluationPromptStrategy(),
-                    new AgentParticipationTracker(),
-                    this._loggerFactory.CreateLogger<EvaluationGroupChatManager>());
-
-            // Create the GroupChatOrchestration instance
-            var orchestration = new GroupChatOrchestration<string, EvidenceHypothesisEvaluation>(groupChatManager, agents)
+            // Create the SequentialOrchestration instance
+            var orchestration = new SequentialOrchestration<string, EvidenceHypothesisEvaluation>(agents)
             {
                 ResponseCallback = ResponseCallback,
                 ResultTransform = outputTransform.TransformAsync,

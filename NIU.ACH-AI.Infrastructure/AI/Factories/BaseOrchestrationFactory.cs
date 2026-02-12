@@ -245,8 +245,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             await ValueTask.CompletedTask;
         }
 
-
-
         protected async ValueTask<ChatMessageContent> InteractiveCallback()
         {
             _logger.LogDebug("Class: {ClassName}\tMessage: Interactive callback invoked - no user input provided, continuing orchestration.", GetType().Name);
