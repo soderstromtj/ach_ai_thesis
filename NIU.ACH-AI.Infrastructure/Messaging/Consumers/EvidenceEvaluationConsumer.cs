@@ -45,6 +45,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                 var createdStepContext = await _workflowPersistence.CreateStepExecutionAsync(
                     command.ExperimentId,
                     command.Configuration,
+                    command.StepContext.StepExecutionId == Guid.Empty ? null : command.StepContext.StepExecutionId,
                     context.CancellationToken);
 
                 // Use the persisted ID

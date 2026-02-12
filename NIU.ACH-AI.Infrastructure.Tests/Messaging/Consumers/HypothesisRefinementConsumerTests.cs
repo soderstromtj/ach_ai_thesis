@@ -65,7 +65,7 @@ public class HypothesisRefinementConsumerTests
         // Setup Persisted ID return
         var persistedStepId = Guid.NewGuid();
         _mockWorkflowPersistence
-            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new StepExecutionContext { StepExecutionId = persistedStepId });
 
         _mockOrchestrationExecutor
@@ -88,6 +88,7 @@ public class HypothesisRefinementConsumerTests
         _mockWorkflowPersistence.Verify(x => x.CreateStepExecutionAsync(
             command.ExperimentId, 
             command.Configuration, 
+            It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // 2. Verify SaveHypothesesAsync used isRefined = TRUE

@@ -70,7 +70,7 @@ public class HypothesisBrainstormingConsumerTests
         // Setup Persisted ID return
         var persistedStepId = Guid.NewGuid();
         _mockWorkflowPersistence
-            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new StepExecutionContext { StepExecutionId = persistedStepId });
 
         // Setup Executor to return empty list
@@ -96,6 +96,7 @@ public class HypothesisBrainstormingConsumerTests
         _mockWorkflowPersistence.Verify(x => x.CreateStepExecutionAsync(
             command.ExperimentId, 
             command.Configuration, 
+            It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // 2. Verify SaveHypothesesAsync used the PERSISTED ID, not the command one (if they differ)
@@ -130,7 +131,7 @@ public class HypothesisBrainstormingConsumerTests
 
         var persistenceError = new Exception("DB Error");
         _mockWorkflowPersistence
-            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(persistenceError);
 
         // Act

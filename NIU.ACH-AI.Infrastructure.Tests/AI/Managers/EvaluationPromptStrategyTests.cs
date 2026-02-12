@@ -62,16 +62,16 @@ public class EvaluationPromptStrategyTests
     }
 
     [Fact]
-    public void GetSelectionPrompt_ContainsPhaseInstructions()
+    public void GetSelectionPrompt_ContainsTransitionRules()
     {
         // Act
         var prompt = _strategy.GetSelectionPrompt(_input, _agentNames);
 
         // Assert
-        Assert.Contains("Phase 1", prompt);
-        Assert.Contains("Phase 2", prompt);
-        Assert.Contains("Phase 3", prompt);
-        Assert.Contains("DIME", prompt);
+        Assert.Contains("CHECK LAST SPEAKER", prompt);
+        Assert.Contains("CHECK DIME COMPLETION", prompt);
+        Assert.Contains("ReviewerAgent", prompt);
+        Assert.Contains("SummarizerAgent", prompt);
     }
 
     [Fact]

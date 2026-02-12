@@ -38,6 +38,7 @@ namespace NIU.ACH_AI.Application.Interfaces
         Task<StepExecutionContext> CreateStepExecutionAsync(
             Guid experimentId,
             ACHStepConfiguration stepConfiguration,
+            Guid? stepExecutionId = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>

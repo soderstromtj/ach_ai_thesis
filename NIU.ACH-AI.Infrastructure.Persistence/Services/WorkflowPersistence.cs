@@ -108,6 +108,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
         public async Task<StepExecutionContext> CreateStepExecutionAsync(
             Guid experimentId,
             ACHStepConfiguration stepConfiguration,
+            Guid? stepExecutionId = null,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(stepConfiguration, nameof(stepConfiguration));
@@ -116,13 +117,36 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 throw new ArgumentException("Experiment ID must be provided.", nameof(experimentId));
             }
 
+            // check if step execution already exists if ID is provided
+            if (stepExecutionId.HasValue)
+            {
+                 var existing = await _context.StepExecutions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.StepExecutionId == stepExecutionId.Value, cancellationToken);
+                 
+                 if (existing != null)
+                 {
+                     return new StepExecutionContext
+                     {
+                         ExperimentId = existing.ExperimentId,
+                         StepExecutionId = existing.StepExecutionId,
+                         AchStepId = existing.AchStepId,
+                         AchStepName = existing.AchStepName,
+                         Status = existing.ExecutionStatus // Return status so consumer can check if complete
+                     };
+                 }
+            }
+
             Guid? orchestrationTypeId = await ResolveOrchestrationTypeIdAsync(
                 stepConfiguration.Name,
                 cancellationToken);
 
+            // Use provided ID or generate new
+            var newId = stepExecutionId ?? Guid.NewGuid();
+
             var stepExecution = new DbModel.StepExecution
             {
-                StepExecutionId = Guid.NewGuid(),
+                StepExecutionId = newId,
                 ExperimentId = experimentId,
                 AchStepId = stepConfiguration.Id,
                 AchStepName = stepConfiguration.Name,
@@ -140,6 +164,22 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
             }
             catch (DbUpdateException ex)
             {
+                 // Handle race condition where another consumer insert it just now
+                 var existing = await _context.StepExecutions
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.StepExecutionId == newId, cancellationToken);
+
+                 if (existing != null)
+                 {
+                     return new StepExecutionContext
+                     {
+                         ExperimentId = existing.ExperimentId,
+                         StepExecutionId = existing.StepExecutionId,
+                         AchStepId = existing.AchStepId,
+                         AchStepName = existing.AchStepName,
+                         Status = existing.ExecutionStatus
+                     };
+                 }
                 throw new InvalidOperationException("Failed to persist step execution.", ex);
             }
 

@@ -65,7 +65,7 @@ public class EvidenceExtractionConsumerTests
         // Setup Persisted ID return
         var persistedStepId = Guid.NewGuid();
         _mockWorkflowPersistence
-            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateStepExecutionAsync(It.IsAny<Guid>(), It.IsAny<ACHStepConfiguration>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new StepExecutionContext { StepExecutionId = persistedStepId });
 
         _mockOrchestrationExecutor
@@ -88,6 +88,7 @@ public class EvidenceExtractionConsumerTests
         _mockWorkflowPersistence.Verify(x => x.CreateStepExecutionAsync(
             command.ExperimentId, 
             command.Configuration, 
+            It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // 2. Verify SaveEvidenceAsync using persisted ID

@@ -177,6 +177,7 @@ public class EvidenceEvaluationConsumerTests
         _workflowPersistenceMock.Setup(x => x.CreateStepExecutionAsync(
             It.IsAny<Guid>(),
             It.IsAny<ACHStepConfiguration>(),
+            It.IsAny<Guid?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new StepExecutionContext { StepExecutionId = persistedId });
     }

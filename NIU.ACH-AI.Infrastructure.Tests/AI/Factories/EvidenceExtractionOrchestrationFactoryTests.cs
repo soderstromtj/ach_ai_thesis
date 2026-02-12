@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Orchestration;
 using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
+using Microsoft.SemanticKernel.Agents.Orchestration.Sequential;
 using Microsoft.SemanticKernel.Agents.Orchestration.Transforms;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -209,7 +210,7 @@ public class EvidenceExtractionOrchestrationFactoryTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.IsType<GroupChatOrchestration<string, EvidenceResult>>(result);
+        Assert.IsType<SequentialOrchestration<string, EvidenceResult>>(result);
     }
 
     #endregion

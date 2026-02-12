@@ -26,6 +26,11 @@ namespace NIU.ACH_AI.Application.DTOs
         public string AchStepName { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the execution status (e.g. "Completed", "Failed").
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the dictionary mapping agent role names to their configuration IDs.
         /// </summary>
         public Dictionary<string, Guid> AgentConfigurationIds { get; set; }
