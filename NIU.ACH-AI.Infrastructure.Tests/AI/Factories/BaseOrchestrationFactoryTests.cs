@@ -100,7 +100,6 @@ public class BaseOrchestrationFactoryTests
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
             OrchestrationPromptInput input,
-            List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)

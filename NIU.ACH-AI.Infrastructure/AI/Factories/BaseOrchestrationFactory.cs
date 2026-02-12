@@ -101,11 +101,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                  }
              }
 
-            var agentNames = agentList
-                .Select(a => a.Name)
-                .OfType<string>()
-                .ToList();
-
             // Build kernel for orchestration (different from agents' kernels)
             Kernel kernel = _kernelBuilderService.BuildKernel();
 
@@ -128,7 +123,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 agentList.Count);
 
             // Allow derived classes to create their specific orchestration type
-            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, agentNames, kernel, agentList.ToArray(), outputTransform);
+            AgentOrchestration<string, TWrapper> orchestration = CreateOrchestration(input, kernel, agentList.ToArray(), outputTransform);
 
             _logger.LogDebug("Class: {ClassName}\tMessage: Starting in-process runtime that will execute the orchestration and manage state", GetType().Name);
             var runtime = new InProcessRuntime();
@@ -313,7 +308,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// <returns>A configured AgentOrchestration instance</returns>
         protected abstract AgentOrchestration<string, TWrapper> CreateOrchestration(
             OrchestrationPromptInput input,
-            List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
             StructuredOutputTransform<TWrapper> outputTransform);

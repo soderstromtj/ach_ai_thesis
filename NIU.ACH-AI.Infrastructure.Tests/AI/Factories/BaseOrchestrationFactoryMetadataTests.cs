@@ -63,7 +63,7 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
             }
 
             // Abstract implementations (not used for these tests but required)
-            protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(OrchestrationPromptInput input, List<string> agentNames, Kernel kernel, Agent[] agents, StructuredOutputTransform<EvidenceResult> outputTransform) => null!;
+            protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(OrchestrationPromptInput input, Kernel kernel, Agent[] agents, StructuredOutputTransform<EvidenceResult> outputTransform) => null!;
             protected override string GetResultTypeName() => "EvidenceResult";
             protected override List<Evidence> UnwrapResult(EvidenceResult wrapper) => new();
             protected override int GetItemCount(List<Evidence> result) => 0;

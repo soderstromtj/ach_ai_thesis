@@ -14,7 +14,6 @@ using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Domain.Entities;
 using NIU.ACH_AI.Infrastructure.AI.Factories;
-using System.Reflection;
 
 namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories;
 
@@ -173,7 +172,6 @@ public class EvidenceExtractionOrchestrationFactoryTests
         // Arrange
         var factory = CreateFactory();
         var input = new OrchestrationPromptInput { KeyQuestion = "Test" };
-        var agentNames = new List<string> { "AgentA" };
         var agents = new Agent[] { new Mock<Agent>().Object };
         
         // Kernel setup using real ServiceProvider locally
@@ -204,7 +202,6 @@ public class EvidenceExtractionOrchestrationFactoryTests
         // Act
         var result = factory.TestCreateOrchestration(
             input,
-            agentNames,
             kernel,
             agents,
             outputTransform
@@ -232,12 +229,11 @@ public class EvidenceExtractionOrchestrationFactoryTests
 
         public AgentOrchestration<string, EvidenceResult> TestCreateOrchestration(
             OrchestrationPromptInput input,
-            List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
         {
-            return base.CreateOrchestration(input, agentNames, kernel, agents, outputTransform);
+            return base.CreateOrchestration(input, kernel, agents, outputTransform);
         }
 
         public string TestGetResultTypeName() => base.GetResultTypeName();

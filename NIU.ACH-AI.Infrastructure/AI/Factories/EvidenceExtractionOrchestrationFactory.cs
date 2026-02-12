@@ -42,7 +42,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override AgentOrchestration<string, EvidenceResult> CreateOrchestration(
             OrchestrationPromptInput input,
-            List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
             StructuredOutputTransform<EvidenceResult> outputTransform)
@@ -50,10 +49,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             // Retrieve IChatCompletionService from the kernel's services
             var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
 
+            var agent_names = agents.Select(agent => agent.Name!).ToList();
+
             EvidenceExtractionGroupChatManager groupChatManager =
                 new EvidenceExtractionGroupChatManager(
                     input,
-                    agentNames,
+                    agent_names,
                     chatCompletion,
                     new EvidenceExtractionPromptStrategy(),
                     new AgentParticipationTracker(),

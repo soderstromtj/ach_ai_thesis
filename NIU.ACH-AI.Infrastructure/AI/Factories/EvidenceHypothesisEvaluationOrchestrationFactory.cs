@@ -45,7 +45,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         protected override AgentOrchestration<string, EvidenceHypothesisEvaluation> CreateOrchestration(
             OrchestrationPromptInput input,
-            List<string> agentNames,
             Kernel kernel,
             Agent[] agents,
             StructuredOutputTransform<EvidenceHypothesisEvaluation> outputTransform)
