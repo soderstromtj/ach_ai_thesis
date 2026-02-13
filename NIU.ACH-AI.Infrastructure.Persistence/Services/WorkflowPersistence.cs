@@ -154,6 +154,7 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
                 TaskInstructions = stepConfiguration.TaskInstructions,
                 OrchestrationTypeId = orchestrationTypeId,
                 ExecutionStatus = "NotStarted",
+                DatetimeStart = DateTime.UtcNow,
                 RetryCount = 0
             };
 
