@@ -98,7 +98,7 @@ namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
                             StepContext = createdStepContext
                         };
 
-                        tasks.Add(context.Send<IEvaluateHypothesisEvidencePair>(evaluationCommand));
+                        tasks.Add(context.Publish<IEvaluateHypothesisEvidencePair>(evaluationCommand));
                     }
                 }
 

@@ -32,12 +32,7 @@ public class EvidenceEvaluationConsumerTests : IDisposable
             _mockWorkflowPersistence.Object,
             _mockLogger.Object);
 
-        // Setup Endpoint Convention for testing Send validation
-        EndpointConvention.Map<IEvaluateHypothesisEvidencePair>(new Uri("queue:test-queue"));
 
-        // Setup GetSendEndpoint to return our mock
-        _mockContext.Setup(x => x.GetSendEndpoint(It.IsAny<Uri>()))
-            .ReturnsAsync(_mockSendEndpoint.Object);
     }
 
     public void Dispose()
@@ -97,10 +92,9 @@ public class EvidenceEvaluationConsumerTests : IDisposable
             It.Is<object>(val => VerifyBatchStarted(val, experimentId, persistedStepId, 4)),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        // 3. Verify IEvaluateHypothesisEvidencePair sent 4 times (2 ev * 2 hyp)
-        _mockSendEndpoint.Verify(x => x.Send(
-            It.IsAny<IEvaluateHypothesisEvidencePair>(),
-            It.IsAny<IPipe<SendContext<IEvaluateHypothesisEvidencePair>>>(),
+        // 3. Verify IEvaluateHypothesisEvidencePair published 4 times (2 ev * 2 hyp)
+        _mockContext.Verify(x => x.Publish<IEvaluateHypothesisEvidencePair>(
+            It.IsAny<object>(),
             It.IsAny<CancellationToken>()), Times.Exactly(4));
     }
 
@@ -146,9 +140,8 @@ public class EvidenceEvaluationConsumerTests : IDisposable
             It.Is<object>(val => GetTotalEvaluations(val) == 1),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        _mockSendEndpoint.Verify(x => x.Send(
-            It.IsAny<IEvaluateHypothesisEvidencePair>(),
-            It.IsAny<IPipe<SendContext<IEvaluateHypothesisEvidencePair>>>(),
+        _mockContext.Verify(x => x.Publish<IEvaluateHypothesisEvidencePair>(
+            It.IsAny<object>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
     
@@ -188,9 +181,8 @@ public class EvidenceEvaluationConsumerTests : IDisposable
 
         // Assert
         // Should filter out empty GUIDs -> 1 * 1 = 1 evaluation
-        _mockSendEndpoint.Verify(x => x.Send(
-            It.IsAny<IEvaluateHypothesisEvidencePair>(), 
-            It.IsAny<IPipe<SendContext<IEvaluateHypothesisEvidencePair>>>(),
+        _mockContext.Verify(x => x.Publish<IEvaluateHypothesisEvidencePair>(
+            It.IsAny<object>(), 
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -222,9 +214,8 @@ public class EvidenceEvaluationConsumerTests : IDisposable
         await _consumer.Consume(_mockContext.Object);
 
         // Assert
-        _mockSendEndpoint.Verify(x => x.Send(
-            It.IsAny<IEvaluateHypothesisEvidencePair>(),
-            It.IsAny<IPipe<SendContext<IEvaluateHypothesisEvidencePair>>>(),
+        _mockContext.Verify(x => x.Publish<IEvaluateHypothesisEvidencePair>(
+            It.IsAny<object>(),
             It.IsAny<CancellationToken>()), Times.Never);
             
          _mockContext.Verify(x => x.Publish<IEvaluationBatchStarted>(
