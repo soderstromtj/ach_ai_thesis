@@ -30,6 +30,9 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
         public Event<IEvidenceExtractionResult> ExtractionCompleted { get; private set; }
         public Event<IEvidenceEvaluationResult> EvaluationCompleted { get; private set; }
 
+        public Event<IEvaluationBatchStarted> BatchStarted { get; private set; }
+        public Event<IPairEvaluated> PairEvaluated { get; private set; }
+
         public ACHWorkflowStateMachine(ILogger<ACHWorkflowStateMachine> logger)
         {
             _logger = logger;
@@ -42,6 +45,9 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
             Event(() => RefinementCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
             Event(() => ExtractionCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
             Event(() => EvaluationCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
+            
+            Event(() => BatchStarted, x => x.CorrelateById(m => m.Message.ExperimentId));
+            Event(() => PairEvaluated, x => x.CorrelateById(m => m.Message.ExperimentId));
 
             // Initial State: Start Experiment
             Initially(
@@ -138,19 +144,39 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
             );
 
             During(Evaluating,
-                DispatchStep(
-                    When(EvaluationCompleted)
-                    .Then(ctx =>
+                When(BatchStarted)
+                    .Then(ctx => 
                     {
-                       if (!ctx.Message.Success) throw new Exception(ctx.Message.ErrorMessage);
-
-                       var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
-                       result.Evaluations = ctx.Message.Evaluations;
-                       result.Success = true;
-                       ctx.Saga.SerializedResult = JsonSerializer.Serialize(result);
-                       ctx.Saga.CurrentStepIndex++;
+                        ctx.Saga.TotalEvaluations = ctx.Message.TotalEvaluations;
+                        ctx.Saga.CompletedEvaluations = 0;
+                        _logger.LogInformation("Evaluation Batch Started. Expecting {Count} evaluations.", ctx.Message.TotalEvaluations);
+                    }),
+                
+                // We don't use DispatchStep here immediately because we wait for aggregation
+                When(PairEvaluated)
+                    .Then(ctx => 
+                    {
+                        ctx.Saga.CompletedEvaluations++;
+                        _logger.LogInformation("Pair Evaluated: {Current}/{Total}", ctx.Saga.CompletedEvaluations, ctx.Saga.TotalEvaluations);
+                        
+                        if (ctx.Message.Success && ctx.Message.Evaluation != null)
+                        {
+                            var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
+                            result.Evaluations ??= new List<NIU.ACH_AI.Domain.Entities.EvidenceHypothesisEvaluation>();
+                            result.Evaluations.Add(ctx.Message.Evaluation);
+                            ctx.Saga.SerializedResult = JsonSerializer.Serialize(result);
+                        }
                     })
-                )
+                    // Check Completion
+                    .If(ctx => ctx.Saga.CompletedEvaluations >= ctx.Saga.TotalEvaluations,
+                        binder => DispatchStep(binder.Then(ctx => 
+                        {
+                            var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
+                            result.Success = true; // Mark overall success
+                            ctx.Saga.CurrentStepIndex++; // Advance to next step (Completed typically)
+                            _logger.LogInformation("All evaluations completed. Advancing workflow.");
+                        }))
+                    )
             );
         }
 

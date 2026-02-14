@@ -48,6 +48,16 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Models
         public Guid? EvidenceStepExecutionId { get; set; }
 
         /// <summary>
+        /// Total number of evaluations expected in the current batch.
+        /// </summary>
+        public int TotalEvaluations { get; set; }
+
+        /// <summary>
+        /// Number of evaluations completed in the current batch.
+        /// </summary>
+        public int CompletedEvaluations { get; set; }
+
+        /// <summary>
         /// Timestamp when the saga was created.
         /// </summary>
         public DateTime Created { get; set; }

@@ -16,6 +16,7 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                 x.AddConsumer<Messaging.Consumers.EvidenceExtractionConsumer>();
                 x.AddConsumer<Messaging.Consumers.EvidenceEvaluationConsumer>();
                 x.AddConsumer<Messaging.Consumers.AgentResponsePersistenceConsumer>();
+                x.AddConsumer<Messaging.Consumers.SingleEvidenceEvaluationConsumer>();
 
                 // Register the Request Clients
                 x.AddRequestClient<Application.Messaging.Commands.IBrainstormingRequested>();
