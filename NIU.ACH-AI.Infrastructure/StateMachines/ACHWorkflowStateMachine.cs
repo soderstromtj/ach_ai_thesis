@@ -158,14 +158,6 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                     {
                         ctx.Saga.CompletedEvaluations++;
                         _logger.LogInformation("Pair Evaluated: {Current}/{Total}", ctx.Saga.CompletedEvaluations, ctx.Saga.TotalEvaluations);
-                        
-                        if (ctx.Message.Success && ctx.Message.Evaluation != null)
-                        {
-                            var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
-                            result.Evaluations ??= new List<NIU.ACH_AI.Domain.Entities.EvidenceHypothesisEvaluation>();
-                            result.Evaluations.Add(ctx.Message.Evaluation);
-                            ctx.Saga.SerializedResult = JsonSerializer.Serialize(result);
-                        }
                     })
                     // Check Completion
                     .If(ctx => ctx.Saga.CompletedEvaluations >= ctx.Saga.TotalEvaluations,

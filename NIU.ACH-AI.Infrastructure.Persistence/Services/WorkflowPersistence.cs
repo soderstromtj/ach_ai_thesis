@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using NIU.ACH_AI.Application.Configuration;
 using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
+using NIU.ACH_AI.Infrastructure.Persistence.Repositories;
 using DbModel = NIU.ACH_AI.Infrastructure.Persistence.Models;
+using DomainEntity = NIU.ACH_AI.Domain.Entities;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 {
@@ -15,16 +17,21 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
     {
         private readonly DbModel.AchAIDbContext _context;
         private readonly DbModel.ACHSagaDbContext _sagaContext;
+        private readonly IEvidenceHypothesisEvaluationRepository _evaluationRepository;
 
         /// <summary>
         /// Creates a persistence service using the ACH AI database context.
         /// </summary>
         /// <param name="context">The ACH AI database context.</param>
         /// <param name="sagaContext">The ACH Saga database context.</param>
-        public WorkflowPersistence(DbModel.AchAIDbContext context, DbModel.ACHSagaDbContext sagaContext)
+        public WorkflowPersistence(
+            DbModel.AchAIDbContext context, 
+            DbModel.ACHSagaDbContext sagaContext,
+            IEvidenceHypothesisEvaluationRepository evaluationRepository)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _sagaContext = sagaContext ?? throw new ArgumentNullException(nameof(sagaContext));
+            _evaluationRepository = evaluationRepository ?? throw new ArgumentNullException(nameof(evaluationRepository));
         }
 
         /// <summary>
@@ -358,7 +365,28 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Services
 
             try
             {
-                return System.Text.Json.JsonSerializer.Deserialize<ACHWorkflowResult>(sagaState.SerializedResult);
+                var result = System.Text.Json.JsonSerializer.Deserialize<ACHWorkflowResult>(sagaState.SerializedResult);
+                
+                if (result != null)
+                {
+                    // Hydrate evaluations from the separate repository
+                    // We need to find the step execution(s) for evaluation
+                    var evaluationSteps = await _context.StepExecutions
+                        .AsNoTracking()
+                        .Where(s => s.ExperimentId == experimentId && s.AchStepName.ToLower().Contains("evaluation"))
+                        .ToListAsync(cancellationToken);
+
+                    var allEvaluations = new List<DomainEntity.EvidenceHypothesisEvaluation>();
+                    foreach (var step in evaluationSteps)
+                    {
+                        var evaluations = await _evaluationRepository.GetByStepExecutionIdAsync(step.StepExecutionId, cancellationToken);
+                        allEvaluations.AddRange(evaluations);
+                    }
+
+                    result.Evaluations = allEvaluations;
+                }
+
+                return result;
             }
             catch
             {
