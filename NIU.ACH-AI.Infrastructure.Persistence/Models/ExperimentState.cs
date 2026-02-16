@@ -66,5 +66,10 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Models
         /// Timestamp when the saga was last updated.
         /// </summary>
         public DateTime Updated { get; set; }
+
+        /// <summary>
+        /// RowVersion for Optimistic Concurrency.
+        /// </summary>
+        public byte[] RowVersion { get; set; }
     }
 }

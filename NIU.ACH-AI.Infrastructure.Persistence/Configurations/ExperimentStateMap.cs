@@ -23,6 +23,8 @@ namespace NIU.ACH_AI.Infrastructure.Persistence.Configurations
             entity.Property(x => x.HypothesisStepExecutionId);
             entity.Property(x => x.RefinedHypothesisStepExecutionId);
             entity.Property(x => x.EvidenceStepExecutionId);
+
+            entity.Property(x => x.RowVersion).IsRowVersion();
         }
     }
 }

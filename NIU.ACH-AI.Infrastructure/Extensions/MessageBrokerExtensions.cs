@@ -38,6 +38,16 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                     // invokes GetSection(...) and can throw with a plain Mock<IConfiguration>.
                     var connectionString = configuration?["ConnectionStrings:messaging"];
 
+                    // Global Retry Policy for Concurrency
+                    cfg.UseMessageRetry(r => 
+                    {
+                        // Retry on EF Core Concurrency Exception (Optimistic Locking)
+                        r.Handle<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>();
+                        
+                        // Retry 20 times with a small jitter to resolve collisions
+                        r.Interval(20, TimeSpan.FromMilliseconds(200));
+                    });
+
                     // Optional: fallback to RabbitMQ:Host setting if provided (test sets this)
                     if (string.IsNullOrEmpty(connectionString))
                     {
