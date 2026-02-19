@@ -48,7 +48,7 @@ public class EvidenceMapperTests
     /// Verifies that mapping a domain evidence with an existing GUID preserves that GUID in the database entity.
     /// </summary>
     [Fact]
-    public void ToDatabase_WithExistingEvidenceId_PreservesGuid()
+    public void ToDatabase_WithExistingEvidenceId_GeneratesNewId()
     {
         // Arrange
         var existingGuid = Guid.NewGuid();
@@ -66,7 +66,8 @@ public class EvidenceMapperTests
         var result = EvidenceMapper.ToDatabase(domainEvidence, stepExecutionId);
 
         // Assert
-        result.EvidenceId.Should().Be(existingGuid);
+        result.EvidenceId.Should().NotBe(existingGuid);
+        result.EvidenceId.Should().NotBe(Guid.Empty);
     }
 
     /// <summary>
@@ -444,7 +445,7 @@ public class EvidenceMapperTests
         var resultDomain = EvidenceMapper.ToDomain(dbEntity);
 
         // Assert
-        resultDomain.EvidenceId.Should().Be(originalDomain.EvidenceId);
+        resultDomain.EvidenceId.Should().NotBe(originalDomain.EvidenceId);
         resultDomain.Claim.Should().Be(originalDomain.Claim);
         resultDomain.ReferenceSnippet.Should().Be(originalDomain.ReferenceSnippet);
         resultDomain.Type.Should().Be(originalDomain.Type);

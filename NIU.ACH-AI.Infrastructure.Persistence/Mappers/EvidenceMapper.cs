@@ -16,14 +16,9 @@ public static class EvidenceMapper
         DomainEntity.Evidence domain,
         Guid stepExecutionId)
     {
-        // First check if domain.EvidenceId is not empty or Guid.Empty, if it is not empty, we should try to parse it into a Guid
-        Guid evidenceId = Guid.Empty.Equals(domain.EvidenceId) || string.IsNullOrEmpty(domain.EvidenceId.ToString()) 
-            ? Guid.NewGuid() 
-            : Guid.TryParse(domain.EvidenceId.ToString(), out var parsedGuid) ? parsedGuid : Guid.NewGuid();
-
         return new DbModel.Evidence
         {
-            EvidenceId = evidenceId, 
+            EvidenceId = Guid.NewGuid(), 
             StepExecutionId = stepExecutionId,
             Claim = domain.Claim,
             ReferenceSnippet = domain.ReferenceSnippet,

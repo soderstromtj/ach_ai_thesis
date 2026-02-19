@@ -25,7 +25,7 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                 x.AddRequestClient<Application.Messaging.Commands.IEvidenceEvaluationRequested>();
 
                 // Register Saga
-                x.AddSagaStateMachine<StateMachines.ACHWorkflowStateMachine, Persistence.Models.ExperimentState>()
+                x.AddSagaStateMachine<StateMachines.ACHWorkflowStateMachine, Persistence.Models.ExperimentState, StateMachines.ACHWorkflowStateMachineDefinition>()
                     .EntityFrameworkRepository(r =>
                     {
                         r.ExistingDbContext<Persistence.Models.ACHSagaDbContext>();
@@ -45,7 +45,7 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                         r.Handle<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>();
                         
                         // Retry 20 times with a small jitter to resolve collisions
-                        r.Interval(20, TimeSpan.FromMilliseconds(200));
+                        r.Interval(20, TimeSpan.FromMilliseconds(400));
                     });
 
                     // Optional: fallback to RabbitMQ:Host setting if provided (test sets this)

@@ -57,6 +57,7 @@
   <ItemGroup>
     <Folder Include="Properties" />
     <Folder Include="Tables" />
+    <Folder Include="Views" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="Tables\STEP_EXECUTIONS.sql">
