@@ -85,6 +85,7 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                     When(BrainstormingCompleted)
                     .Then(ctx =>
                     {
+                       ctx.Saga.Updated = DateTime.UtcNow;
                        if (!ctx.Message.Success) throw new Exception(ctx.Message.ErrorMessage);
 
                        var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
@@ -106,6 +107,7 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                     When(RefinementCompleted)
                     .Then(ctx =>
                     {
+                       ctx.Saga.Updated = DateTime.UtcNow;
                        if (!ctx.Message.Success) throw new Exception(ctx.Message.ErrorMessage);
 
                        var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
@@ -127,6 +129,7 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                     When(ExtractionCompleted)
                     .Then(ctx =>
                     {
+                       ctx.Saga.Updated = DateTime.UtcNow;
                        if (!ctx.Message.Success) throw new Exception(ctx.Message.ErrorMessage);
 
                        var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
@@ -147,28 +150,55 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
                 When(BatchStarted)
                     .Then(ctx => 
                     {
+                        ctx.Saga.Updated = DateTime.UtcNow;
                         ctx.Saga.TotalEvaluations = ctx.Message.TotalEvaluations;
                         ctx.Saga.CompletedEvaluations = 0;
                         _logger.LogInformation("Evaluation Batch Started. Expecting {Count} evaluations.", ctx.Message.TotalEvaluations);
                     }),
                 
-                // We don't use DispatchStep here immediately because we wait for aggregation
+                // Handle individual pair evaluation completion
                 When(PairEvaluated)
-                    .Then(ctx => 
+                    .ThenAsync(async ctx => 
                     {
+                        ctx.Saga.Updated = DateTime.UtcNow;
                         ctx.Saga.CompletedEvaluations++;
                         _logger.LogInformation("Pair Evaluated: {Current}/{Total}", ctx.Saga.CompletedEvaluations, ctx.Saga.TotalEvaluations);
-                    })
-                    // Check Completion
-                    .If(ctx => ctx.Saga.CompletedEvaluations >= ctx.Saga.TotalEvaluations,
-                        binder => DispatchStep(binder.Then(ctx => 
+                        
+                        // Check Completion
+                        if (ctx.Saga.CompletedEvaluations >= ctx.Saga.TotalEvaluations)
                         {
-                            var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
-                            result.Success = true; // Mark overall success
-                            ctx.Saga.CurrentStepIndex++; // Advance to next step (Completed typically)
-                            _logger.LogInformation("All evaluations completed. Advancing workflow.");
-                        }))
-                    )
+                            _logger.LogInformation("All evaluations completed. Publishing Result.");
+                            
+                            // Publish result to trigger the consumer (side effect) and the next state transition
+                            await ctx.Publish<IEvidenceEvaluationResult>(new 
+                            {
+                                ExperimentId = ctx.Saga.CorrelationId,
+                                StepExecutionId = ctx.Message.StepExecutionId,
+                                Success = true
+                            });
+                        }
+                    }),
+
+                 // Handle the overall step completion event (which we just published above, or separate consumer published)
+                 // Actually, simpler: 
+                 // 1. PairEvaluated checks count.
+                 // 2. If complete, Publish IEvidenceEvaluationResult.
+                 // 3. This StateMachine consumes IEvidenceEvaluationResult to transition.
+                 DispatchStep(
+                     When(EvaluationCompleted)
+                     .Then(ctx =>
+                     {
+                         ctx.Saga.Updated = DateTime.UtcNow;
+                         _logger.LogInformation("Evidence Evaluation Step Completed via Event.");
+                         
+                         var result = Deserialize<ACHWorkflowResult>(ctx.Saga.SerializedResult);
+                         result.Success = true; 
+                         ctx.Saga.SerializedResult = JsonSerializer.Serialize(result);
+                         
+                         // We don't strictly need to store ID here if we are just moving to Completed/Next
+                         ctx.Saga.CurrentStepIndex++; 
+                     })
+                 )
             );
         }
 

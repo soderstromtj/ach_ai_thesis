@@ -17,6 +17,7 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                 x.AddConsumer<Messaging.Consumers.EvidenceEvaluationConsumer>();
                 x.AddConsumer<Messaging.Consumers.AgentResponsePersistenceConsumer>();
                 x.AddConsumer<Messaging.Consumers.SingleEvidenceEvaluationConsumer>();
+                x.AddConsumer<Messaging.Consumers.EvidenceEvaluationResultConsumer>();
 
                 // Register the Request Clients
                 x.AddRequestClient<Application.Messaging.Commands.IBrainstormingRequested>();
@@ -41,11 +42,13 @@ namespace NIU.ACH_AI.Infrastructure.Extensions
                     // Global Retry Policy for Concurrency
                     cfg.UseMessageRetry(r => 
                     {
-                        // Retry on EF Core Concurrency Exception (Optimistic Locking)
+                        // Retry on EF Core Concurrency Exception and generic update errors (deadlocks)
                         r.Handle<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>();
+                        r.Handle<Microsoft.EntityFrameworkCore.DbUpdateException>();
                         
-                        // Retry 20 times with a small jitter to resolve collisions
-                        r.Interval(20, TimeSpan.FromMilliseconds(400));
+                        // Robust Retry: 20 times, up to 500ms jitter.
+                        // Ideally exponential for high contention:
+                        r.Exponential(20, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(100));
                     });
 
                     // Optional: fallback to RabbitMQ:Host setting if provided (test sets this)

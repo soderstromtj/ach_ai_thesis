@@ -11,9 +11,9 @@
         public string ApiKey { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the model ID (e.g., "gpt-4o").
+        /// Gets or sets the model ID (e.g., "o3").
         /// </summary>
-        public string ModelId { get; set; } = "gpt-4o";
+        public string ModelId { get; set; } = "o3";
 
         /// <summary>
         /// Gets or sets the optional organization ID.

@@ -17,6 +17,22 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
 
             // Use the Outbox to ensure events are only published if the database transaction commits
             endpointConfigurator.UseInMemoryOutbox();
+
+            // Strict Sequential Processing for specific messages to prevent Saga concurrency issues
+            // This force MassTransit to process only 1 message at a time for the Saga endpoint
+            // Since we are using Partitioner, it should already be serialized per CorrelationId, 
+            // but setting ConcurrentMessageLimit to 1 globally for this endpoint (or limiting the partitioner concurrency)
+            // ensures we don't have multiple threads fighting over the DB lock.
+            // Note: This might slow down overall processing if we only have 1 consumer instance for ALL experiments?
+            // No, Partitioner handles it per CorrelationID.
+            // Let's trust the Partitioner but ensure the ConcurrencyLimit on the endpoint is reasonable.
+            
+            // Actually, to be safe towards the user request:
+            // "PairEvaluated events to be completed sequentially"
+            // The Partitioner (lines 13-16) does exactly that for a given ExperimentId.
+            // We adding a backup:
+            // sagaConfigurator.UseMessageRetry(...) is handled globally in extensions.
+
         }
     }
 }

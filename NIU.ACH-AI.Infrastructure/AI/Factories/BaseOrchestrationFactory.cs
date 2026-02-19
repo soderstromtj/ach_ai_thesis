@@ -131,7 +131,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             try
             {
-
                 _logger.LogDebug("Class: {ClassName}\tMessage: Invoking orchestration with input.", GetType().Name);
                 var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
 
