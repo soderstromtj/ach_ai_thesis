@@ -17,18 +17,22 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
     public class OrchestrationFactoryProvider : IOrchestrationFactoryProvider
     {
         private readonly IOrchestrationExecutor _orchestrationExecutor;
+        private readonly IOrchestrationPromptFormatter _promptFormatter;
         private readonly IAgentResponsePersistence _agentResponsePersistence;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrchestrationFactoryProvider"/> class.
         /// </summary>
         /// <param name="orchestrationExecutor">The executor service for orchestration.</param>
+        /// <param name="promptFormatter">The prompt formatter service.</param>
         /// <param name="agentResponsePersistence">Service for persisting agent responses.</param>
         public OrchestrationFactoryProvider(
             IOrchestrationExecutor orchestrationExecutor,
+            IOrchestrationPromptFormatter promptFormatter,
             IAgentResponsePersistence agentResponsePersistence)
         {
             _orchestrationExecutor = orchestrationExecutor;
+            _promptFormatter = promptFormatter ?? throw new ArgumentNullException(nameof(promptFormatter));
             _agentResponsePersistence = agentResponsePersistence ?? throw new ArgumentNullException(nameof(agentResponsePersistence));
         }
 
@@ -54,19 +58,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             {
                 "hypothesis brainstorming" or "hypothesisbrainstorming"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisBrainstormingOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, _promptFormatter, loggerFactory, _agentResponsePersistence),
 
                 "hypothesis evaluation" or "hypothesisevaluation" or "hypothesis refinement" or "hypothesisrefinement"
                     => CreateTypedFactory<TResult, List<Hypothesis>, HypothesisRefinementOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, _promptFormatter, loggerFactory, _agentResponsePersistence),
 
                 "evidence extraction" or "evidenceextraction"
                     => CreateTypedFactory<TResult, List<Evidence>, EvidenceExtractionOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, _promptFormatter, loggerFactory, _agentResponsePersistence),
 
                 "evidence hypothesis evaluation" or "evidencehypothesisevaluation" or "evidence evaluation" or "evidenceevaluation"
                     => CreateTypedFactory<TResult, EvidenceHypothesisEvaluation, EvidenceHypothesisEvaluationOrchestrationFactory>(
-                        agentService, kernelBuilderService, orchestrationOptions, loggerFactory, _agentResponsePersistence),
+                        agentService, kernelBuilderService, orchestrationOptions, _promptFormatter, loggerFactory, _agentResponsePersistence),
 
                 _ => throw new InvalidOperationException(
                     $"Unknown ACH step name: '{stepConfiguration.Name}'. " +
@@ -83,6 +87,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationOptions,
+            IOrchestrationPromptFormatter promptFormatter,
             ILoggerFactory loggerFactory,
             IAgentResponsePersistence agentResponsePersistence)
             where TFactory : IOrchestrationFactory<TExpectedResult>
@@ -102,6 +107,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
                 agentService,
                 kernelBuilderService,
                 orchestrationOptions,
+                promptFormatter,
                 loggerFactory,
                 agentResponsePersistence)!;
 

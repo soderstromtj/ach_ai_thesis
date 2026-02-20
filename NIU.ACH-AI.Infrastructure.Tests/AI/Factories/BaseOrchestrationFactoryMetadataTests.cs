@@ -42,9 +42,10 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 IAgentService agentService,
                 IKernelBuilderService kernelBuilderService,
                 IOptions<OrchestrationSettings> orchestrationSettings,
+                IOrchestrationPromptFormatter orchestrationPromptFormatter, // Added this parameter
                 ILoggerFactory loggerFactory,
                 IAgentResponsePersistence? agentResponsePersistence = null)
-                : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+                : base(agentService, kernelBuilderService, orchestrationSettings, orchestrationPromptFormatter, loggerFactory, agentResponsePersistence) // Updated base call
             {
             }
 
@@ -184,6 +185,7 @@ namespace NIU.ACH_AI.Infrastructure.Tests.AI.Factories
                 new Mock<IAgentService>().Object,
                 new Mock<IKernelBuilderService>().Object,
                 Options.Create(new OrchestrationSettings { StreamResponses = streamResponses, WriteResponses = false }),
+                new Mock<IOrchestrationPromptFormatter>().Object,
                 loggerFactoryMock.Object,
                 persistence
             );

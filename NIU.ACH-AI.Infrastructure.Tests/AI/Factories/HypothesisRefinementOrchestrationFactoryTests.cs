@@ -70,11 +70,16 @@ public class HypothesisRefinementOrchestrationFactoryTests
         var optionsMock = new Mock<IOptions<OrchestrationSettings>>();
         optionsMock.Setup(o => o.Value).Returns(orchestrationSettings);
 
+        var promptFormatterMock = new Mock<IOrchestrationPromptFormatter>();
+        var agentResponsePersistenceMock = new Mock<IAgentResponsePersistence>();
+
         var factory = new HypothesisRefinementOrchestrationFactory(
             agentServiceMock.Object,
             kernelBuilderServiceMock.Object,
             optionsMock.Object,
-            loggerFactoryMock.Object);
+            promptFormatterMock.Object,
+            loggerFactoryMock.Object,
+            agentResponsePersistenceMock.Object);
 
         return (factory, agentServiceMock, kernelBuilderServiceMock, loggerFactoryMock, loggerMock);
     }
@@ -139,6 +144,7 @@ public class HypothesisRefinementOrchestrationFactoryTests
             Mock.Of<IAgentService>(),
             Mock.Of<IKernelBuilderService>(),
             optionsMock.Object,
+            new Mock<IOrchestrationPromptFormatter>().Object,
             loggerFactoryMock.Object);
 
         // Assert
@@ -171,6 +177,7 @@ public class HypothesisRefinementOrchestrationFactoryTests
             Mock.Of<IAgentService>(),
             Mock.Of<IKernelBuilderService>(),
             optionsMock.Object,
+            new Mock<IOrchestrationPromptFormatter>().Object,
             loggerFactoryMock.Object);
 
         // Assert - Should NOT contain other factory names

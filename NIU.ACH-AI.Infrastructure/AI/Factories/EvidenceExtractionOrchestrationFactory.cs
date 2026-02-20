@@ -35,9 +35,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
+            IOrchestrationPromptFormatter promptFormatter,
             ILoggerFactory loggerFactory,
             IAgentResponsePersistence? agentResponsePersistence = null)
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+            : base(agentService, kernelBuilderService, orchestrationSettings, promptFormatter, loggerFactory, agentResponsePersistence)
         {
         }
 

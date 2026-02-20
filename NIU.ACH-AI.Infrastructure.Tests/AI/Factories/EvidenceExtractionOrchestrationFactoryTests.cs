@@ -50,11 +50,12 @@ public class EvidenceExtractionOrchestrationFactoryTests
     private TestableEvidenceExtractionOrchestrationFactory CreateFactory(bool includePersistence = false)
     {
         return new TestableEvidenceExtractionOrchestrationFactory(
-            _agentServiceMock.Object,
-            _kernelBuilderServiceMock.Object,
-            _optionsMock.Object,
-            _loggerFactoryMock.Object,
-            includePersistence ? _agentResponsePersistenceMock.Object : null
+                _agentServiceMock.Object,
+                _kernelBuilderServiceMock.Object,
+                _optionsMock.Object,
+                new Mock<IOrchestrationPromptFormatter>().Object,
+                _loggerFactoryMock.Object,
+                includePersistence ? _agentResponsePersistenceMock.Object : null
         );
     }
 
@@ -74,6 +75,7 @@ public class EvidenceExtractionOrchestrationFactoryTests
              _agentServiceMock.Object,
             _kernelBuilderServiceMock.Object,
             _optionsMock.Object,
+            new Mock<IOrchestrationPromptFormatter>().Object,
             _loggerFactoryMock.Object,
             null);
             
@@ -222,9 +224,10 @@ public class EvidenceExtractionOrchestrationFactoryTests
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
+            IOrchestrationPromptFormatter orchestrationPromptFormatter,
             ILoggerFactory loggerFactory,
             IAgentResponsePersistence? agentResponsePersistence = null)
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory, agentResponsePersistence)
+            : base(agentService, kernelBuilderService, orchestrationSettings, orchestrationPromptFormatter, loggerFactory, agentResponsePersistence)
         {
         }
 

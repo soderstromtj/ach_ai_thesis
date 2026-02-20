@@ -33,6 +33,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         protected readonly ChatHistory _history;
         protected readonly ILogger _logger;
         protected readonly ILoggerFactory _loggerFactory;
+        protected readonly IOrchestrationPromptFormatter _promptFormatter;
         private readonly IAgentResponsePersistence? _agentResponsePersistence;
         private int _currentTurn = 0;
         private string? _previousAgentName = null;
@@ -48,18 +49,21 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         /// <param name="agentService">Service for creating agents.</param>
         /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
         /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="promptFormatter">Formatter for orchestration inputs.</param>
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
         protected BaseOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
+            IOrchestrationPromptFormatter promptFormatter,
             ILoggerFactory loggerFactory,
             IAgentResponsePersistence? agentResponsePersistence = null)
         {
             _agentService = agentService;
             _kernelBuilderService = kernelBuilderService;
             _orchestrationSettings = orchestrationSettings.Value;
+            _promptFormatter = promptFormatter;
             _history = new ChatHistory();
             _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger(GetType());
@@ -131,8 +135,10 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
             try
             {
-                _logger.LogDebug("Class: {ClassName}\tMessage: Invoking orchestration with input.", GetType().Name);
-                var result = await orchestration.InvokeAsync(input.ToString(), runtime, cancellationToken);
+                var promptString = _promptFormatter.FormatPrompt(input);
+
+                _logger.LogDebug("Class: {ClassName}\tMessage: Invoking orchestration with formatted prompt.", GetType().Name);
+                var result = await orchestration.InvokeAsync(promptString, runtime, cancellationToken);
 
                 _logger.LogDebug("Class: {ClassName}\tMessage: Orchestration invocation completed. Processing result.", GetType().Name);
 

@@ -70,10 +70,11 @@ public class BaseOrchestrationFactoryTests
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,
             IOptions<OrchestrationSettings> orchestrationSettings,
-            ILoggerFactory loggerFactory)
-            : base(agentService, kernelBuilderService, orchestrationSettings, loggerFactory)
-        {
-        }
+            IOrchestrationPromptFormatter orchestrationPromptFormatterMock,
+            ILoggerFactory loggerFactory,
+            IAgentResponsePersistence orchestrationPersistenceMock)
+            : base(agentService, kernelBuilderService, orchestrationSettings, orchestrationPromptFormatterMock, loggerFactory, orchestrationPersistenceMock)
+        { }
 
         // Expose protected members for testing
         public IAgentService ExposedAgentService => _agentService;
@@ -180,11 +181,21 @@ public class BaseOrchestrationFactoryTests
         var optionsMock = new Mock<IOptions<OrchestrationSettings>>();
         optionsMock.Setup(o => o.Value).Returns(orchestrationSettings);
 
+        // Create mock IOrchestrationPromptFormatter
+        var orchestrationPromptFormatterMock = new Mock<IOrchestrationPromptFormatter>();
+        orchestrationPromptFormatterMock.Setup(f => f.FormatPrompt(It.IsAny<OrchestrationPromptInput>())).Returns("formatted prompt");
+
+        // Create mock IAgentResponsePersistence
+        var orchestrationPersistenceMock = new Mock<IAgentResponsePersistence>();
+
+        // Create the factory wrapper instance
         var factory = new TestableOrchestrationFactory(
             agentServiceMock.Object,
             kernelBuilderServiceMock.Object,
             optionsMock.Object,
-            loggerFactoryMock.Object);
+            orchestrationPromptFormatterMock.Object,
+            loggerFactoryMock.Object,
+            orchestrationPersistenceMock.Object);
 
         return (factory, agentServiceMock, kernelBuilderServiceMock,
             orchestrationSettings, loggerFactoryMock);

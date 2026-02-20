@@ -7,25 +7,26 @@ using NIU.ACH_AI.Application.DTOs;
 using NIU.ACH_AI.Application.Interfaces;
 using NIU.ACH_AI.Application.Messaging.Events;
 using NIU.ACH_AI.Application.Services;
-using NIU.ACH_AI.Domain.Entities;
 
 namespace NIU.ACH_AI.Application.Tests.Services;
 
 /// <summary>
-/// Unit tests for ACHWorkflowCoordinator which now uses Saga Orchestration.
+/// Unit tests for ACHWorkflowCoordinator which now delegates to Initialization and Monitoring services.
 /// </summary>
 public class ACHWorkflowCoordinatorTests
 {
+    private readonly Mock<IExperimentInitializationService> _mockInitService;
+    private readonly Mock<IExperimentMonitoringService> _mockMonitorService;
     private readonly Mock<IPublishEndpoint> _mockPublishEndpoint;
-    private readonly Mock<IWorkflowPersistence> _mockWorkflowPersistence;
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
     private readonly Mock<ILogger<ACHWorkflowCoordinator>> _mockLogger;
     private readonly ACHWorkflowCoordinator _coordinator;
 
     public ACHWorkflowCoordinatorTests()
     {
+        _mockInitService = new Mock<IExperimentInitializationService>();
+        _mockMonitorService = new Mock<IExperimentMonitoringService>();
         _mockPublishEndpoint = new Mock<IPublishEndpoint>();
-        _mockWorkflowPersistence = new Mock<IWorkflowPersistence>();
         _mockLoggerFactory = new Mock<ILoggerFactory>();
         _mockLogger = new Mock<ILogger<ACHWorkflowCoordinator>>();
 
@@ -33,37 +34,48 @@ public class ACHWorkflowCoordinatorTests
             .Setup(x => x.CreateLogger(It.IsAny<string>()))
             .Returns(_mockLogger.Object);
 
-        _mockWorkflowPersistence
-            .Setup(x => x.CreateScenarioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Guid.NewGuid());
-        _mockWorkflowPersistence
-            .Setup(x => x.CreateExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockInitService
+            .Setup(x => x.InitializeExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Guid.NewGuid());
 
         _coordinator = new ACHWorkflowCoordinator(
+            _mockInitService.Object,
+            _mockMonitorService.Object,
             _mockPublishEndpoint.Object,
-            _mockWorkflowPersistence.Object,
             _mockLoggerFactory.Object);
     }
 
     #region Constructor Tests
 
     [Fact]
-    public void Constructor_WithNullPublishEndpoint_ThrowsArgumentNullException()
+    public void Constructor_WithNullInitService_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new ACHWorkflowCoordinator(
                 null!,
-                _mockWorkflowPersistence.Object,
+                _mockMonitorService.Object,
+                _mockPublishEndpoint.Object,
                 _mockLoggerFactory.Object));
     }
 
     [Fact]
-    public void Constructor_WithNullPersistence_ThrowsArgumentNullException()
+    public void Constructor_WithNullMonitorService_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new ACHWorkflowCoordinator(
+                _mockInitService.Object,
+                null!,
                 _mockPublishEndpoint.Object,
+                _mockLoggerFactory.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullPublishEndpoint_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new ACHWorkflowCoordinator(
+                _mockInitService.Object,
+                _mockMonitorService.Object,
                 null!,
                 _mockLoggerFactory.Object));
     }
@@ -72,8 +84,9 @@ public class ACHWorkflowCoordinatorTests
     public void Constructor_WithValidDependencies_CreatesInstance()
     {
         var coordinator = new ACHWorkflowCoordinator(
+            _mockInitService.Object,
+            _mockMonitorService.Object,
             _mockPublishEndpoint.Object,
-            _mockWorkflowPersistence.Object,
             _mockLoggerFactory.Object);
         coordinator.Should().NotBeNull();
     }
@@ -83,21 +96,20 @@ public class ACHWorkflowCoordinatorTests
     #region ExecuteWorkflowAsync Tests
 
     [Fact]
-    public async Task ExecuteWorkflowAsync_StartsSagaAndPollsForCompletion()
+    public async Task ExecuteWorkflowAsync_CallsServicesAndReturnsSuccess()
     {
         // Arrange
         var config = new ExperimentConfiguration { Name = "Test", Context = "Ctx" };
         var experimentId = Guid.NewGuid();
         
-        _mockWorkflowPersistence
-            .Setup(x => x.CreateExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _mockInitService
+            .Setup(x => x.InitializeExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(experimentId);
 
-        // First poll returns null (running), second returns result (completed)
-        _mockWorkflowPersistence
-            .SetupSequence(x => x.GetSagaResultAsync(experimentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ACHWorkflowResult?)null)
-            .ReturnsAsync(new ACHWorkflowResult { Success = true, ExperimentId = experimentId.ToString() });
+        var successResult = new ACHWorkflowResult { Success = true, ExperimentId = experimentId.ToString() };
+        _mockMonitorService
+            .Setup(x => x.WaitForCompletionAsync(experimentId, config.Name, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(successResult);
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(config);
@@ -107,36 +119,34 @@ public class ACHWorkflowCoordinatorTests
         result.Success.Should().BeTrue();
         result.ExperimentId.Should().Be(experimentId.ToString());
 
+        // Verify Initialization happened
+        _mockInitService.Verify(x => x.InitializeExperimentAsync(config, It.IsAny<CancellationToken>()), Times.Once);
+
         // Verify Publish happened
         _mockPublishEndpoint.Verify(x => x.Publish<IExperimentStarted>(
             It.IsAny<object>(), 
             It.IsAny<CancellationToken>()), Times.Once);
 
-        // Verify Polling happened twice
-        _mockWorkflowPersistence.Verify(x => x.GetSagaResultAsync(experimentId, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        // Verify Monitoring happened
+        _mockMonitorService.Verify(x => x.WaitForCompletionAsync(experimentId, config.Name, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task ExecuteWorkflowAsync_ReturnsFailure_WhenSagaFails()
+    public async Task ExecuteWorkflowAsync_ReturnsFailure_WhenExceptionIsThrown()
     {
         // Arrange
         var config = new ExperimentConfiguration { Name = "Test", Context = "Ctx" };
-        var experimentId = Guid.NewGuid();
-
-        _mockWorkflowPersistence
-            .Setup(x => x.CreateExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(experimentId);
-
-        _mockWorkflowPersistence
-            .Setup(x => x.GetSagaResultAsync(experimentId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ACHWorkflowResult { Success = false, ErrorMessage = "Saga Failed", ExperimentId = experimentId.ToString() });
+        
+        _mockInitService
+            .Setup(x => x.InitializeExperimentAsync(It.IsAny<ExperimentConfiguration>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Database error"));
 
         // Act
         var result = await _coordinator.ExecuteWorkflowAsync(config);
 
         // Assert
         result.Success.Should().BeFalse();
-        result.ErrorMessage.Should().Be("Saga Failed");
+        result.ErrorMessage.Should().Be("Database error");
     }
 
     #endregion

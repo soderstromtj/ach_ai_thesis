@@ -68,12 +68,15 @@ public class EvidenceHypothesisEvaluationOrchestrationFactoryTests
         var optionsMock = new Mock<IOptions<OrchestrationSettings>>();
         optionsMock.Setup(o => o.Value).Returns(orchestrationSettings);
 
+        var orchestrationPromptFormatterMock = new Mock<IOrchestrationPromptFormatter>();
+
         var factory = new EvidenceHypothesisEvaluationOrchestrationFactory(
-            agentServiceMock.Object,
-            kernelBuilderServiceMock.Object,
-            optionsMock.Object,
-            loggerFactoryMock.Object,
-            agentResponsePersistenceMock.Object);
+                agentServiceMock.Object,
+                kernelBuilderServiceMock.Object,
+                Options.Create(orchestrationSettings),
+                orchestrationPromptFormatterMock.Object,
+                loggerFactoryMock.Object,
+                agentResponsePersistenceMock.Object);
 
         return (factory, agentServiceMock, kernelBuilderServiceMock, loggerFactoryMock, loggerMock, agentResponsePersistenceMock);
     }
@@ -121,6 +124,7 @@ public class EvidenceHypothesisEvaluationOrchestrationFactoryTests
             Mock.Of<IAgentService>(),
             Mock.Of<IKernelBuilderService>(),
             optionsMock.Object,
+            new Mock<IOrchestrationPromptFormatter>().Object,
             loggerFactoryMock.Object);
 
         // Assert

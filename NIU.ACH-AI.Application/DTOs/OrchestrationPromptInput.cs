@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace NIU.ACH_AI.Application.DTOs
+﻿namespace NIU.ACH_AI.Application.DTOs
 {
     /// <summary>
     /// Represents the input required to construct a prompt for the orchestration engine.
@@ -39,36 +37,5 @@ namespace NIU.ACH_AI.Application.DTOs
         /// Gets or sets any additional or custom instructions for the agent.
         /// </summary>
         public string AdditionalInstructions { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Returns a formatted string representation of the prompt input.
-        /// </summary>
-        /// <returns>
-        /// A string containing the key question, context, instructions, and serialized intermediate results.
-        /// </returns>
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Key Question: {KeyQuestion}");
-            sb.AppendLine($"Context: {Context}");
-            sb.AppendLine($"Task Instructions: {TaskInstructions}");
-
-            if (HypothesisResult != null)
-            {
-                sb.AppendLine($"Hypotheses: {System.Text.Json.JsonSerializer.Serialize(HypothesisResult)}");
-            }
-            
-            if (EvidenceResult != null)
-            {
-                sb.AppendLine($"Evidence: {System.Text.Json.JsonSerializer.Serialize(EvidenceResult)}");
-            }
-            
-            if (!string.IsNullOrWhiteSpace(AdditionalInstructions))
-            {
-                sb.AppendLine($"Additional Instructions: {AdditionalInstructions}");
-            }
-                
-            return sb.ToString();
-        }
     }
 }

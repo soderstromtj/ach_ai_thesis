@@ -31,6 +31,7 @@ public class OrchestrationFactoryProviderTests
 {
     private readonly Mock<IOrchestrationExecutor> _orchestrationExecutorMock;
     private readonly Mock<IAgentResponsePersistence> _agentResponsePersistenceMock;
+    private readonly Mock<IOrchestrationPromptFormatter> _promptFormatterMock;
     private readonly OrchestrationFactoryProvider _provider;
 
     // Infrastructure Mocks required for factory instantiation
@@ -43,6 +44,7 @@ public class OrchestrationFactoryProviderTests
     {
         _orchestrationExecutorMock = new Mock<IOrchestrationExecutor>();
         _agentResponsePersistenceMock = new Mock<IAgentResponsePersistence>();
+        _promptFormatterMock = new Mock<IOrchestrationPromptFormatter>();
 
         // Setup infrastructure mocks
         _agentServiceMock = new Mock<IAgentService>();
@@ -67,6 +69,7 @@ public class OrchestrationFactoryProviderTests
 
         _provider = new OrchestrationFactoryProvider(
             _orchestrationExecutorMock.Object,
+            _promptFormatterMock.Object,
             _agentResponsePersistenceMock.Object);
     }
 
@@ -78,6 +81,7 @@ public class OrchestrationFactoryProviderTests
         // Act
         var provider = new OrchestrationFactoryProvider(
             _orchestrationExecutorMock.Object,
+            _promptFormatterMock.Object,
             _agentResponsePersistenceMock.Object);
 
         // Assert
@@ -91,7 +95,19 @@ public class OrchestrationFactoryProviderTests
         Assert.Throws<ArgumentNullException>(() =>
             new OrchestrationFactoryProvider(
                 _orchestrationExecutorMock.Object,
+                _promptFormatterMock.Object,
                 null!));
+    }
+
+    [Fact]
+    public void Constructor_NullPromptFormatter_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new OrchestrationFactoryProvider(
+                _orchestrationExecutorMock.Object,
+                null!,
+                _agentResponsePersistenceMock.Object));
     }
 
     #endregion

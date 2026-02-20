@@ -52,7 +52,7 @@ public class InfrastructureConfigurationTests
 
         // Assert
         settings.ApiKey.Should().BeEmpty();
-        settings.ModelId.Should().Be("gpt-4o");
+        settings.ModelId.Should().Be("o3");
         settings.OrganizationId.Should().BeNull();
         settings.ServiceId.Should().BeNull();
     }

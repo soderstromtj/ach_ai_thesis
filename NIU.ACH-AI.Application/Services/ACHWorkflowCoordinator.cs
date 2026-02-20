@@ -9,25 +9,29 @@ namespace NIU.ACH_AI.Application.Services
 {
     /// <summary>
     /// Coordinates the execution of ACH workflow steps using the Saga Orchestrator.
-    /// Publishes the start event and polls for completion.
+    /// Publishes the start event.
     /// </summary>
     public class ACHWorkflowCoordinator : IACHWorkflowCoordinator
     {
+        private readonly IExperimentInitializationService _initializationService;
+        private readonly IExperimentMonitoringService _monitoringService;
         private readonly IPublishEndpoint _publishEndpoint;
-        private readonly IWorkflowPersistence _workflowPersistence;
         private readonly ILogger<ACHWorkflowCoordinator> _logger;
 
         public ACHWorkflowCoordinator(
+            IExperimentInitializationService initializationService,
+            IExperimentMonitoringService monitoringService,
             IPublishEndpoint publishEndpoint,
-            IWorkflowPersistence workflowPersistence,
             ILoggerFactory loggerFactory)
         {
+            ArgumentNullException.ThrowIfNull(initializationService);
+            ArgumentNullException.ThrowIfNull(monitoringService);
             ArgumentNullException.ThrowIfNull(publishEndpoint);
-            ArgumentNullException.ThrowIfNull(workflowPersistence);
             ArgumentNullException.ThrowIfNull(loggerFactory);
 
+            _initializationService = initializationService;
+            _monitoringService = monitoringService;
             _publishEndpoint = publishEndpoint;
-            _workflowPersistence = workflowPersistence;
             _logger = loggerFactory.CreateLogger<ACHWorkflowCoordinator>();
         }
 
@@ -42,17 +46,10 @@ namespace NIU.ACH_AI.Application.Services
 
             try
             {
-                // Create minimal entities
-                var scenarioId = await _workflowPersistence.CreateScenarioAsync(experimentConfig.Context, cancellationToken);
-                var experimentId = await _workflowPersistence.CreateExperimentAsync(experimentConfig, scenarioId, cancellationToken);
+                var experimentId = await _initializationService.InitializeExperimentAsync(experimentConfig, cancellationToken);
                 
-                // IMPORTANT: In the new Saga flow, we set ExperimentId based on what we generated.
-                // However, the Saga State Machine uses CorrelationId.
-                // We should match Configuration.Id if preset, or use the newly generated one.
-                // experimentConfig.Id usually comes from UI/Input but let's sync them.
                 experimentConfig.Id = experimentId.ToString();
 
-                // Publish Start Event
                 _logger.LogInformation("Publishing IExperimentStarted event to start Saga.");
                 await _publishEndpoint.Publish<IExperimentStarted>(new
                 {
@@ -61,37 +58,7 @@ namespace NIU.ACH_AI.Application.Services
                     Timestamp = DateTime.UtcNow
                 }, cancellationToken);
 
-                // Poll for completion
-                _logger.LogInformation("Waiting for Saga completion...");
-                
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var result = await _workflowPersistence.GetSagaResultAsync(experimentId, cancellationToken);
-                    if (result != null)
-                    {
-                        // Saga Completed or Failed with result
-                        if (result.Success)
-                        {
-                            _logger.LogInformation($"Successfully completed ACH workflow for experiment: {experimentConfig.Name}");
-                        }
-                        else
-                        {
-                            _logger.LogError($"ACH workflow failed: {result.ErrorMessage}");
-                        }
-                        return result;
-                    }
-
-                    await Task.Delay(2000, cancellationToken);
-                }
-
-                // If cancelled
-                return new ACHWorkflowResult 
-                { 
-                    ExperimentId = experimentId.ToString(), 
-                    ExperimentName = experimentConfig.Name,
-                    Success = false, 
-                    ErrorMessage = "Detailed execution cancelled." 
-                };
+                return await _monitoringService.WaitForCompletionAsync(experimentId, experimentConfig.Name, cancellationToken);
             }
             catch (Exception ex)
             {
