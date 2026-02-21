@@ -39,7 +39,7 @@ public class EvidenceHypothesisEvaluationResultTests
             {
                 EvidenceId = Guid.NewGuid(),
                 Claim = evidenceClaim,
-                Type = EvidenceType.Fact
+                Type = EvidenceType.VerifiableFact
             },
             Score = score,
             ScoreRationale = rationale,

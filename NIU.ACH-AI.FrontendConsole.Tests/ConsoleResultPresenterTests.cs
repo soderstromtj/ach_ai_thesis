@@ -479,7 +479,7 @@ public class ConsoleResultPresenterTests : IDisposable
                 EvidenceId = Guid.NewGuid(),
                 Claim = $"Evidence claim {i + 1}",
                 ReferenceSnippet = $"Reference {i + 1}",
-                Type = i % 2 == 0 ? EvidenceType.Fact : EvidenceType.Assumption,
+                Type = i % 2 == 0 ? EvidenceType.VerifiableFact : EvidenceType.StatedAssumption,
                 Notes = $"Notes {i + 1}"
             });
         }
@@ -491,7 +491,7 @@ public class ConsoleResultPresenterTests : IDisposable
         return new EvidenceHypothesisEvaluation
         {
             Hypothesis = new Hypothesis { ShortTitle = "Test Hypothesis", HypothesisText = "Test hypothesis text" },
-            Evidence = new Evidence { EvidenceId = Guid.NewGuid(), Claim = "Test claim", Type = EvidenceType.Fact },
+            Evidence = new Evidence { EvidenceId = Guid.NewGuid(), Claim = "Test claim", Type = EvidenceType.VerifiableFact },
             Score = EvaluationScore.Consistent,
             ScoreRationale = "Test score rationale",
             ConfidenceLevel = 0.85m,

@@ -9,18 +9,33 @@ namespace NIU.ACH_AI.Domain.ValueObjects
     public enum EvidenceType
     {
         /// <summary>
-        /// A verifiable piece of information.
+        /// An explicitly stated, verifiable event, action, or data point grounded in objective reality.
         /// </summary>
-        Fact = 1,
+        VerifiableFact = 1,
 
         /// <summary>
-        /// A premise that is accepted as true without proof.
+        /// A premise or unverified condition that the text treats as true in order to build its narrative or argument.
         /// </summary>
-        Assumption = 2,
+        StatedAssumption = 2,
 
         /// <summary>
-        /// A judgment or conclusion provided by a subject matter expert.
+        /// An analytical judgment, forecast, or evaluation formally attributed to a credentialed expert, organization, or authority.
         /// </summary>
-        ExpertOpinion = 3
+        ExpertAssessment = 3,
+
+        /// <summary>
+        /// A high-confidence factual conclusion derived implicitly by cross-referencing two or more explicit facts within the text.
+        /// </summary>
+        InferredFact = 4,
+
+        /// <summary>
+        /// An unverified assertion or allegation made by a specific source, witness, or spokesperson.
+        /// </summary>
+        AttributedClaim = 5,
+
+        /// <summary>
+        /// A stated plan, threat, promise, or directive regarding a future action.
+        /// </summary>
+        StatedIntent = 6
     }
 }

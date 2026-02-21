@@ -26,7 +26,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.Empty,
             Claim = "Test claim",
             ReferenceSnippet = "Test snippet",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Test notes"
         };
         var stepExecutionId = Guid.NewGuid();
@@ -39,7 +39,7 @@ public class EvidenceMapperTests
         result.StepExecutionId.Should().Be(stepExecutionId);
         result.Claim.Should().Be("Test claim");
         result.ReferenceSnippet.Should().Be("Test snippet");
-        result.EvidenceTypeId.Should().Be((int)EvidenceType.Fact);
+        result.EvidenceTypeId.Should().Be((int)EvidenceType.VerifiableFact);
         result.Notes.Should().Be("Test notes");
         result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
@@ -57,7 +57,7 @@ public class EvidenceMapperTests
             EvidenceId = existingGuid,
             Claim = "Test claim",
             ReferenceSnippet = "Test snippet",
-            Type = EvidenceType.Assumption,
+            Type = EvidenceType.StatedAssumption,
             Notes = "Test notes"
         };
         var stepExecutionId = Guid.NewGuid();
@@ -82,7 +82,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.NewGuid(),
             Claim = "Test claim",
             ReferenceSnippet = "Test snippet",
-            Type = EvidenceType.ExpertOpinion,
+            Type = EvidenceType.ExpertAssessment,
             Notes = null!
         };
         var stepExecutionId = Guid.NewGuid();
@@ -106,7 +106,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.NewGuid(),
             Claim = "Test claim",
             ReferenceSnippet = null,
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Test notes"
         };
         var stepExecutionId = Guid.NewGuid();
@@ -122,9 +122,9 @@ public class EvidenceMapperTests
     /// Verifies that all evidence type enums (Fact, Assumption, ExpertOpinion) map correctly to their database integer IDs.
     /// </summary>
     [Theory]
-    [InlineData(EvidenceType.Fact, 1)]
-    [InlineData(EvidenceType.Assumption, 2)]
-    [InlineData(EvidenceType.ExpertOpinion, 3)]
+    [InlineData(EvidenceType.VerifiableFact, 1)]
+    [InlineData(EvidenceType.StatedAssumption, 2)]
+    [InlineData(EvidenceType.ExpertAssessment, 3)]
     public void ToDatabase_WithDifferentEvidenceTypes_MapsCorrectly(EvidenceType type, int expectedId)
     {
         // Arrange
@@ -157,7 +157,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.NewGuid(),
             Claim = "",
             ReferenceSnippet = "",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = ""
         };
         var stepExecutionId = Guid.NewGuid();
@@ -187,7 +187,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.NewGuid(),
             Claim = longClaim,
             ReferenceSnippet = longSnippet,
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = longNotes
         };
         var stepExecutionId = Guid.NewGuid();
@@ -219,7 +219,7 @@ public class EvidenceMapperTests
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test claim",
             ReferenceSnippet = "Test snippet",
-            EvidenceTypeId = (int)EvidenceType.Fact,
+            EvidenceTypeId = (int)EvidenceType.VerifiableFact,
             Notes = "Test notes",
             CreatedAt = DateTime.UtcNow
         };
@@ -231,7 +231,7 @@ public class EvidenceMapperTests
         result.EvidenceId.Should().Be(evidenceId);
         result.Claim.Should().Be("Test claim");
         result.ReferenceSnippet.Should().Be("Test snippet");
-        result.Type.Should().Be(EvidenceType.Fact);
+        result.Type.Should().Be(EvidenceType.VerifiableFact);
         result.Notes.Should().Be("Test notes");
     }
 
@@ -248,7 +248,7 @@ public class EvidenceMapperTests
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test claim",
             ReferenceSnippet = "Test snippet",
-            EvidenceTypeId = (int)EvidenceType.Assumption,
+            EvidenceTypeId = (int)EvidenceType.StatedAssumption,
             Notes = null,
             CreatedAt = DateTime.UtcNow
         };
@@ -273,7 +273,7 @@ public class EvidenceMapperTests
             StepExecutionId = Guid.NewGuid(),
             Claim = "Test claim",
             ReferenceSnippet = null,
-            EvidenceTypeId = (int)EvidenceType.ExpertOpinion,
+            EvidenceTypeId = (int)EvidenceType.ExpertAssessment,
             Notes = "Test notes",
             CreatedAt = DateTime.UtcNow
         };
@@ -289,9 +289,9 @@ public class EvidenceMapperTests
     /// Verifies that database integer IDs correctly map back to their corresponding evidence type enums.
     /// </summary>
     [Theory]
-    [InlineData(1, EvidenceType.Fact)]
-    [InlineData(2, EvidenceType.Assumption)]
-    [InlineData(3, EvidenceType.ExpertOpinion)]
+    [InlineData(1, EvidenceType.VerifiableFact)]
+    [InlineData(2, EvidenceType.StatedAssumption)]
+    [InlineData(3, EvidenceType.ExpertAssessment)]
     public void ToDomain_WithDifferentEvidenceTypeIds_MapsCorrectly(int typeId, EvidenceType expectedType)
     {
         // Arrange
@@ -349,7 +349,7 @@ public class EvidenceMapperTests
                 StepExecutionId = Guid.NewGuid(),
                 Claim = "Claim 1",
                 ReferenceSnippet = "Snippet 1",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)EvidenceType.VerifiableFact,
                 Notes = "Notes 1",
                 CreatedAt = DateTime.UtcNow
             },
@@ -359,7 +359,7 @@ public class EvidenceMapperTests
                 StepExecutionId = Guid.NewGuid(),
                 Claim = "Claim 2",
                 ReferenceSnippet = "Snippet 2",
-                EvidenceTypeId = (int)EvidenceType.Assumption,
+                EvidenceTypeId = (int)EvidenceType.StatedAssumption,
                 Notes = "Notes 2",
                 CreatedAt = DateTime.UtcNow
             },
@@ -369,7 +369,7 @@ public class EvidenceMapperTests
                 StepExecutionId = Guid.NewGuid(),
                 Claim = "Claim 3",
                 ReferenceSnippet = "Snippet 3",
-                EvidenceTypeId = (int)EvidenceType.ExpertOpinion,
+                EvidenceTypeId = (int)EvidenceType.ExpertAssessment,
                 Notes = "Notes 3",
                 CreatedAt = DateTime.UtcNow
             }
@@ -381,11 +381,11 @@ public class EvidenceMapperTests
         // Assert
         result.Should().HaveCount(3);
         result[0].Claim.Should().Be("Claim 1");
-        result[0].Type.Should().Be(EvidenceType.Fact);
+        result[0].Type.Should().Be(EvidenceType.VerifiableFact);
         result[1].Claim.Should().Be("Claim 2");
-        result[1].Type.Should().Be(EvidenceType.Assumption);
+        result[1].Type.Should().Be(EvidenceType.StatedAssumption);
         result[2].Claim.Should().Be("Claim 3");
-        result[2].Type.Should().Be(EvidenceType.ExpertOpinion);
+        result[2].Type.Should().Be(EvidenceType.ExpertAssessment);
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public class EvidenceMapperTests
                 StepExecutionId = Guid.NewGuid(),
                 Claim = "Single claim",
                 ReferenceSnippet = "Single snippet",
-                EvidenceTypeId = (int)EvidenceType.Fact,
+                EvidenceTypeId = (int)EvidenceType.VerifiableFact,
                 Notes = "Single notes",
                 CreatedAt = DateTime.UtcNow
             }
@@ -435,7 +435,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.NewGuid(),
             Claim = "Round trip claim",
             ReferenceSnippet = "Round trip snippet",
-            Type = EvidenceType.Assumption,
+            Type = EvidenceType.StatedAssumption,
             Notes = "Round trip notes"
         };
         var stepExecutionId = Guid.NewGuid();
@@ -464,7 +464,7 @@ public class EvidenceMapperTests
             EvidenceId = Guid.Empty,
             Claim = "Round trip claim",
             ReferenceSnippet = "Round trip snippet",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Round trip notes"
         };
         var stepExecutionId = Guid.NewGuid();

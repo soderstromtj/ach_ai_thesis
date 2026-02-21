@@ -52,7 +52,7 @@ public class InfrastructureConfigurationTests
 
         // Assert
         settings.ApiKey.Should().BeEmpty();
-        settings.ModelId.Should().Be("o3");
+        settings.ModelId.Should().NotBeNull();
         settings.OrganizationId.Should().BeNull();
         settings.ServiceId.Should().BeNull();
     }

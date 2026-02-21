@@ -95,7 +95,7 @@ public class EvidenceTests
             EvidenceId = id,
             Claim = "Test claim",
             ReferenceSnippet = "Source reference",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Additional notes"
         };
 
@@ -103,7 +103,7 @@ public class EvidenceTests
         Assert.Equal(id, evidence.EvidenceId);
         Assert.Equal("Test claim", evidence.Claim);
         Assert.Equal("Source reference", evidence.ReferenceSnippet);
-        Assert.Equal(EvidenceType.Fact, evidence.Type);
+        Assert.Equal(EvidenceType.VerifiableFact, evidence.Type);
         Assert.Equal("Additional notes", evidence.Notes);
     }
 
@@ -134,10 +134,10 @@ public class EvidenceTests
         var evidence = new Evidence();
 
         // Act
-        evidence.Type = EvidenceType.Fact;
+        evidence.Type = EvidenceType.VerifiableFact;
 
         // Assert
-        Assert.Equal(EvidenceType.Fact, evidence.Type);
+        Assert.Equal(EvidenceType.VerifiableFact, evidence.Type);
     }
 
     /// <summary>
@@ -150,10 +150,10 @@ public class EvidenceTests
         var evidence = new Evidence();
 
         // Act
-        evidence.Type = EvidenceType.Assumption;
+        evidence.Type = EvidenceType.StatedAssumption;
 
         // Assert
-        Assert.Equal(EvidenceType.Assumption, evidence.Type);
+        Assert.Equal(EvidenceType.StatedAssumption, evidence.Type);
     }
 
     #endregion
@@ -216,7 +216,7 @@ public class EvidenceTests
     public void ToString_IncludesTypeLabel()
     {
         // Arrange
-        var evidence = new Evidence { Type = EvidenceType.Fact };
+        var evidence = new Evidence { Type = EvidenceType.VerifiableFact };
 
         // Act
         var result = evidence.ToString();
@@ -288,7 +288,7 @@ public class EvidenceTests
     public void ToString_WithFactType_DisplaysFact()
     {
         // Arrange
-        var evidence = new Evidence { Type = EvidenceType.Fact };
+        var evidence = new Evidence { Type = EvidenceType.VerifiableFact };
 
         // Act
         var result = evidence.ToString();
@@ -304,7 +304,7 @@ public class EvidenceTests
     public void ToString_WithAssumptionType_DisplaysAssumption()
     {
         // Arrange
-        var evidence = new Evidence { Type = EvidenceType.Assumption };
+        var evidence = new Evidence { Type = EvidenceType.StatedAssumption };
 
         // Act
         var result = evidence.ToString();
@@ -345,7 +345,7 @@ public class EvidenceTests
         {
             EvidenceId = Guid.NewGuid(),
             Claim = "Test",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Notes",
             ReferenceSnippet = "Reference"
         };
@@ -368,7 +368,7 @@ public class EvidenceTests
         {
             EvidenceId = Guid.NewGuid(),
             Claim = "Claim",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Notes",
             ReferenceSnippet = "Reference"
         };
@@ -465,7 +465,7 @@ public class EvidenceTests
         {
             EvidenceId = id,
             Claim = "Full claim text",
-            Type = EvidenceType.Fact,
+            Type = EvidenceType.VerifiableFact,
             Notes = "Detailed notes",
             ReferenceSnippet = "Source document reference"
         };
