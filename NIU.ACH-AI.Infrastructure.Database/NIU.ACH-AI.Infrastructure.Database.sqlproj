@@ -9,8 +9,7 @@
     <ProjectGuid>{9dd4c462-495f-4525-b064-73c7f13ff3b8}</ProjectGuid>
     <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
     <OutputType>Database</OutputType>
-    <RootPath>
-    </RootPath>
+    <RootPath />
     <RootNamespace>NIU.ACH_AI.Infrastructure.Database</RootNamespace>
     <AssemblyName>NIU.ACH_AI.Infrastructure.Database</AssemblyName>
     <ModelCollation>1033, CI</ModelCollation>
@@ -48,7 +47,6 @@
   </PropertyGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">11.0</VisualStudioVersion>
-    <!-- Default to the v11.0 targets path if the targets file for the current VS version is not found -->
     <SSDTExists Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets')">True</SSDTExists>
     <VisualStudioVersion Condition="'$(SSDTExists)' == ''">11.0</VisualStudioVersion>
   </PropertyGroup>
@@ -86,6 +84,16 @@
     <Build Include="Tables\HYPOTHESES.sql" />
     <Build Include="Tables\EVIDENCE.sql" />
     <Build Include="Tables\EVIDENCE_HYPOTHESIS_EVALUATIONS.sql" />
+    <Build Include="Views\STEP_EXECUTION_TIME_COST.sql" />
+    <Build Include="Views\HYPOTHESIS_RANKINGS.sql" />
+    <Build Include="Views\EVIDENCE_DIAGNOSTICITY.sql" />
+    <Build Include="Views\AGENT_COSTS.sql" />
+    <Build Include="Views\MODEL_COSTS.sql" />
+    <Build Include="Views\Formatted_Evaluations.sql" />
+    <Build Include="Views\EVIDENCE_TYPE_DISTRIBUTION.sql" />
+    <Build Include="Views\HYPOTHESIS_CONFIDENCE.sql" />
+    <Build Include="Views\PARADOXICAL_EVIDENCE.sql" />
+    <Build Include="Views\AUDIT_TRAIL_COMPLETENESS_RATE.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="NIU.ACH-AI.Infrastructure.Database.refactorlog" />

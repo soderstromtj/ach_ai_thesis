@@ -29,7 +29,6 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
         public Event<IHypothesisRefinementResult> RefinementCompleted { get; private set; }
         public Event<IEvidenceExtractionResult> ExtractionCompleted { get; private set; }
         public Event<IEvidenceEvaluationResult> EvaluationCompleted { get; private set; }
-
         public Event<IEvaluationBatchStarted> BatchStarted { get; private set; }
         public Event<IPairEvaluated> PairEvaluated { get; private set; }
 
@@ -45,7 +44,6 @@ namespace NIU.ACH_AI.Infrastructure.StateMachines
             Event(() => RefinementCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
             Event(() => ExtractionCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
             Event(() => EvaluationCompleted, x => x.CorrelateById(m => m.Message.ExperimentId));
-            
             Event(() => BatchStarted, x => x.CorrelateById(m => m.Message.ExperimentId));
             Event(() => PairEvaluated, x => x.CorrelateById(m => m.Message.ExperimentId));
 

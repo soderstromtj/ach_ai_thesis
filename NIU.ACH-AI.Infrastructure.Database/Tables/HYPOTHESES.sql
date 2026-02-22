@@ -1,18 +1,17 @@
--- Hypotheses are possible answers to the Key Intelligence Question
+﻿-- Hypotheses are possible answers to the Key Intelligence Question
 -- Generated during the hypothesis brainstorming step of ACH
-CREATE TABLE [dbo].[HYPOTHESES]
-(
-	[hypothesis_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-	[step_execution_id] UNIQUEIDENTIFIER NOT NULL,		-- Step execution that generated this hypothesis
-	[short_title] NVARCHAR(200) NOT NULL,				-- Brief summary title
-	[hypothesis_text] NVARCHAR(MAX) NOT NULL,			-- Full hypothesis statement
-	[is_refined] BIT NOT NULL DEFAULT 0,				-- Whether this hypothesis passed refinement step
-	[created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+CREATE TABLE [dbo].[HYPOTHESES] (
+    [hypothesis_id]     UNIQUEIDENTIFIER NOT NULL,
+    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,
+    [short_title]       NVARCHAR (MAX)   NOT NULL,
+    [hypothesis_text]   NVARCHAR (MAX)   NOT NULL,
+    [is_refined]        BIT              DEFAULT ((0)) NOT NULL,
+    [created_at]        DATETIME2 (7)    DEFAULT (sysutcdatetime()) NOT NULL,
+    PRIMARY KEY CLUSTERED ([hypothesis_id] ASC),
+    CONSTRAINT [FK_HYPOTHESES_STEP_EXECUTIONS] FOREIGN KEY ([step_execution_id]) REFERENCES [dbo].[STEP_EXECUTIONS] ([step_execution_id])
+);
 
-	-- Foreign key constraints
-	CONSTRAINT [FK_HYPOTHESES_STEP_EXECUTIONS]
-	    FOREIGN KEY ([step_execution_id]) REFERENCES [STEP_EXECUTIONS]([step_execution_id])
-)
+
 GO
 
 -- Index for finding all hypotheses from a step execution

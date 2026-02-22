@@ -1,31 +1,24 @@
--- Evidence-hypothesis evaluations form the core of ACH analysis
+﻿-- Evidence-hypothesis evaluations form the core of ACH analysis
 -- Each record represents how a piece of evidence relates to a specific hypothesis
-CREATE TABLE [dbo].[EVIDENCE_HYPOTHESIS_EVALUATIONS]
-(
-	[evidence_hypothesis_evaluation_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    [step_execution_id] UNIQUEIDENTIFIER NOT NULL,          -- Step execution that created this evaluation
-    [hypothesis_id] UNIQUEIDENTIFIER NOT NULL,              -- Hypothesis being evaluated
-    [evidence_id] UNIQUEIDENTIFIER NOT NULL,                -- Evidence being evaluated
-    [evaluation_score_id] INT NOT NULL,                     -- Score (Consistent, Inconsistent, Neutral, etc.)
-    [rationale] NVARCHAR(MAX) NULL,                         -- Explanation of the evaluation
-    [confidence_score] DECIMAL(5, 4) NULL,                  -- Numeric confidence (0.0000 to 1.0000)
-    [confidence_rationale] NVARCHAR(MAX) NULL,              -- Explanation of confidence level
-    [created_at] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+CREATE TABLE [dbo].[EVIDENCE_HYPOTHESIS_EVALUATIONS] (
+    [evidence_hypothesis_evaluation_id] UNIQUEIDENTIFIER NOT NULL,
+    [step_execution_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [hypothesis_id]                     UNIQUEIDENTIFIER NOT NULL,
+    [evidence_id]                       UNIQUEIDENTIFIER NOT NULL,
+    [evaluation_score_id]               INT              NOT NULL,
+    [rationale]                         NVARCHAR (MAX)   NULL,
+    [confidence_score]                  DECIMAL (5, 4)   NULL,
+    [confidence_rationale]              NVARCHAR (MAX)   NULL,
+    [created_at]                        DATETIME2 (7)    DEFAULT (sysutcdatetime()) NOT NULL,
+    PRIMARY KEY CLUSTERED ([evidence_hypothesis_evaluation_id] ASC),
+    CONSTRAINT [CK_EHE_confidence_score] CHECK ([confidence_score] IS NULL OR [confidence_score]>=(0.0000) AND [confidence_score]<=(1.0000)),
+    CONSTRAINT [FK_EHE_EVALUATION_SCORE] FOREIGN KEY ([evaluation_score_id]) REFERENCES [dbo].[EVALUATION_SCORES] ([evaluation_score_id]),
+    CONSTRAINT [FK_EHE_EVIDENCE] FOREIGN KEY ([evidence_id]) REFERENCES [dbo].[EVIDENCE] ([evidence_id]),
+    CONSTRAINT [FK_EHE_HYPOTHESIS] FOREIGN KEY ([hypothesis_id]) REFERENCES [dbo].[HYPOTHESES] ([hypothesis_id]),
+    CONSTRAINT [FK_EHE_STEP_EXECUTION] FOREIGN KEY ([step_execution_id]) REFERENCES [dbo].[STEP_EXECUTIONS] ([step_execution_id])
+);
 
-    -- Foreign key constraints
-    CONSTRAINT [FK_EHE_STEP_EXECUTION]
-        FOREIGN KEY ([step_execution_id]) REFERENCES [STEP_EXECUTIONS]([step_execution_id]),
-    CONSTRAINT [FK_EHE_HYPOTHESIS]
-        FOREIGN KEY ([hypothesis_id]) REFERENCES [HYPOTHESES]([hypothesis_id]),
-    CONSTRAINT [FK_EHE_EVIDENCE]
-        FOREIGN KEY ([evidence_id]) REFERENCES [EVIDENCE]([evidence_id]),
-    CONSTRAINT [FK_EHE_EVALUATION_SCORE]
-        FOREIGN KEY ([evaluation_score_id]) REFERENCES [EVALUATION_SCORES]([evaluation_score_id]),
 
-    -- Check constraint to ensure confidence score is between 0 and 1
-    CONSTRAINT [CK_EHE_confidence_score]
-        CHECK ([confidence_score] IS NULL OR ([confidence_score] BETWEEN 0.0000 AND 1.0000))
-)
 GO
 
 -- Index for finding all evaluations for a hypothesis (ACH matrix view)
