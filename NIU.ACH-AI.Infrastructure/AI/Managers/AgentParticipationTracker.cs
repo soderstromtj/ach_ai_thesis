@@ -8,7 +8,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
     public class AgentParticipationTracker
     {
         /// <summary>
-        /// Determines if all expected agents have participated at least once in the conversation.
+        /// Checks if all the expected agents have sent at least one message.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <param name="expectedAgentNames">The list of expected agent names.</param>
@@ -23,7 +23,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Gets the set of unique agent names that have participated in the conversation.
+        /// Gets the names of all agents who have sent a message.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <returns>A hash set containing the names of all agents that have contributed at least one message.</returns>
@@ -39,7 +39,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Gets the list of agents that have not yet participated in the conversation.
+        /// Gets the names of agents who haven't sent a message yet.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <param name="expectedAgentNames">The list of expected agent names.</param>

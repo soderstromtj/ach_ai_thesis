@@ -9,8 +9,7 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
     /// <summary>
-    /// Service responsible for executing orchestration factories.
-    /// Encapsulates the common pattern of service resolution and factory execution.
+    /// Runs orchestration factories and manages service resolution.
     /// </summary>
     public class OrchestrationExecutor : IOrchestrationExecutor
     {
@@ -22,7 +21,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly ILogger<OrchestrationExecutor> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OrchestrationExecutor"/> class.
+        /// Sets up the orchestration executor.
         /// </summary>
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="aiServiceSettings">AI service settings options.</param>
@@ -54,14 +53,14 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         // ... ExecuteAsync ...
 
         /// <summary>
-        /// Executes an orchestration factory with the provided configuration and input.
+        /// Runs an orchestration factory with the provided configuration and input.
         /// </summary>
-        /// <typeparam name="TResult">The result type returned by the factory</typeparam>
-        /// <param name="factory">The orchestration factory to execute</param>
-        /// <param name="input">The input for the orchestration</param>
-        /// <param name="stepExecutionContext">The execution context</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The result of the orchestration execution</returns>
+        /// <typeparam name="TResult">The result type returned by the factory.</typeparam>
+        /// <param name="factory">The orchestration factory to execute.</param>
+        /// <param name="input">The input for the orchestration.</param>
+        /// <param name="stepExecutionContext">The execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The result of the execution.</returns>
         public async Task<TResult> ExecuteAsync<TResult>(
             IOrchestrationFactory<TResult> factory,
             OrchestrationPromptInput input,
@@ -83,7 +82,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         }
 
         /// <summary>
-        /// Creates an AgentService for the specified ACH step configuration.
+        /// Builds an AgentService for the given ACH step configuration.
         /// </summary>
         public IAgentService CreateAgentService(ACHStepConfiguration stepConfiguration)
         {
@@ -112,7 +111,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         }
 
         /// <summary>
-        /// Creates orchestration options from step configuration.
+        /// Builds orchestration options from a step configuration.
         /// </summary>
         public IOptions<OrchestrationSettings> CreateOrchestrationOptions(ACHStepConfiguration stepConfiguration)
         {

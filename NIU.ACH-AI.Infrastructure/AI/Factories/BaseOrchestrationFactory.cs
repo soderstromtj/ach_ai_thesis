@@ -18,11 +18,11 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
-    /// Base class for orchestration factories implementing the Template Method pattern.
-    /// Provides common orchestration logic while allowing derived classes to customize specific behaviors.
+    /// Provides common workflow logic for all orchestration factories.
+    /// Uses the Template Method pattern so derived classes can customize specific steps.
     /// </summary>
-    /// <typeparam name="TResult">The final result type (e.g., List&lt;Evidence&gt;, List&lt;Hypothesis&gt;)</typeparam>
-    /// <typeparam name="TWrapper">The wrapper type for structured output (e.g., EvidenceResult, HypothesisResult)</typeparam>
+    /// <typeparam name="TResult">The final output type.</typeparam>
+    /// <typeparam name="TWrapper">The wrapper type for the output.</typeparam>
     public abstract class BaseOrchestrationFactory<TResult, TWrapper> : IOrchestrationFactory<TResult>
         where TResult : class
         where TWrapper : class
@@ -44,7 +44,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         private readonly ConcurrentDictionary<string, StringBuilder> _streamBuffers = new();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseOrchestrationFactory{TResult, TWrapper}"/> class.
+        /// Sets up the base orchestration dependencies.
         /// </summary>
         /// <param name="agentService">Service for creating agents.</param>
         /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
@@ -71,12 +71,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
         }
 
         /// <summary>
-        /// Orchestrates the execution of an ACH step with the given input and returns the final result.
+        /// Runs a single ACH step and returns its output.
         /// </summary>
-        /// <param name="input">The input prompt and context for orchestration.</param>
-        /// <param name="stepExecutionContext">The execution context for tracking step status.</param>
+        /// <param name="input">The prompt and context for the step.</param>
+        /// <param name="stepExecutionContext">The context tracking the step's status.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>The result of the orchestration execution.</returns>
+        /// <returns>The result of the step.</returns>
         public async Task<TResult> ExecuteCoreAsync(
             OrchestrationPromptInput input,
             StepExecutionContext? stepExecutionContext = null,
@@ -301,15 +301,12 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 
         #region Abstract Methods - Template Method Pattern
         /// <summary>
-        /// Creates the orchestration object specific to this factory type.
-        /// Derived classes can create any type of AgentOrchestration (GroupChatOrchestration, ConcurrentOrchestration, etc.)
-        /// and handle manager creation internally if needed.
+        /// Creates the specific orchestration object for this factory type.
         /// </summary>
-        /// <param name="input">The orchestration prompt input</param>
-        /// <param name="agentNames">List of agent names participating in the orchestration</param>
-        /// <param name="kernel">The kernel instance for orchestration</param>
-        /// <param name="agents">The array of agents participating in the orchestration</param>
-        /// <param name="outputTransform">The structured output transform for result processing</param>
+        /// <param name="input">The prompt input</param>
+        /// <param name="kernel">The kernel instance</param>
+        /// <param name="agents">The array of participating agents</param>
+        /// <param name="outputTransform">The structured output transform</param>
         /// <returns>A configured AgentOrchestration instance</returns>
         protected abstract AgentOrchestration<string, TWrapper> CreateOrchestration(
             OrchestrationPromptInput input,
@@ -318,32 +315,32 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
             StructuredOutputTransform<TWrapper> outputTransform);
 
         /// <summary>
-        /// Gets the name of the result type for logging purposes.
+        /// Returns the name of the result type for logging.
         /// </summary>
         protected abstract string GetResultTypeName();
 
         /// <summary>
-        /// Unwraps the structured output wrapper to get the actual result.
+        /// Extracts the actual result from its structured output wrapper.
         /// </summary>
         protected abstract TResult UnwrapResult(TWrapper wrapper);
 
         /// <summary>
-        /// Gets the count of items in the result for logging purposes.
+        /// Counts the number of items in the result for logging.
         /// </summary>
         protected abstract int GetItemCount(TResult result);
 
         /// <summary>
-        /// Creates an empty result when transformation fails.
+        /// Builds an empty result when the transformation fails.
         /// </summary>
         protected abstract TResult CreateEmptyResult();
 
         /// <summary>
-        /// Creates an error result when orchestration fails.
+        /// Builds an error result when the orchestration fails.
         /// </summary>
         protected abstract TResult CreateErrorResult();
 
         /// <summary>
-        /// Gets the reason for agent selection (e.g., "Round-robin selection" or custom manager name).
+        /// Explains why a specific agent was chosen to respond.
         /// </summary>
         protected abstract string GetAgentSelectionReason(string? previousAgentName);
         #endregion

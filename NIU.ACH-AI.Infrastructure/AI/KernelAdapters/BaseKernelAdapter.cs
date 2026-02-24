@@ -8,7 +8,7 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
 {
     /// <summary>
-    /// Base class for Kernel Builder Adapters, providing common functionality.
+    /// Provides common functionality for all kernel builder adapters.
     /// </summary>
     public abstract class BaseKernelAdapter : IKernelBuilderAdapter
     {
@@ -20,7 +20,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         public abstract AIServiceProvider SupportedProvider { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BaseKernelAdapter"/> class.
+        /// Sets up the base kernel adapter.
         /// </summary>
         /// <param name="aiServiceSettings">Global AI service settings.</param>
         /// <param name="loggerFactory">Logger factory.</param>
@@ -39,7 +39,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         public abstract Kernel BuildKernel(string? modelIdOverride = null);
 
         /// <summary>
-        /// Creates an HttpClient with the configured timeout.
+        /// Builds an HttpClient with the configured timeout.
         /// </summary>
         /// <returns>A configured HttpClient.</returns>
         protected HttpClient CreateHttpClient()

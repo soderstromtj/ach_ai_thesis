@@ -4,7 +4,7 @@ using NIU.ACH_AI.Application.Interfaces;
 namespace NIU.ACH_AI.Infrastructure.AI.Managers
 {
     /// <summary>
-    /// Implementation of <see cref="IGroupChatPromptStrategy"/> for evidence extraction workflow.
+    /// Provides the prompt templates used by the manager for the evidence extraction step.
     /// </summary>
     public class EvidenceExtractionPromptStrategy : IGroupChatPromptStrategy
     {

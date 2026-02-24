@@ -8,14 +8,14 @@ using System.Text.Json;
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
     /// <summary>
-    /// Service for extracting token usage information from AI provider metadata.
+    /// Pulls token usage details from AI provider metadata.
     /// </summary>
     public class TokenUsageExtractor : ITokenUsageExtractor
     {
         private readonly ILogger<TokenUsageExtractor> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TokenUsageExtractor"/> class.
+        /// Sets up the token usage extractor.
         /// </summary>
         /// <param name="logger">The logger instance.</param>
         public TokenUsageExtractor(ILogger<TokenUsageExtractor> logger)

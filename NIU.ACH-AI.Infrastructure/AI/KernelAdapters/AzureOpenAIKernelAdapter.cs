@@ -8,7 +8,7 @@ using System.Net.Http;
 namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
 {
     /// <summary>
-    /// Adapter implementation for building Azure OpenAI Kernel instances.
+    /// Builds Semantic Kernel instances configured for Azure OpenAI.
     /// </summary>
     public class AzureOpenAIKernelAdapter : BaseKernelAdapter
     {
@@ -18,7 +18,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.KernelAdapters
         public override AIServiceProvider SupportedProvider => AIServiceProvider.AzureOpenAI;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AzureOpenAIKernelAdapter"/> class.
+        /// Sets up the Azure OpenAI kernel adapter.
         /// </summary>
         /// <param name="settings">Specific Azure OpenAI settings.</param>
         /// <param name="aiServiceSettings">Global AI service settings.</param>

@@ -4,7 +4,7 @@ using NIU.ACH_AI.Application.Interfaces;
 namespace NIU.ACH_AI.Infrastructure.AI.Managers
 {
     /// <summary>
-    /// Default implementation of <see cref="IGroupChatPromptStrategy"/> for evidence v. hypothesis workflows.
+    /// Provides the prompt templates used by the manager for the evidence evaluation step.
     /// </summary>
     public class EvaluationPromptStrategy : IGroupChatPromptStrategy
     {

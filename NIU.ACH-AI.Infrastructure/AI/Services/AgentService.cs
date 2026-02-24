@@ -10,7 +10,7 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
     /// <summary>
-    /// Service for creating and configuring AI agents based on application settings.
+    /// Creates and configures AI agents based on application settings.
     /// </summary>
     public class AgentService : IAgentService
     {
@@ -22,12 +22,13 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         private readonly ILogger _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AgentService"/> class.
+        /// Sets up the agent service.
         /// </summary>
         /// <param name="agentConfigurations">Configurations for the agents to be created.</param>
         /// <param name="aiServiceSettings">Global AI service settings.</param>
         /// <param name="loggerFactory">Factory for creating loggers.</param>
         /// <param name="httpClientFactory">Factory for creating HttpClient instances.</param>
+        /// <param name="agentConfigurationPersistence">Persistence service for checking agent configurations.</param>
         public AgentService(
             IEnumerable<AgentConfiguration> agentConfigurations,
             AIServiceSettings aiServiceSettings,
@@ -76,20 +77,6 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
                     ServiceId = c.ServiceId ?? "openai",
                     ModelId = c.ModelId ?? "gpt-4o"
                 });
-
-                // Since create agent configs is async, we have to block here because IAgentService interface is synchronous
-                // Alternatively, IAgentService should be async.
-                // Checking interface... it is synchronous in my previous view. 
-                // However, persistence is async.
-                // Refactoring interface to Task<...> would be better but requires updates everywhere.
-                // For now, I will use .GetAwaiter().GetResult() as a pragmatic step, or update interface to Async.
-                // Given "clean code" I should make it Async. But that is a ripple effect.
-                // The interface DOES NOT return Task. I will update it to Task if the user allows, 
-                // BUT "call task_boundary" suggests I should stick to plan.
-                // Wait, in my plan I wrote: "(IEnumerable<Agent> Agents, Dictionary<string, Guid> ConfigurationIds) CreateAgents(Guid? stepExecutionId = null)".
-                // I did NOT specify Task.
-                // I will use .GetAwaiter().GetResult() for now to minimize changes, noting it's a synchronous wrapper.
-                // Or I can just fire and forget? No, we need the IDs.
                 
                 try
                 {

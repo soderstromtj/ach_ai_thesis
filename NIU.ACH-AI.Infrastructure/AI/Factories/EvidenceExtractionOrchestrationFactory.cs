@@ -17,20 +17,19 @@ namespace NIU.ACH_AI.Infrastructure.AI.Factories
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
-    /// Factory for creating evidence extraction orchestrations.
-    /// Uses group chat execution to extract evidence from multiple sources/agents collaboratively.
+    /// Sets up the workflow that extracts evidence from multiple agents.
     /// </summary>
     public class EvidenceExtractionOrchestrationFactory : BaseOrchestrationFactory<List<Evidence>, EvidenceResult>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="EvidenceExtractionOrchestrationFactory"/> class.
+        /// Sets up the evidence extraction factory.
         /// </summary>
         /// <param name="agentService">Service for creating agents.</param>
         /// <param name="kernelBuilderService">Service for building semantic kernels.</param>
         /// <param name="orchestrationSettings">Settings for orchestration execution.</param>
+        /// <param name="promptFormatter">Formatter for orchestration inputs.</param>
         /// <param name="loggerFactory">Logger factory.</param>
         /// <param name="agentResponsePersistence">Optional service for persisting agent responses.</param>
-        /// <param name="tokenUsageExtractor">Optional service for extracting token usage.</param>
         public EvidenceExtractionOrchestrationFactory(
             IAgentService agentService,
             IKernelBuilderService kernelBuilderService,

@@ -14,8 +14,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     /// <summary>
-    /// Group chat manager for hypothesis generation workflows using the Analysis of Competing Hypotheses (ACH) framework.
-    /// Orchestrates a team of agents to collaboratively generate hypotheses for a given key question.
+    /// Manages the conversation flow between agents during the hypothesis generation step.
     /// </summary>
     public class EvaluationGroupChatManager : GroupChatManager
     {
@@ -27,7 +26,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         private readonly ILogger<EvaluationGroupChatManager> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="EvaluationGroupChatManager"/> class.
+        /// Sets up the group chat manager for hypothesis generation.
         /// </summary>
         /// <param name="input">The orchestration prompt input containing the key question and context.</param>
         /// <param name="agentNames">The configurations of all agents participating in the group chat.</param>
@@ -70,7 +69,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Filters and formats the results from the group chat into a structured format.
+        /// Asks the LLM to format the final answers into a JSON object.
         /// </summary>
         /// <param name="history">The chat history containing the conversation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -96,7 +95,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Selects the next agent to contribute to the group chat.
+        /// Asks the LLM to choose the next agent to speak.
         /// </summary>
         public override async ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
             ChatHistory history,
@@ -120,7 +119,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Determines whether user input should be requested.
+        /// Tells the chat manager whether to wait for user input.
         /// </summary>
         /// <param name="history">The chat history containing the conversation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -139,7 +138,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Determines whether the group chat should terminate based on various criteria.
+        /// Decides if the conversation should stop based on limits or LLM assessment.
         /// </summary>
         /// <param name="history">The chat history containing the conversation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -189,7 +188,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         #region Private Methods
 
         /// <summary>
-        /// Gets the current turn count from the chat history.
+        /// Counts how many messages have been sent by agents.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <returns>The number of assistant messages in the history.</returns>
@@ -199,7 +198,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Checks if the maximum invocation limit has been reached.
+        /// Checks if the chat has hit the maximum allowed message limit.
         /// </summary>
         /// <param name="turnCount">The current turn count.</param>
         /// <returns>True if the limit has been reached; otherwise, false.</returns>
@@ -209,7 +208,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Checks if all expected agents have participated in the conversation.
+        /// Checks if all agents have spoken.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <returns>True if all agents have participated; otherwise, false.</returns>
@@ -219,7 +218,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Evaluates termination criteria by delegating to the LLM for quality assessment.
+        /// Asks the LLM if the conversation has met its goals and should stop.
         /// </summary>
         /// <param name="history">The chat history to analyze.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -245,7 +244,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
         }
 
         /// <summary>
-        /// Gets a response from the chat completion service using structured output.
+        /// Sends a prompt to the LLM and parses the structured JSON response.
         /// </summary>
         /// <typeparam name="TValue">The type of value expected in the response.</typeparam>
         /// <param name="history">The chat history for context.</param>

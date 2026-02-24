@@ -13,8 +13,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Managers
 {
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only
     /// <summary>
-    /// Group chat manager for evidence extraction workflows.
-    /// Orchestrates a team of agents to collaboratively extract, review, and deduplicate evidence.
+    /// Manages the conversation flow between agents during the evidence extraction step.
     /// </summary>
     public class EvidenceExtractionGroupChatManager : GroupChatManager
     {

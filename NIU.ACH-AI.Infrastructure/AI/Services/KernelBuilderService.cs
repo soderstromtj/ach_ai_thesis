@@ -10,7 +10,7 @@ using NIU.ACH_AI.Infrastructure.Configuration;
 namespace NIU.ACH_AI.Infrastructure.AI.Services
 {
     /// <summary>
-    /// Service acting as a factory for Kernel instances, selecting the appropriate provider.
+    /// Builds Kernel instances and selects the appropriate provider.
     /// </summary>
     public class KernelBuilderService : IKernelBuilderService
     {
@@ -22,7 +22,7 @@ namespace NIU.ACH_AI.Infrastructure.AI.Services
         public AIServiceProvider CurrentProvider { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KernelBuilderService"/> class.
+        /// Sets up the kernel builder service.
         /// </summary>
         /// <param name="aiServiceSettings">The AI service settings options.</param>
         /// <param name="loggerFactory">The logger factory.</param>
