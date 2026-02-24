@@ -1,32 +1,32 @@
 ﻿namespace NIU.ACH_AI.Infrastructure.Configuration
 {
     /// <summary>
-    /// Configuration settings for Azure OpenAI service.
+    /// Defines configurations specific to the Azure OpenAI service.
     /// </summary>
     public class AzureOpenAISettings
     {
         /// <summary>
-        /// Gets or sets the API key for authentication.
+        /// Stores the authentication key.
         /// </summary>
         public string ApiKey { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the endpoint URL for the Azure OpenAI resource.
+        /// Stores the URL for the Azure resource.
         /// </summary>
         public string Endpoint { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the deployment name for the model.
+        /// Identifies the specific model deployment to use.
         /// </summary>
         public string DeploymentName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the optional model ID override.
+        /// Optionally overrides the default model identifier.
         /// </summary>
         public string? ModelId { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets the optional service ID.
+        /// Optionally identifies the service instance.
         /// </summary>
         public string? ServiceId { get; set; } = null;
     }

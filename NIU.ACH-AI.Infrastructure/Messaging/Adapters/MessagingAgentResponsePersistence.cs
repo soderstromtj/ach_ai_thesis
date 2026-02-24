@@ -9,9 +9,8 @@ using NIU.ACH_AI.Application.Messaging.Events;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Adapters
 {
     /// <summary>
-    /// An adapter implementation of <see cref="IAgentResponsePersistence"/> that publishes 
-    /// agent responses as events to the Message Bus instead of saving them directly to the database.
-    /// This enables the "Decoupled Persistence" pattern.
+    /// Custom persistence adapter that publishes agent responses to the message broker.
+    /// Used to decouple the database saving process from the live chat workflow.
     /// </summary>
     public class MessagingAgentResponsePersistence : IAgentResponsePersistence
     {

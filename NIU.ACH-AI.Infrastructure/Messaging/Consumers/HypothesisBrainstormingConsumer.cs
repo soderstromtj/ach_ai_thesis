@@ -9,8 +9,7 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that handles Hypothesis Brainstorming requests.
-    /// Orchestrates the brainstorming process and returns the results.
+    /// Coordinates the hypothesis brainstorming step and returns the newly generated theories.
     /// </summary>
     public class HypothesisBrainstormingConsumer : IConsumer<IBrainstormingRequested>
     {

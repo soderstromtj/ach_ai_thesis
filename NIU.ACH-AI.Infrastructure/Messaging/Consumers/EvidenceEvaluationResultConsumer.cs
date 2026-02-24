@@ -5,6 +5,9 @@ using NIU.ACH_AI.Application.Interfaces;
 
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
+    /// <summary>
+    /// Processes the outcome of an evidence evaluation step and updates the step's completion status.
+    /// </summary>
     public class EvidenceEvaluationResultConsumer : IConsumer<IEvidenceEvaluationResult>
     {
         private readonly IWorkflowPersistence _workflowPersistence;

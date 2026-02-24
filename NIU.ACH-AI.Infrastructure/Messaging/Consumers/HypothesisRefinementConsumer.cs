@@ -9,7 +9,7 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that handles Hypothesis Refinement requests.
+    /// Manages the process of refining initial hypotheses based on findings.
     /// </summary>
     public class HypothesisRefinementConsumer : IConsumer<IHypothesisRefinementRequested>
     {

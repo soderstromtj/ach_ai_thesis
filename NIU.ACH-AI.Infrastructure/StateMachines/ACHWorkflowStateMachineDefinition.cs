@@ -4,6 +4,10 @@ using NIU.ACH_AI.Application.Messaging.Events;
 
 namespace NIU.ACH_AI.Infrastructure.StateMachines
 {
+    /// <summary>
+    /// Configures the behavior of the ACH workflow state machine within the message broker.
+    /// Sets up concurrency limits and partitioning rules to prevent database locking issues.
+    /// </summary>
     public class ACHWorkflowStateMachineDefinition : SagaDefinition<ExperimentState>
     {
         protected override void ConfigureSaga(IReceiveEndpointConfigurator endpointConfigurator, ISagaConfigurator<ExperimentState> sagaConfigurator)

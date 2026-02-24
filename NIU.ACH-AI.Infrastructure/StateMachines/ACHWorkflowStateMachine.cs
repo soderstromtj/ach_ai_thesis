@@ -11,6 +11,10 @@ using NIU.ACH_AI.Infrastructure.Persistence.Models;
 
 namespace NIU.ACH_AI.Infrastructure.StateMachines
 {
+    /// <summary>
+    /// Governs the overarching flow of the ACH experiment, transitioning between structured steps like brainstorming and evaluation.
+    /// Acts as the central orchestrator for the analysis process.
+    /// </summary>
     public class ACHWorkflowStateMachine : MassTransitStateMachine<ExperimentState>
     {
         private readonly ILogger<ACHWorkflowStateMachine> _logger;

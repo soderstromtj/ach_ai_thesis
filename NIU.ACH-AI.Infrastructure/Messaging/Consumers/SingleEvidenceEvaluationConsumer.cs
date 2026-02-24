@@ -9,8 +9,8 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that handles a single Evidence-Hypothesis Evaluation request.
-    /// This is the worker in the Scatter-Gather pattern.
+    /// Evaluates one specific piece of evidence against one specific hypothesis.
+    /// Used as a concurrent worker in the overall evaluation phase.
     /// </summary>
     public class SingleEvidenceEvaluationConsumer : IConsumer<IEvaluateHypothesisEvidencePair>
     {

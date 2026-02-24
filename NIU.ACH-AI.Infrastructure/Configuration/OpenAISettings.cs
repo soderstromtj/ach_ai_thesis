@@ -1,27 +1,27 @@
 ﻿namespace NIU.ACH_AI.Infrastructure.Configuration
 {
     /// <summary>
-    /// Configuration settings for OpenAI service.
+    /// Defines configurations specific to the general OpenAI service.
     /// </summary>
     public class OpenAISettings
     {
         /// <summary>
-        /// Gets or sets the API key for authentication.
+        /// Stores the authentication key.
         /// </summary>
         public string ApiKey { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the model ID (e.g., "o3").
+        /// Identifies which model to prioritize.
         /// </summary>
         public string ModelId { get; set; } = "o3";
 
         /// <summary>
-        /// Gets or sets the optional organization ID.
+        /// Optionally links requests to a specific organization.
         /// </summary>
         public string? OrganizationId { get; set; }
 
         /// <summary>
-        /// Gets or sets the optional service ID.
+        /// Optionally identifies the service instance.
         /// </summary>
         public string? ServiceId { get; set; }
     }

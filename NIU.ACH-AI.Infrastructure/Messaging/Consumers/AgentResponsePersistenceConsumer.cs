@@ -7,8 +7,8 @@ using NIU.ACH_AI.Infrastructure.Persistence.Services;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that listens for agent response events and persists them to the database.
-    /// This effectively decouples the workflow execution from the database write operations.
+    /// Listens for new agent messages and saves them to the database.
+    /// Decouples the message saving process from the main chat workflow.
     /// </summary>
     public class AgentResponsePersistenceConsumer : IConsumer<IAgentResponseReceived>
     {

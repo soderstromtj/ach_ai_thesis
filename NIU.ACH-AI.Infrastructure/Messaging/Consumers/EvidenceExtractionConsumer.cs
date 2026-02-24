@@ -9,7 +9,7 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that handles Evidence Extraction requests.
+    /// Manages the workflow for extracting factual evidence from the provided context.
     /// </summary>
     public class EvidenceExtractionConsumer : IConsumer<IEvidenceExtractionRequested>
     {

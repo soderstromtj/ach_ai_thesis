@@ -5,6 +5,10 @@ using NIU.ACH_AI.Infrastructure.StateMachines;
 
 namespace NIU.ACH_AI.Infrastructure.Persistence.Configurations
 {
+    /// <summary>
+    /// Configures the database mapping for the saga experiment state.
+    /// Specifies how properties are stored and constraint rules like string length.
+    /// </summary>
     public class ExperimentStateMap : SagaClassMap<ExperimentState>
     {
         protected override void Configure(EntityTypeBuilder<ExperimentState> entity, ModelBuilder model)

@@ -9,7 +9,7 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Infrastructure.Messaging.Consumers
 {
     /// <summary>
-    /// Consumer that handles Evidence-Hypothesis Evaluation requests.
+    /// Initializes and orchestrates the process of testing each piece of evidence against every proposed hypothesis.
     /// </summary>
     public class EvidenceEvaluationConsumer : IConsumer<IEvidenceEvaluationRequested>
     {
