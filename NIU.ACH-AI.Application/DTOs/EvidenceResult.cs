@@ -3,24 +3,22 @@
 namespace NIU.ACH_AI.Application.DTOs
 {
     /// <summary>
-    /// Represents the result of an evidence extraction phase.
+    /// Wraps the extracted factual points into a structured object.
     /// </summary>
     /// <remarks>
-    /// This wrapper class is used to structure the output for LLM providers (e.g., OpenAI) which often require a top-level object rather than a raw array.
+    /// Required by many LLM JSON configurations to ensure a valid top-level schema is parsed instead of a raw array.
     /// </remarks>
     public class EvidenceResult
     {
         /// <summary>
-        /// Gets or sets the list of evidence items extracted.
+        /// Gets or sets the collection of factual points derived from the document context.
         /// </summary>
         public List<Evidence> Evidence { get; set; } = new List<Evidence>();
 
         /// <summary>
-        /// Returns a string that represents the current object.
+        /// Formats the evidence points with numerical bullets for readability.
         /// </summary>
-        /// <returns>
-        /// A formatted string listing all evidence items.
-        /// </returns>
+        /// <returns>A multiline string of points.</returns>
         public override string ToString()
         {
             // Neatly format the evidence list for display

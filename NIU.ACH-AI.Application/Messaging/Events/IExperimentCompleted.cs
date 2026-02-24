@@ -4,7 +4,7 @@ using NIU.ACH_AI.Application.DTOs;
 namespace NIU.ACH_AI.Application.Messaging.Events
 {
     /// <summary>
-    /// Event published when an ACH Experiment Saga completes successfully.
+    /// Signals that an ACH Experiment Saga has finished successfully.
     /// </summary>
     public interface IExperimentCompleted
     {

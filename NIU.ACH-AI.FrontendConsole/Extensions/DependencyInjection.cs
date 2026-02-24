@@ -13,12 +13,12 @@ using NIU.ACH_AI.Infrastructure.Extensions;
 namespace NIU.ACH_AI.FrontendConsole.Extensions
 {
     /// <summary>
-    /// Extension methods for setting up frontend-specific services and configuration.
+    /// Adds frontend-specific services and settings to the application.
     /// </summary>
     public static class DependencyInjection
     {
         /// <summary>
-        /// Registers frontend services, configuration settings, and logging to the service collection.
+        /// Adds frontend services, settings, and logging to the service collection.
         /// </summary>
         /// <param name="services">The service collection to add services to.</param>
         /// <param name="configuration">The configuration containing app settings.</param>

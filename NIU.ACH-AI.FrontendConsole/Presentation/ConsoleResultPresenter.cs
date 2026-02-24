@@ -11,7 +11,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         private const int SeparatorLength = 70;
 
         /// <summary>
-        /// Displays basic information about the experiment information.
+        /// Shows basic information about the experiment.
         /// </summary>
         /// <param name="experimentConfiguration">The configuration for the experiment.</param>
         public void DisplayExperimentInfo(ExperimentConfiguration experimentConfiguration)
@@ -25,7 +25,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         }
 
         /// <summary>
-        /// Displays a list of hypotheses with their short titles and full texts.
+        /// Shows a list of hypotheses.
         /// </summary>
         /// <param name="title">A title that is displayed before the list of hypotheses.</param>
         /// <param name="hypotheses">The collection of hypotheses to display.</param>
@@ -44,7 +44,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         }
 
         /// <summary>
-        /// Displays a list of evidence items with their details.
+        /// Shows a list of evidence items.
         /// </summary>
         /// <param name="title">A title that is displayed before the list of evidence</param>
         /// <param name="evidence">The collection of evidence items to display.</param>
@@ -63,7 +63,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         }
 
         /// <summary>
-        /// Displays the evaluation of evidence against a hypothesis.
+        /// Shows the evaluation of a piece of evidence against a hypothesis.
         /// </summary>
         /// <param name="evaluation">The evaluation of evidence against a hypothesis.</param>
         public void DisplayEvaluation(EvidenceHypothesisEvaluation evaluation)
@@ -74,7 +74,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
         }
 
         /// <summary>
-        /// Displays an error message to the console.
+        /// Shows an error message in the console.
         /// </summary>
         /// <param name="message">The error message to display.</param>
         public void DisplayErrorMessage(string message)
@@ -86,7 +86,7 @@ namespace NIU.ACH_AI.FrontendConsole.Presentation
 
 
         /// <summary>
-        /// Displays the results of the ACH orchestration workflow.
+        /// Shows the final results of the entire workflow.
         /// </summary>
         /// <param name="result">The workflow result to display.</param>
         public void DisplayWorkflowResult(ACHWorkflowResult result)

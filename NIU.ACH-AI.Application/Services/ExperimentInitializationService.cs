@@ -7,6 +7,9 @@ using NIU.ACH_AI.Application.Interfaces;
 
 namespace NIU.ACH_AI.Application.Services
 {
+    /// <summary>
+    /// Sets up the initial database records for a new experiment before any processing begins.
+    /// </summary>
     public class ExperimentInitializationService : IExperimentInitializationService
     {
         private readonly IWorkflowPersistence _workflowPersistence;

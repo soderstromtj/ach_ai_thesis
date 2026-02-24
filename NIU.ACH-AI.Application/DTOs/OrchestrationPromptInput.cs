@@ -1,7 +1,7 @@
 ﻿namespace NIU.ACH_AI.Application.DTOs
 {
     /// <summary>
-    /// Represents the input required to construct a prompt for the orchestration engine.
+    /// Aggregates the requisite context and instructions to build a prompt for the local orchestration engine.
     /// </summary>
     /// <remarks>
     /// This class aggregates all necessary context, instructions, and intermediate results needed by the AI to perform a step.
@@ -34,7 +34,7 @@
         public EvidenceResult? EvidenceResult { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets any additional or custom instructions for the agent.
+        /// Gets or sets supplemental guidelines to override or augment standard persona behavior.
         /// </summary>
         public string AdditionalInstructions { get; set; } = string.Empty;
     }

@@ -17,13 +17,12 @@ namespace NIU.ACH_AI.FrontendConsole
 #pragma warning disable SKEXP0110 // Suppresses the warning about using Semantic Kernel for production purposes.
 
     /// <summary>
-    /// The entry point for the NIU ACH-AI Frontend Console application.
-    /// Manages the application host, dependency injection, and high-level workflow execution.
+    /// Starts the console application, sets up setup dependencies, and manages the main workflow.
     /// </summary>
     public class Program
     {
         /// <summary>
-        /// Entry point that starts the application and runs the ACH orchestration.
+        /// Starts the application and runs the workflow.
         /// </summary>
         static async Task Main(string[] args)
         {
@@ -84,7 +83,7 @@ namespace NIU.ACH_AI.FrontendConsole
         }
 
         /// <summary>
-        /// Creates and configures the application host with services and configuration.
+        /// Sets up the application host with required services and settings.
         /// </summary>
         public static HostApplicationBuilder CreateHostBuilder(string[] args)
         {
@@ -116,7 +115,7 @@ namespace NIU.ACH_AI.FrontendConsole
         #region Private Methods
 
         /// <summary>
-        /// Selects an experiment configuration based on arguments or defaults to the first one.
+        /// Chooses which experiment to run based on command-line arguments, or uses the first one by default.
         /// </summary>
         private static ExperimentConfiguration? SelectExperiment(ExperimentsSettings settings, string[] args)
         {
@@ -155,7 +154,7 @@ namespace NIU.ACH_AI.FrontendConsole
         }
 
         /// <summary>
-        /// Runs the orchestration workflow for the specified experiment
+        /// Runs the workflow for the chosen experiment.
         /// </summary>
         private static async Task<ACHWorkflowResult> RunOrchestrationAsync(
             IHost host, 

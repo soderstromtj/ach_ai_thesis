@@ -4,7 +4,7 @@ using NIU.ACH_AI.Application.Configuration;
 namespace NIU.ACH_AI.Application.Messaging.Events
 {
     /// <summary>
-    /// Event triggered to start a new ACH Experiment Saga.
+    /// Triggers the start of a new ACH experiment workflow.
     /// </summary>
     public interface IExperimentStarted
     {

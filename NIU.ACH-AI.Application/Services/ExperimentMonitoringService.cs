@@ -7,6 +7,9 @@ using NIU.ACH_AI.Application.Interfaces;
 
 namespace NIU.ACH_AI.Application.Services
 {
+    /// <summary>
+    /// Watches the progress of an active experiment and waits for the entire workflow to finish.
+    /// </summary>
     public class ExperimentMonitoringService : IExperimentMonitoringService
     {
         private readonly IWorkflowPersistence _workflowPersistence;

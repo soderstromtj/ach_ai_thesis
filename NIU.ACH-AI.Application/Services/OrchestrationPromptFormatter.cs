@@ -3,6 +3,9 @@ using NIU.ACH_AI.Application.DTOs;
 
 namespace NIU.ACH_AI.Application.Services
 {
+    /// <summary>
+    /// Formats the input context and instructions into a single text prompt for the AI model to read.
+    /// </summary>
     public class OrchestrationPromptFormatter : Interfaces.IOrchestrationPromptFormatter
     {
         public string FormatPrompt(OrchestrationPromptInput input)

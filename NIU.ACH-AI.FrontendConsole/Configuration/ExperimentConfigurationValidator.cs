@@ -4,12 +4,12 @@ using NIU.ACH_AI.Application.Configuration;
 namespace NIU.ACH_AI.FrontendConsole.Configuration
 {
     /// <summary>
-    /// Validates the configuration of experiments to ensure strict adherence to required fields.
+    /// Checks that an experiment configuration has all its required fields.
     /// </summary>
     public static class ExperimentConfigurationValidator
     {
         /// <summary>
-        /// Validates that the experiment configuration has all required properties set.
+        /// Checks that the experiment configuration has all required properties set.
         /// </summary>
         /// <param name="config">The experiment configuration to validate.</param>
         /// <exception cref="InvalidOperationException">Thrown when a required configuration field is missing or empty.</exception>

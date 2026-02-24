@@ -1,9 +1,11 @@
 namespace NIU.ACH_AI.Application.Messaging.Events
 {
     /// <summary>
-    /// Event fired when an individual agent generates a response (or a chunk of it).
-    /// Used for granular persistence and UI updates.
+    /// Serves as the notification that a participating actor has finalized a conversational turn.
     /// </summary>
+    /// <remarks>
+    /// Broadcast to enable granular progress tracking, telemetry recording, and real-time user interface updates.
+    /// </remarks>
     public interface IAgentResponseReceived
     {
         Guid ExperimentId { get; }

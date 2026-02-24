@@ -8,8 +8,7 @@ using NIU.ACH_AI.Application.Messaging.Events;
 namespace NIU.ACH_AI.Application.Services
 {
     /// <summary>
-    /// Coordinates the execution of ACH workflow steps using the Saga Orchestrator.
-    /// Publishes the start event.
+    /// Coordinates the complete execution of an ACH workflow and triggers the initial start event.
     /// </summary>
     public class ACHWorkflowCoordinator : IACHWorkflowCoordinator
     {

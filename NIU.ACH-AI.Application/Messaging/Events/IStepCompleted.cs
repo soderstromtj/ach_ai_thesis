@@ -3,8 +3,8 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Application.Messaging.Events
 {
     /// <summary>
-    /// Generic event fired when any ACH step completes.
-    /// Payload varies based on the step type (e.g. List of Hypotheses).
+    /// Signals that a specific ACH workflow step has finished.
+    /// The result payload changes depending on which step was running (e.g., returning a list of hypotheses).
     /// </summary>
     public interface IStepCompleted<TResult>
     {

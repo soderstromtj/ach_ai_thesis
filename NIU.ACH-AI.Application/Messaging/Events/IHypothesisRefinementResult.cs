@@ -3,7 +3,7 @@ using NIU.ACH_AI.Domain.Entities;
 namespace NIU.ACH_AI.Application.Messaging.Events
 {
     /// <summary>
-    /// Result event for the Hypothesis Refinement step.
+    /// Contains the output from the hypothesis refinement process.
     /// </summary>
     public interface IHypothesisRefinementResult
     {

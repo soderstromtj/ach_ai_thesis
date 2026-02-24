@@ -1,39 +1,40 @@
 namespace NIU.ACH_AI.Application.Configuration
 {
     /// <summary>
-    /// Configuration for an individual ACH step within an experiment.
-    /// Contains all settings needed to execute a single step of the ACH process,
-    /// including agent configurations, orchestration settings, and context variables.
+    /// Defines the configuration settings required to execute a single phase of the Analysis of Competing Hypotheses (ACH) process.
     /// </summary>
+    /// <remarks>
+    /// Encapsulates agent setups, orchestration rules, and instructions necessary to run a specific portion of the overarching experiment.
+    /// </remarks>
     public class ACHStepConfiguration
     {
         /// <summary>
-        /// Unique identifier for this ACH step
+        /// Gets or sets the numeric identifier used to uniquely track this phase within the broader experiment.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// The name of the ACH step (e.g., "MultiAgentChat")
+        /// Gets or sets the programmatic identifier used for routing or internal referencing (e.g., "MultiAgentChat").
         /// </summary>
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Description of what this ACH step accomplishes
+        /// Gets or sets the human-readable explanation of the objective to inform analysts.
         /// </summary>
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
-        /// Task instructions for the orchestration workflow
+        /// Gets or sets the core prompt directives that guide the autonomous workflow toward its objective.
         /// </summary>
         public string TaskInstructions { get; set; } = string.Empty;
 
         /// <summary>
-        /// Agent configurations for this ACH step
+        /// Gets or sets the definitions for the specific AI personas and capabilities enlisted for this phase.
         /// </summary>
         public AgentConfiguration[] AgentConfigurations { get; set; } = Array.Empty<AgentConfiguration>();
 
         /// <summary>
-        /// Orchestration settings for this ACH step
+        /// Gets or sets the execution limits and behavioral rules to ensure stable processing.
         /// </summary>
         public OrchestrationSettings OrchestrationSettings { get; set; } = new();
     }

@@ -1,9 +1,11 @@
 namespace NIU.ACH_AI.Application.Configuration
 {
     /// <summary>
-    /// Defines the available AI service providers that can be used for ACH steps.
-    /// This is a business-level configuration that determines which AI service to use.
+    /// Enumerates the supported external artificial intelligence platforms.
     /// </summary>
+    /// <remarks>
+    /// Acts as a business-level toggle to determine which underlying API ecosystem fulfills LLM requests during operations.
+    /// </remarks>
     public enum AIServiceProvider
     {
         AzureOpenAI,
