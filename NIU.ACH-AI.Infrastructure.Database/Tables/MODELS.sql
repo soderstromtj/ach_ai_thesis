@@ -11,8 +11,6 @@ CREATE TABLE [dbo].[MODELS] (
     CONSTRAINT [FK_MODELS_PROVIDERS] FOREIGN KEY ([provider_id]) REFERENCES [dbo].[PROVIDERS] ([provider_id]),
     CONSTRAINT [UQ_MODELS_provider_model] UNIQUE NONCLUSTERED ([provider_id] ASC, [model_name] ASC)
 );
-
-
 GO
 
 -- Create the index for faster lookups by provider

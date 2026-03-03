@@ -2,7 +2,8 @@
 AS
 SELECT         
     dbo.EXPERIMENTS.experiment_id AS ExperimentId, 
-
+    dbo.HYPOTHESES.hypothesis_id,
+    dbo.EVIDENCE.evidence_id,
     -- New: Creates H1, H2, H3... restarting at 1 for each new Experiment
     CONCAT('H', DENSE_RANK() OVER(PARTITION BY dbo.EXPERIMENTS.experiment_id ORDER BY dbo.HYPOTHESES.hypothesis_id)) AS Hypothesis_Label,
     
