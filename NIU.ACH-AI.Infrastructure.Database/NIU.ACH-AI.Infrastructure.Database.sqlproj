@@ -54,56 +54,65 @@
   <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
   <ItemGroup>
     <Folder Include="Properties" />
-    <Folder Include="Tables" />
-    <Folder Include="Views" />
+    <Folder Include="dw\" />
+    <Folder Include="dw\Tables\" />
+    <Folder Include="dbo\" />
+    <Folder Include="dbo\Stored Procedures\" />
+    <Folder Include="dw\Stored Procedures\" />
+    <Folder Include="Security\" />
+    <Folder Include="dbo\Tables" />
+    <Folder Include="dbo\Views" />
   </ItemGroup>
   <ItemGroup>
-    <Build Include="Tables\STEP_EXECUTIONS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\ACH_STEPS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\EXPERIMENTS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\MODELS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\PROVIDERS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\AGENT_CONFIGURATIONS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\AGENT_RESPONSES.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\EVIDENCE_TYPES.sql" />
-    <Build Include="Tables\EVALUATION_SCORES.sql" />
-    <Build Include="Tables\HYPOTHESES.sql" />
-    <Build Include="Tables\EVIDENCE.sql" />
-    <Build Include="Tables\EVIDENCE_HYPOTHESIS_EVALUATIONS.sql" />
-    <Build Include="Views\STEP_EXECUTION_TIME_COST.sql" />
-    <Build Include="Views\HYPOTHESIS_RANKINGS.sql" />
-    <Build Include="Views\EVIDENCE_DIAGNOSTICITY.sql" />
-    <Build Include="Views\AGENT_COSTS.sql" />
-    <Build Include="Views\MODEL_COSTS.sql" />
-    <Build Include="Views\Formatted_Evaluations.sql" />
-    <Build Include="Views\EVIDENCE_TYPE_DISTRIBUTION.sql" />
-    <Build Include="Views\HYPOTHESIS_CONFIDENCE.sql" />
-    <Build Include="Views\PARADOXICAL_EVIDENCE.sql" />
-    <Build Include="Views\AUDIT_TRAIL_COMPLETENESS_RATE.sql" />
+    <Build Include="dw\Tables\FactAgentResponse.sql" />
+    <Build Include="dw\Tables\FactEvaluation.sql" />
+    <Build Include="dw\Tables\FactStepExecution.sql" />
+    <Build Include="dw\Tables\DimEvaluationScore.sql" />
+    <Build Include="dw\Tables\DimHypothesis.sql" />
+    <Build Include="dw\Tables\DimEvidence.sql" />
+    <Build Include="dw\Tables\DimAgent.sql" />
+    <Build Include="dw\Tables\DimACHStep.sql" />
+    <Build Include="dw\Tables\DimExperiment.sql" />
+    <Build Include="dw\Tables\DimDate.sql" />
+    <Build Include="dbo\Stored Procedures\usp_Delete_Experiment_Cascade.sql" />
+    <Build Include="dw\Stored Procedures\usp_DW_Wipe_All_Data.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Run_All.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_FactEvaluation.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_FactAgentResponse.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_FactStepExecution.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimEvaluationScore.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimHypothesis.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimEvidence.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimAgent.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimACHStep.sql" />
+    <Build Include="dw\Stored Procedures\usp_ETL_Load_DimExperiment.sql" />
+    <Build Include="Security\dw.sql" />
+    <Build Include="dbo\Tables\ACH_STEPS.sql" />
+    <Build Include="dbo\Tables\AGENT_CONFIGURATIONS.sql" />
+    <Build Include="dbo\Tables\AGENT_RESPONSES.sql" />
+    <Build Include="dbo\Tables\EVALUATION_SCORES.sql" />
+    <Build Include="dbo\Tables\EVIDENCE.sql" />
+    <Build Include="dbo\Tables\EVIDENCE_HYPOTHESIS_EVALUATIONS.sql" />
+    <Build Include="dbo\Tables\EVIDENCE_TYPES.sql" />
+    <Build Include="dbo\Tables\EXPERIMENTS.sql" />
+    <Build Include="dbo\Tables\HYPOTHESES.sql" />
+    <Build Include="dbo\Tables\MODELS.sql" />
+    <Build Include="dbo\Tables\ORCHESTRATION_TYPES.sql" />
+    <Build Include="dbo\Tables\PROVIDERS.sql" />
+    <Build Include="dbo\Tables\SCENARIOS.sql" />
+    <Build Include="dbo\Tables\STEP_EXECUTIONS.sql" />
+    <Build Include="dbo\Views\AGENT_COSTS.sql" />
+    <Build Include="dbo\Views\AUDIT_TRAIL_COMPLETENESS_RATE.sql" />
+    <Build Include="dbo\Views\EVIDENCE_DIAGNOSTICITY.sql" />
+    <Build Include="dbo\Views\EVIDENCE_TYPE_DISTRIBUTION.sql" />
+    <Build Include="dbo\Views\Formatted_Evaluations.sql" />
+    <Build Include="dbo\Views\HYPOTHESIS_CONFIDENCE.sql" />
+    <Build Include="dbo\Views\HYPOTHESIS_RANKINGS.sql" />
+    <Build Include="dbo\Views\MODEL_COSTS.sql" />
+    <Build Include="dbo\Views\PARADOXICAL_EVIDENCE.sql" />
+    <Build Include="dbo\Views\STEP_EXECUTION_TIME_COST.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="NIU.ACH-AI.Infrastructure.Database.refactorlog" />
-  </ItemGroup>
-  <ItemGroup>
-    <Build Include="Tables\ORCHESTRATION_TYPES.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
-    <Build Include="Tables\SCENARIOS.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Build>
   </ItemGroup>
 </Project>
