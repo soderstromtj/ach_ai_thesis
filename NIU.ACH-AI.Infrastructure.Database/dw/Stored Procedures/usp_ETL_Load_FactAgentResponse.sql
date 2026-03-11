@@ -1,4 +1,4 @@
-﻿CREATE   PROCEDURE [dw].[usp_ETL_Load_FactAgentResponse]
+﻿CREATE PROCEDURE [dw].[usp_ETL_Load_FactAgentResponse]
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -6,7 +6,8 @@ BEGIN
     INSERT INTO [dw].[FactAgentResponse] (
         AgentResponseBK, StepExecutionSK, AgentSK, 
         CreatedAt, FinishedAt, 
-        TurnNumber, InputTokenCount, OutputTokenCount, ReasoningTokenCount, TotalTokens, EstimatedCostUSD
+        TurnNumber, InputTokenCount, OutputTokenCount, ReasoningTokenCount, TotalTokens, EstimatedCostUSD,
+        [Content] -- New column added here
     )
     SELECT 
         ar.agent_response_id,
@@ -26,7 +27,9 @@ BEGIN
                 (ISNULL(ar.input_token_count, 0) * ISNULL(m.input_token_cost, 0)) + 
                 (ISNULL(ar.output_token_count, 0) * ISNULL(m.output_token_cost, 0))
             ) / 1000000.0 
-        AS DECIMAL(18, 6)) AS EstimatedCostUSD
+        AS DECIMAL(18, 6)) AS EstimatedCostUSD,
+        
+        ar.content -- New column added here
 
     FROM [dbo].[AGENT_RESPONSES] ar
     LEFT JOIN [dw].[FactStepExecution] fse ON ar.step_execution_id = fse.StepExecutionBK

@@ -11,6 +11,7 @@
     [ReasoningTokenCount] INT              NULL,
     [TotalTokens]         INT              NULL,
     [EstimatedCostUSD]    DECIMAL (18, 6)  NULL,
+    [Content]             NVARCHAR (MAX)   NULL,
     PRIMARY KEY CLUSTERED ([AgentResponseSK] ASC),
     CONSTRAINT [FK_FactAgentResponse_Agent] FOREIGN KEY ([AgentSK]) REFERENCES [dw].[DimAgent] ([AgentSK]),
     CONSTRAINT [FK_FactAgentResponse_StepExecution] FOREIGN KEY ([StepExecutionSK]) REFERENCES [dw].[FactStepExecution] ([StepExecutionSK])
