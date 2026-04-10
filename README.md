@@ -1,6 +1,6 @@
 # ACH-AI Overview
 
-This application implements the first three stages of the Analysis of Competing Hypotheses (ACH) process as part of a thesis project at NIU. This application utilizes multiple AI agents (see the appsettings.json file in NIU.ACH-AI.FrontendConsole) orchestrated with the Microsoft Semantic Kernel framework. Additionally, .NET Aspire is used for local container orchestration and RabbitMQ for reliable asynchronous execution of the ACH workflow.
+This application implements the first three stages of the Analysis of Competing Hypotheses (ACH) process as part of a thesis project. This application utilizes multiple AI agents (see the appsettings.json file in NIU.ACH-AI.FrontendConsole) orchestrated with the Microsoft Semantic Kernel framework. Additionally, .NET Aspire is used for local container orchestration and RabbitMQ for reliable asynchronous execution of the ACH workflow.
 
 # Architecture
 
